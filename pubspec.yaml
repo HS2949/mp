@@ -43,11 +43,16 @@ dependencies:
   # Firebase Hosting (호스팅 - Flutter Web 전용)
   firebase_app_check: ^0.2.1+6 # 보안 및 무결성 확인 (옵션, 권장)
 
-  file_picker: ^8.1.7
+  firebase_auth: ^4.16.0
+
+  file_picker: ^8.0.7
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+
+  equatable: ^2.0.5
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:
