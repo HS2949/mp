@@ -2,6 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
+import 'package:mp_db/providers/signin/signin_provider.dart';
+import 'package:mp_db/providers/signup/signup_provider.dart';
 import 'package:mp_db/repositories/auth_repository.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
@@ -65,7 +67,17 @@ class MyApp extends StatelessWidget {
             AuthProvider? authProovider,
           ) =>
               authProovider!..update(userStream),
-        )
+        ),
+        ChangeNotifierProvider<SigninProvider>(
+          create: (context) => SigninProvider(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
+        ChangeNotifierProvider<SignupProvider>(
+          create: (context) => SignupProvider(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
       ],
       child: CupertinoApp(
         // 앱의 제목을 정의합니다. iOS에서는 표시되지 않을 수 있습니다.

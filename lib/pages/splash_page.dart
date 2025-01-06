@@ -12,21 +12,20 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthProvider>().state;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (authState.authStatus == AuthStatus.authenticated) {
-        Navigator.pushReplacementNamed(context, HomePage.routeName);
-      } else if (authState.authStatus == AuthStatus.unauthenticated) {
-        Navigator.pushReplacementNamed(context, SigninPage.routeName);
-      }
-    });
-
+    if (authState.authStatus == AuthStatus.authenticated) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        Navigator.pushNamed(context, HomePage.routeName);
+      });
+    } else if (authState.authStatus == AuthStatus.unauthenticated) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        Navigator.pushNamed(context, SigninPage.routeName);
+      });
+    }
     return CupertinoPageScaffold(
-      child: Center(
-        child: CupertinoActivityIndicator(
-          radius: 40.0,
-        ),
+        child: Center(
+      child: CupertinoActivityIndicator(
+        radius: 40.0,
       ),
-    );
+    ));
   }
 }

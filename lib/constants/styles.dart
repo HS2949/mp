@@ -29,6 +29,12 @@ class AppTheme {
     color: CupertinoColors.systemGrey, // 서브 텍스트 색상
   );
 
+  static const TextStyle errorTextStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: Color.fromARGB(255, 150, 20, 63), // 서브 텍스트 색상
+  );
+
   // 팝업 스타일
   static const TextStyle popupTitleStyle = TextStyle(
     fontSize: 18,

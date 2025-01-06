@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mp_db/constants/db_contants.dart';
-import 'package:mp_db/models/custrom_error.dart';
+import 'package:mp_db/models/custom_error.dart';
 
 class AuthRepository {
   final FirebaseFirestore firebaseFirestore;
@@ -32,13 +32,13 @@ class AuthRepository {
         'position': 'Guest'
       });
     } on fbAuth.FirebaseAuthException catch (e) {
-      throw CustromError(
+      throw CustomError(
         code: e.code,
         message: e.message!,
         plugin: e.plugin,
       );
     } catch (e) {
-      throw CustromError(
+      throw CustomError(
         code: 'Exception',
         message: e.toString(),
         plugin: 'flutter_error/server_error',
@@ -46,7 +46,7 @@ class AuthRepository {
     }
   }
 
-  Future<void> Signin({
+  Future<void> signin({
     required String email,
     required String password,
   }) async {
@@ -56,17 +56,23 @@ class AuthRepository {
         password: password,
       );
     } on fbAuth.FirebaseAuthException catch (e) {
-      throw CustromError(
-        code: e.code,
-        message: e.message!,
-        plugin: e.plugin,
-      );
-    } catch (e) {
-      throw CustromError(
-        code: 'Exception',
-        message: e.toString(),
-        plugin: 'flutter_error/server_error',
-      );
+      switch (e.code) {
+        case 'user-not-found':
+          throw CustomError(
+            code: 'ID',
+            message: '아이디가 존재하지 않습니다.',
+          );
+        case 'wrong-password':
+          throw CustomError(
+            code: 'Password',
+            message: '비밀번호가 잘못되었습니다.',
+          );
+        default:
+          throw CustomError(
+            code: e.code,
+            message: e.message ?? '알 수 없는 오류가 발생했습니다.',
+          );
+      }
     }
   }
 

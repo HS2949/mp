@@ -30,6 +30,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- ✅ Firebase reCAPTCHA 및 App Check 설정 추가 -->
+        <meta-data
+            android:name="com.google.firebase.auth"
+            android:value="DEFAULT" />
+        
+        <meta-data
+            android:name="com.google.firebase.appcheck"
+            android:value="playintegrity" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

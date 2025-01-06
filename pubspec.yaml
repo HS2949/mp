@@ -33,17 +33,19 @@ dependencies:
 
   # Firebase Core (필수)
   firebase_core: ^2.24.2
-
+  firebase_auth: ^4.17.4
+  firebase_auth_web: ^5.10.0
+  firebase_storage: ^11.6.6
+  firebase_storage_web: ^3.6.22
   # Firestore (데이터베이스)
   cloud_firestore: ^4.12.0
 
-  # Firebase Storage (파일 저장소)
-  firebase_storage: ^11.6.2
+
 
   # Firebase Hosting (호스팅 - Flutter Web 전용)
   firebase_app_check: ^0.2.1+6 # 보안 및 무결성 확인 (옵션, 권장)
 
-  firebase_auth: ^4.16.0
+  
 
   file_picker: ^8.0.7
 
@@ -52,6 +54,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   equatable: ^2.0.5
+  validators: ^3.0.0
   provider: ^6.1.2
 
 dev_dependencies:
@@ -70,7 +73,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  assets:
+    - assets/images/miceplan_logo.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
