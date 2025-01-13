@@ -2,12 +2,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 
-
 import '../widget/dialog.dart';
 
-
 // 홈 화면의 위젯이 정의된 파일 임포트
-
 
 class TestScreen extends StatelessWidget {
   const TestScreen({super.key});
@@ -19,12 +16,18 @@ class TestScreen extends StatelessWidget {
         middle: Text('Test Example Usage'),
       ),
       child: Center(
-        child: CupertinoButton(
-          child: const Text('Show Dialog'),
-          onPressed: () {
-            // exampleUsage 호출
-            exampleUsage(context, "testItemId"); // 테스트용 ID로 설정
-          },
+        child: ListView(
+          children: [
+            CupertinoTextField(),
+            SizedBox(height: 20),
+            CupertinoButton(
+              child: const Text('Show Dialog'),
+              onPressed: () {
+                // exampleUsage 호출
+                exampleUsage(context, "testItemId"); // 테스트용 ID로 설정
+              },
+            ),
+          ],
         ),
       ),
     );

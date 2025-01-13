@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:mp_db/pages/home_page.dart';
 import 'package:mp_db/pages/signin_page.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
@@ -12,20 +12,25 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthProvider>().state;
-    if (authState.authStatus == AuthStatus.authenticated) {
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
-        Navigator.pushNamed(context, HomePage.routeName);
-      });
-    } else if (authState.authStatus == AuthStatus.unauthenticated) {
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
-        Navigator.pushNamed(context, SigninPage.routeName);
-      });
-    }
-    return CupertinoPageScaffold(
-        child: Center(
-      child: CupertinoActivityIndicator(
-        radius: 40.0,
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (authState.authStatus == AuthStatus.authenticated) {
+        Navigator.pushReplacementNamed(context, HomePage.routeName);
+      } else if (authState.authStatus == AuthStatus.unauthenticated) {
+        Navigator.pushReplacementNamed(context, SigninPage.routeName);
+      }
+    });
+
+    return Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: 100,
+          height: 100,
+          child: CircularProgressIndicator(
+            strokeWidth: 4.0,
+          ),
+        ),
       ),
-    ));
+    );
   }
 }

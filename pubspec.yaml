@@ -32,18 +32,18 @@ dependencies:
     sdk: flutter
 
   # Firebase Core (필수)
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.17.4
+  firebase_core: ^3.9.0
+  firebase_auth: ^5.3.3
   firebase_auth_web: ^5.10.0
-  firebase_storage: ^11.6.6
+  firebase_storage: ^12.3.7
   firebase_storage_web: ^3.6.22
   # Firestore (데이터베이스)
-  cloud_firestore: ^4.12.0
+  cloud_firestore: ^5.6.0
 
 
 
   # Firebase Hosting (호스팅 - Flutter Web 전용)
-  firebase_app_check: ^0.2.1+6 # 보안 및 무결성 확인 (옵션, 권장)
+  firebase_app_check: ^0.3.1+7 # 보안 및 무결성 확인 (옵션, 권장)
 
   
 

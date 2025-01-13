@@ -1,10 +1,13 @@
 // Flutter의 Cupertino 스타일 위젯 라이브러리 임포트
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signup/signup_provider.dart';
 import 'package:mp_db/repositories/auth_repository.dart';
+import 'package:mp_db/screens/home_screen.dart';
+
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
 
@@ -14,13 +17,12 @@ import 'package:mp_db/pages/home_page.dart';
 import 'package:mp_db/pages/signin_page.dart';
 import 'package:mp_db/pages/signup_page.dart';
 import 'package:mp_db/pages/splash_page.dart';
+import 'package:mp_db/screens/test_screen.dart';
 
 // 홈 화면의 위젯이 정의된 파일 임포트
 
 // Firebase 초기화 옵션이 정의된 파일 임포트
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
-import 'screens/test_screen.dart';
 
 // main 함수는 Flutter 앱의 진입점입니다.
 void main() async {
@@ -79,24 +81,17 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ],
-      child: CupertinoApp(
+      child: MaterialApp(
         // 앱의 제목을 정의합니다. iOS에서는 표시되지 않을 수 있습니다.
 
         title: '마이스플랜 MICE PLAN',
 
         // 앱의 테마를 설정합니다.
-        theme: const CupertinoThemeData(
-          primaryColor: CupertinoColors.systemGrey, // 주요 색상을 회색으로 설정
-          barBackgroundColor:
-              CupertinoColors.systemGrey6, // 앱 바 배경색을 밝은 회색으로 설정
-          textTheme: CupertinoTextThemeData(
-            primaryColor: CupertinoColors.systemGrey, // 텍스트의 주요 색상을 회색으로 설정
-          ),
-        ),
+        theme: AppTheme.mpTheme,
 
         debugShowCheckedModeBanner: false,
         // 앱의 초기 화면을 설정합니다. HomeScreen 위젯이 시작 화면으로 사용됩니다.
-        //home: HomeScreen(),
+        // home: HomeScreen(),
         //home: TestScreen(),
         home: SplashPage(),
         routes: {

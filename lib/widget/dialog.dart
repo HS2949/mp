@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import '../constants/styles.dart';
 
@@ -65,3 +66,43 @@ void showDynamicCupertinoDialog({
     },
   );
 }
+
+//material dialog 버전전
+void showTransparentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withAlpha((0.3 * 255).toInt()),// Background transparency
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white.withAlpha((0.8 * 255).toInt()), // Dialog transparency
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Transparent Dialog",
+                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16.0),
+                Text(
+                  "This dialog has a transparent background!",
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16.0),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("Close"),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }

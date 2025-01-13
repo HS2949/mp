@@ -13,7 +13,7 @@ enum SignupStatus {
 class SignupState extends Equatable {
   final SignupStatus signupStatus;
   final CustomError error;
-    SignupState({
+    const SignupState({
     required this.signupStatus,
     required this.error
   });

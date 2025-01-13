@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/signup_page.dart';
@@ -21,76 +20,50 @@ class _SigninPageState extends State<SigninPage> {
 
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   String? _email, _password;
-  String? _emailError, _passwordError;
 
   void _submit() async {
-  setState(() {
-    _autovalidateMode = AutovalidateMode.always;
-    _emailError = _validateEmail(_email);
-    _passwordError = _validatePassword(_password);
-  });
+    setState(() {
+      _autovalidateMode = AutovalidateMode.always;
+    });
 
-  if (_emailError != null || _passwordError != null) return;
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
 
-  final form = _formKey.currentState;
-  if (form == null || !form.validate()) return;
+    form.save();
 
-  form.save();
+    print('email: $_email, password: $_password');
 
-  print('email: $_email, password: $_password');
+    await context.read<SigninProvider>().signin(
+          email: _email!,
+          password: _password!,
+        );
 
-  await context.read<SigninProvider>().signin(
-    email: _email!,
-    password: _password!,
-  );
+    final signinState = context.read<SigninProvider>().state;
 
-  final signinState = context.read<SigninProvider>().state;
-
-  if (signinState.signinStatus == SigninStatus.error) {
-    if (mounted) {
-      errorDialog(context, signinState.error);
+    if (signinState.signinStatus == SigninStatus.error) {
+      if (mounted) {
+        errorDialog(context, signinState.error);
+      }
+    } else if (signinState.signinStatus == SigninStatus.success) {
+      if (mounted) {
+        Navigator.pushNamed(context, '/home');
+      }
     }
-  } else if (signinState.signinStatus == SigninStatus.success) {
-    if (mounted) {
-      Navigator.pushNamed(context, '/home');
-    }
-  }
-}
-
-
-
-  String? _validateEmail(String? email) {
-    if (email == null || email.trim().isEmpty) {
-      return '이메일 주소가 필요합니다';
-    }
-    if (!isEmail(email.trim())) {
-      return '유효한 이메일 주소를 입력하세요';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? password) {
-    if (password == null || password.trim().isEmpty) {
-      return '비밀번호를 입력하세요';
-    }
-    if (password.trim().length < 4) {
-      return '비밀번호는 최소 4자 이상이어야 합니다.';
-    }
-    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final signinState = context.watch<SigninProvider>().state;
     return PopScope(
-      canPop : false,
+      canPop: true,
       child: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: CupertinoPageScaffold(
-          navigationBar: CupertinoNavigationBar(
-            middle: Text('Sign In'),
+        // onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text('Sign In'),
+            centerTitle: true,
           ),
-          child: Center(
+          body: Center(
             child: SizedBox(
               width: 350, // 최대 폭을 500으로 설정
               child: Padding(
@@ -100,6 +73,7 @@ class _SigninPageState extends State<SigninPage> {
                   autovalidateMode: _autovalidateMode,
                   child: ListView(
                     shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
                     children: [
                       SizedBox(height: 50.0),
                       Image.asset(
@@ -108,81 +82,72 @@ class _SigninPageState extends State<SigninPage> {
                         height: 250,
                         fit: BoxFit.scaleDown,
                         errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.error, size: 50, color: Colors.red);
+                          return Icon(Icons.error,
+                              size: 50, color: Colors.orange);
                         },
                       ),
                       SizedBox(height: 50.0),
-                      CupertinoTextField(
-                        keyboardType: TextInputType.emailAddress,
-                        placeholder: 'Email',
-                        prefix: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Icon(CupertinoIcons.mail),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _email = value;
-                            _emailError = _validateEmail(value);
-                          });
+                      TextFormField(
+                        // keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
+                        decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email_outlined)),
+                        validator: (String? value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '이메일 주소가 필요합니다';
+                          }
+                          if (!isEmail(value.trim())) {
+                            return '유효한 이메일 주소를 입력하세요';
+                          }
+                          return null;
                         },
-                        decoration: BoxDecoration(
-                          border: Border.all(color: CupertinoColors.systemGrey),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
+                        onSaved: (String? value) {
+                          _email = value;
+                        },
                       ),
-                      if (_emailError != null)
-                        Padding(
-                          padding: EdgeInsets.only(top: 5.0),
-                          child: Text(
-                            _emailError!,
-                            style: AppTheme.errorTextStyle,
-                          ),
-                        ),
                       SizedBox(height: 20.0),
-                      CupertinoTextField(
+                      TextFormField(
                         obscureText: true,
-                        placeholder: 'Password',
-                        prefix: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Icon(CupertinoIcons.lock),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          labelText: 'Password',
+                          prefixIcon: Icon(Icons.lock),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            _password = value;
-                            _passwordError = _validatePassword(value);
-                          });
+                        validator: (String? value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '비밀번호를 입력하세요';
+                          }
+                          if (value.trim().length < 6) {
+                            return '비밀번호는 최소 6자 이상이어야 합니다';
+                          }
+                          return null;
                         },
-                        decoration: BoxDecoration(
-                          border: Border.all(color: CupertinoColors.systemGrey),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
+                        onSaved: (String? value) {
+                          _password = value;
+                        },
                       ),
-                      if (_passwordError != null)
-                        Padding(
-                          padding: EdgeInsets.only(top: 5.0),
-                          child: Text(
-                            _passwordError!,
-                            style: AppTheme.errorTextStyle,
-                          ),
-                        ),
                       SizedBox(height: 30.0),
-                      CupertinoButton.filled(
+                      ElevatedButton(
                         onPressed:
                             signinState.signinStatus == SigninStatus.submitting
                                 ? null
                                 : _submit,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 20.0),
+                          textStyle: AppTheme.keyTextStyle,
+                        ),
                         child: Text(
                           signinState.signinStatus == SigninStatus.submitting
                               ? 'Loading...'
                               : 'Sign In',
-                          style: TextStyle(
-                            fontSize: 20.0,
-                            fontWeight: FontWeight.w600,
-                          ),
                         ),
                       ),
                       SizedBox(height: 10.0),
-                      CupertinoButton(
+                      TextButton(
                         onPressed:
                             signinState.signinStatus == SigninStatus.submitting
                                 ? null
@@ -190,13 +155,13 @@ class _SigninPageState extends State<SigninPage> {
                                     Navigator.pushNamed(
                                         context, SignupPage.routeName);
                                   },
-                        child: Text(
-                          'Not a member? Sign up!',
-                          style: TextStyle(
-                            fontSize: 16.0,
+                        style: TextButton.styleFrom(
+                          textStyle: TextStyle(
+                            fontSize: 14.0,
                             decoration: TextDecoration.underline,
                           ),
                         ),
+                        child: Text('Not a member? Sign up!'),
                       ),
                     ],
                   ),
