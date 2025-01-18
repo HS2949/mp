@@ -2,11 +2,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/material/constants.dart';
+import 'package:mp_db/material/home.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
+import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signup/signup_provider.dart';
 import 'package:mp_db/repositories/auth_repository.dart';
-import 'package:mp_db/screens/home_screen.dart';
+import 'package:mp_db/repositories/profile_repository.dart';
 
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
@@ -17,7 +20,6 @@ import 'package:mp_db/pages/home_page.dart';
 import 'package:mp_db/pages/signin_page.dart';
 import 'package:mp_db/pages/signup_page.dart';
 import 'package:mp_db/pages/splash_page.dart';
-import 'package:mp_db/screens/test_screen.dart';
 
 // 홈 화면의 위젯이 정의된 파일 임포트
 
@@ -55,20 +57,14 @@ class MyApp extends StatelessWidget {
             firebaseAuth: fbAuth.FirebaseAuth.instance,
           ),
         ),
+        Provider<ProfileRepository>(
+          create: (context) => ProfileRepository(
+            firebaseFirestore: FirebaseFirestore.instance,
+          ),
+        ),
         StreamProvider<fbAuth.User?>(
           create: (context) => context.read<AuthRepository>().user,
           initialData: null,
-        ),
-        ChangeNotifierProxyProvider<fbAuth.User?, AuthProvider>(
-          create: (context) => AuthProvider(
-            authRepository: context.read<AuthRepository>(),
-          ),
-          update: (
-            BuildContext context,
-            fbAuth.User? userStream,
-            AuthProvider? authProovider,
-          ) =>
-              authProovider!..update(userStream),
         ),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(
@@ -79,6 +75,28 @@ class MyApp extends StatelessWidget {
           create: (context) => SignupProvider(
             authRepository: context.read<AuthRepository>(),
           ),
+        ),
+        ChangeNotifierProvider<ProfileProvider>(
+          create: (context) => ProfileProvider(
+            profileRepository: context.read<ProfileRepository>(),
+          ),
+        ),
+        ChangeNotifierProxyProvider2<fbAuth.User?, ProfileProvider,
+            AuthProvider>(
+          create: (context) => AuthProvider(
+            authRepository: context.read<AuthRepository>(),
+          ),
+          update: (
+            BuildContext context,
+            fbAuth.User? userStream,
+            ProfileProvider profileProvider,
+            AuthProvider? authProvider,
+          ) {
+            if (authProvider != null) {
+              authProvider.update(userStream, profileProvider);
+            }
+            return authProvider!;
+          },
         ),
       ],
       child: MaterialApp(
@@ -91,13 +109,29 @@ class MyApp extends StatelessWidget {
 
         debugShowCheckedModeBanner: false,
         // 앱의 초기 화면을 설정합니다. HomeScreen 위젯이 시작 화면으로 사용됩니다.
-        // home: HomeScreen(),
-        //home: TestScreen(),
         home: SplashPage(),
         routes: {
           SignupPage.routeName: (context) => SignupPage(),
           SigninPage.routeName: (context) => SigninPage(),
-          HomePage.routeName: (context) => HomePage(),
+          // HomePage.routeName: (context) => HomePage(),
+          Home.routeName: (context) => Home(
+              useLightMode: true,
+              useMaterial3: false,
+              colorSelected: ColorSeed.blue,
+              imageSelected: ColorImageProvider.bubbles,
+              colorSelectionMethod: ColorSelectionMethod.colorSeed,
+              handleBrightnessChange: (useLightMode) {
+                // handle brightness change
+              },
+              handleMaterialVersionChange: () {
+                // handle material version change
+              },
+              handleColorSelect: (value) {
+                // handle color selection
+              },
+              handleImageSelect: (value) {
+                // handle image selection
+              }),
         },
       ),
     );

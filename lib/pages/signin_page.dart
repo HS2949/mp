@@ -3,6 +3,7 @@ import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/signup_page.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signin/signin_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:validators/validators.dart';
 import 'package:provider/provider.dart';
 import '../utils/error_dialog.dart';
@@ -20,6 +21,34 @@ class _SigninPageState extends State<SigninPage> {
 
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   String? _email, _password;
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _emailFocusNode = FocusNode(); // 이메일 텍스트 필드 포커스 노드
+  final FocusNode _passwordFocusNode = FocusNode(); // 비밀번호 텍스트 필드 포커스 노드
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email') ?? '';
+    setState(() {
+      _emailController.text = savedEmail;
+    });
+
+    if (savedEmail.isNotEmpty) {
+      // FocusScope.of(context).requestFocus(_passwordFocusNode);
+    }
+  }
+
+  Future<void> _saveEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_email', email);
+  }
 
   void _submit() async {
     setState(() {
@@ -46,6 +75,9 @@ class _SigninPageState extends State<SigninPage> {
       }
     } else if (signinState.signinStatus == SigninStatus.success) {
       if (mounted) {
+        // 로그인 성공 시 이메일 저장
+        await _saveEmail(_email!);
+
         Navigator.pushNamed(context, '/home');
       }
     }
@@ -55,25 +87,27 @@ class _SigninPageState extends State<SigninPage> {
   Widget build(BuildContext context) {
     final signinState = context.watch<SigninProvider>().state;
     return PopScope(
-      canPop: true,
+      canPop: false,
       child: GestureDetector(
-        // onTap: () => FocusScope.of(context).unfocus(),
+        onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             title: Text('Sign In'),
             centerTitle: true,
           ),
           body: Center(
             child: SizedBox(
-              width: 350, // 최대 폭을 500으로 설정
+              width: 400, // 최대 폭을 500으로 설정
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30.0),
                 child: Form(
                   key: _formKey,
                   autovalidateMode: _autovalidateMode,
                   child: ListView(
+                    reverse: true,
                     shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
                     children: [
                       SizedBox(height: 50.0),
                       Image.asset(
@@ -88,13 +122,25 @@ class _SigninPageState extends State<SigninPage> {
                       ),
                       SizedBox(height: 50.0),
                       TextFormField(
-                        // keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
+                        controller: _emailController,
+                        focusNode: _emailFocusNode, // 이메일 텍스트 필드 포커스 노드 연결
+                        keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            filled: true,
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined)),
+                          border: OutlineInputBorder(),
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.cancel_outlined,
+                                color: AppTheme.secondaryColor),
+                            onPressed: () {
+                              setState(() {
+                                _emailController.clear(); // 텍스트 필드 초기화
+                                FocusScope.of(context).requestFocus(
+                                    _emailFocusNode); // 이메일 필드로 포커스 이동
+                              });
+                            },
+                          ),
+                        ),
                         validator: (String? value) {
                           if (value == null || value.trim().isEmpty) {
                             return '이메일 주소가 필요합니다';
@@ -111,11 +157,25 @@ class _SigninPageState extends State<SigninPage> {
                       SizedBox(height: 20.0),
                       TextFormField(
                         obscureText: true,
+                        controller: _passwordController,
+                        focusNode: _passwordFocusNode, // 비밀번호 필드에 포커스 노드 추가
+                        keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           filled: true,
                           labelText: 'Password',
                           prefixIcon: Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.cancel_outlined,
+                                color: AppTheme.secondaryColor),
+                            onPressed: () {
+                              setState(() {
+                                _passwordController.clear(); // 텍스트 필드 초기화
+                                FocusScope.of(context).requestFocus(
+                                    _passwordFocusNode); // 이메일 필드로 포커스 이동
+                              });
+                            },
+                          ),
                         ),
                         validator: (String? value) {
                           if (value == null || value.trim().isEmpty) {
@@ -129,6 +189,12 @@ class _SigninPageState extends State<SigninPage> {
                         onSaved: (String? value) {
                           _password = value;
                         },
+                        onFieldSubmitted: (_) {
+                          if (signinState.signinStatus !=
+                              SigninStatus.submitting) {
+                            _submit(); // _submit() 함수 호출
+                          }
+                        },
                       ),
                       SizedBox(height: 30.0),
                       ElevatedButton(
@@ -136,15 +202,10 @@ class _SigninPageState extends State<SigninPage> {
                             signinState.signinStatus == SigninStatus.submitting
                                 ? null
                                 : _submit,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 20.0),
-                          textStyle: AppTheme.keyTextStyle,
-                        ),
                         child: Text(
-                          signinState.signinStatus == SigninStatus.submitting
-                              ? 'Loading...'
-                              : 'Sign In',
-                        ),
+                            signinState.signinStatus == SigninStatus.submitting
+                                ? 'Loading...'
+                                : 'Sign In'),
                       ),
                       SizedBox(height: 10.0),
                       TextButton(
@@ -157,13 +218,14 @@ class _SigninPageState extends State<SigninPage> {
                                   },
                         style: TextButton.styleFrom(
                           textStyle: TextStyle(
-                            fontSize: 14.0,
+                            fontSize: 16.0,
                             decoration: TextDecoration.underline,
                           ),
                         ),
                         child: Text('Not a member? Sign up!'),
                       ),
-                    ],
+                      SizedBox(height: 10)
+                    ].reversed.toList(),
                   ),
                 ),
               ),

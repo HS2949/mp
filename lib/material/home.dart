@@ -2,6 +2,7 @@
 // Flutter 팀의 소스 코드. BSD-style 라이선스에 따라 배포 가능. 자세한 내용은 LICENSE 파일 참조.
 
 import 'package:flutter/material.dart';
+import 'package:mp_db/constants/styles.dart';
 // Flutter의 Material Design 위젯 및 테마를 사용하기 위한 패키지.
 
 import 'package:mp_db/material/color_palettes_screen.dart';
@@ -17,6 +18,11 @@ import 'package:mp_db/material/elevation_screen.dart';
 // 고도 화면을 정의한 모듈 가져오기.
 
 import 'package:mp_db/material/typography_screen.dart';
+import 'package:mp_db/models/user_model.dart';
+import 'package:mp_db/pages/profile_page.dart';
+import 'package:mp_db/providers/auth/auth_provider.dart';
+import 'package:mp_db/providers/profile/profile_provider.dart';
+import 'package:provider/provider.dart';
 // 타이포그래피 화면을 정의한 모듈 가져오기.
 
 // Home 클래스는 StatefulWidget을 상속하여 상태를 가질 수 있는 위젯으로 정의.
@@ -186,31 +192,86 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         ScreenSelected.elevation => const ElevationScreen()
       };
 
-  PreferredSizeWidget createAppBar() {
+  PreferredSizeWidget createAppBar(User user) {
     // 앱바(AppBar)를 생성하는 함수.
+    // return AppBar(
+    //   title: widget.useMaterial3
+    //       ? const Text('Material 3') // Material 3 사용 시 앱바 제목.
+    //       : const Text('Material 2'), // Material 2 사용 시 앱바 제목.
+    //   actions: !showMediumSizeLayout && !showLargeSizeLayout
+    //       ? [
+    //           // 화면 크기가 작을 경우에만 동작 버튼 추가.
+    //           _BrightnessButton(
+    //             handleBrightnessChange: widget.handleBrightnessChange,
+    //           ),
+    //           _Material3Button(
+    //             handleMaterialVersionChange: widget.handleMaterialVersionChange,
+    //           ),
+    //           _ColorSeedButton(
+    //             handleColorSelect: widget.handleColorSelect,
+    //             colorSelected: widget.colorSelected,
+    //             colorSelectionMethod: widget.colorSelectionMethod,
+    //           ),
+    //           _ColorImageButton(
+    //             handleImageSelect: widget.handleImageSelect,
+    //             imageSelected: widget.imageSelected,
+    //             colorSelectionMethod: widget.colorSelectionMethod,
+    //           )
+    //         ]
+    //       : [Container()], // 큰 화면에서는 빈 컨테이너 반환.
+    // );
+
     return AppBar(
-      title: widget.useMaterial3
-          ? const Text('Material 3') // Material 3 사용 시 앱바 제목.
-          : const Text('MICE PLAN'), // Material 2 사용 시 앱바 제목.
+      automaticallyImplyLeading: false,
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Image.asset(
+            'assets/images/mp_logo.png',
+            width: 100,
+            height: 50,
+            fit: BoxFit.scaleDown,
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(Icons.error, size: 50, color: Colors.orange);
+            },
+          ),
+          SizedBox(width: 20),
+          if (showMediumSizeLayout || showLargeSizeLayout) ...[
+            Opacity(
+              opacity: 0.1,
+              child: Image.asset(
+                'assets/images/miceplan_font.png',
+                width: 250,
+                height: 100,
+                fit: BoxFit.scaleDown,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.error, size: 50, color: Colors.orange);
+                },
+              ),
+            ),
+            SizedBox(width: 60)
+          ],
+          Column(
+            mainAxisAlignment: MainAxisAlignment.end, // 텍스트를 바닥에 붙이기
+            crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 정렬
+            children: [
+              Text(
+                'Hello :)',
+                style: AppTheme.textfieldStyle,
+              ),
+              Text(
+                '${user.name}  ${user.position}님',
+                style: AppTheme.textfieldStyle,
+              ),
+            ],
+          ),
+        ],
+      ),
+
       actions: !showMediumSizeLayout && !showLargeSizeLayout
           ? [
-              // 화면 크기가 작을 경우에만 동작 버튼 추가.
-              _BrightnessButton(
-                handleBrightnessChange: widget.handleBrightnessChange,
-              ),
-              _Material3Button(
-                handleMaterialVersionChange: widget.handleMaterialVersionChange,
-              ),
-              _ColorSeedButton(
-                handleColorSelect: widget.handleColorSelect,
-                colorSelected: widget.colorSelected,
-                colorSelectionMethod: widget.colorSelectionMethod,
-              ),
-              _ColorImageButton(
-                handleImageSelect: widget.handleImageSelect,
-                imageSelected: widget.imageSelected,
-                colorSelectionMethod: widget.colorSelectionMethod,
-              )
+              _ProfileButton(showTooltipBelow: false),
+              _SignoutButton(showTooltipBelow: false),
             ]
           : [Container()], // 큰 화면에서는 빈 컨테이너 반환.
     );
@@ -221,36 +282,31 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.end, // 아래쪽 정렬.
         children: [
           Flexible(
-            child: _BrightnessButton(
-              handleBrightnessChange: widget.handleBrightnessChange,
-              showTooltipBelow: false,
-            ),
+            child: _ProfileButton(showTooltipBelow: false),
           ),
           Flexible(
-            child: _Material3Button(
-              handleMaterialVersionChange: widget.handleMaterialVersionChange,
-              showTooltipBelow: false,
-            ),
+            child: _SignoutButton(showTooltipBelow: false),
           ),
-          Flexible(
-            child: _ColorSeedButton(
-              handleColorSelect: widget.handleColorSelect,
-              colorSelected: widget.colorSelected,
-              colorSelectionMethod: widget.colorSelectionMethod,
-            ),
-          ),
-          Flexible(
-            child: _ColorImageButton(
-              handleImageSelect: widget.handleImageSelect,
-              imageSelected: widget.imageSelected,
-              colorSelectionMethod: widget.colorSelectionMethod,
-            ),
-          ),
+          // Flexible(
+          //   child: _ColorSeedButton(
+          //     handleColorSelect: widget.handleColorSelect,
+          //     colorSelected: widget.colorSelected,
+          //     colorSelectionMethod: widget.colorSelectionMethod,
+          //   ),
+          // ),
+          // Flexible(
+          //   child: _ColorImageButton(
+          //     handleImageSelect: widget.handleImageSelect,
+          //     imageSelected: widget.imageSelected,
+          //     colorSelectionMethod: widget.colorSelectionMethod,
+          //   ),
+          // ),
         ],
       );
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<ProfileProvider>().state.user;
     // 위젯의 UI를 정의.
     return AnimatedBuilder(
       animation: controller, // 애니메이션 컨트롤러를 참조.
@@ -260,7 +316,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           scaffoldKey: scaffoldKey, // Scaffold 상태 키.
           animationController: controller, // 애니메이션 컨트롤러.
           railAnimation: railAnimation, // 네비게이션 레일 애니메이션.
-          appBar: createAppBar(), // 앱바 생성.
+          appBar: createAppBar(user), // 앱바 생성.
           body: createScreenFor(
               ScreenSelected.values[screenIndex], controller.value == 1),
           navigationRail: NavigationRail(
@@ -312,58 +368,50 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   }
 }
 
-class _BrightnessButton extends StatelessWidget {
+class _ProfileButton extends StatelessWidget {
   // 밝기 전환 버튼 위젯. StatelessWidget을 상속.
-  const _BrightnessButton({
-    required this.handleBrightnessChange, // 밝기 전환 이벤트 핸들러 함수.
+  const _ProfileButton({
     this.showTooltipBelow = true, // 툴팁을 아래쪽에 표시할지 여부. 기본값은 true.
   });
-
-  final Function handleBrightnessChange; // 밝기 전환 함수 참조.
   final bool showTooltipBelow; // 툴팁의 위치를 제어.
 
   @override
   Widget build(BuildContext context) {
-    // 위젯의 UI 빌드.
-    final isBright = Theme.of(context).brightness == Brightness.light;
     // 현재 테마가 밝기 모드인지 확인.
     return Tooltip(
       preferBelow: showTooltipBelow, // 툴팁 위치를 아래로 설정 여부.
-      message: 'Toggle brightness', // 툴팁 메시지.
+      message: '프로필 보기', // 툴팁 메시지.
       child: IconButton(
-        icon: isBright
-            ? const Icon(Icons.dark_mode_outlined) // 밝기 모드면 어두운 모드 아이콘.
-            : const Icon(Icons.light_mode_outlined), // 어두운 모드면 밝기 모드 아이콘.
-        onPressed: () => handleBrightnessChange(!isBright),
-        // 버튼 클릭 시 밝기 모드를 전환하는 함수 호출.
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return ProfilePage();
+          }));
+        },
+        icon: Icon(Icons.account_circle),
       ),
     );
   }
 }
 
-class _Material3Button extends StatelessWidget {
+class _SignoutButton extends StatelessWidget {
   // Material 3 전환 버튼 위젯.
-  const _Material3Button({
-    required this.handleMaterialVersionChange, // Material 버전 전환 함수 참조.
+  const _SignoutButton({
     this.showTooltipBelow = true, // 툴팁을 아래쪽에 표시할지 여부. 기본값은 true.
   });
 
-  final void Function() handleMaterialVersionChange; // Material 전환 이벤트 핸들러 함수.
   final bool showTooltipBelow; // 툴팁의 위치를 제어.
 
   @override
   Widget build(BuildContext context) {
-    // 위젯의 UI 빌드.
-    final useMaterial3 = Theme.of(context).useMaterial3;
-    // 현재 테마가 Material 3인지 확인.
     return Tooltip(
-      preferBelow: showTooltipBelow, // 툴팁 위치 설정.
-      message: 'Switch to Material ${useMaterial3 ? 2 : 3}', // 툴팁 메시지.
+      preferBelow: showTooltipBelow, // 툴팁 위치를 아래로 설정 여부.
+      message: 'Sign Out', // 툴팁 메시지.
       child: IconButton(
-        icon: useMaterial3
-            ? const Icon(Icons.filter_2) // Material 3 사용 중이면 '2' 아이콘.
-            : const Icon(Icons.filter_3), // Material 2 사용 중이면 '3' 아이콘.
-        onPressed: handleMaterialVersionChange, // 버튼 클릭 시 전환 함수 호출.
+        onPressed: () {
+          context.read<AuthProvider>().signout();
+          Navigator.pushReplacementNamed(context, '/');
+        },
+        icon: Icon(Icons.exit_to_app),
       ),
     );
   }
@@ -430,76 +478,76 @@ class _ColorSeedButton extends StatelessWidget {
   }
 }
 
-class _ColorImageButton extends StatelessWidget {
-  // 색상 추출 이미지를 선택하는 버튼 위젯.
-  const _ColorImageButton({
-    required this.handleImageSelect, // 이미지 선택 이벤트 핸들러 함수.
-    required this.imageSelected, // 현재 선택된 이미지.
-    required this.colorSelectionMethod, // 색상 선택 방식.
-  });
+// class _ColorImageButton extends StatelessWidget {
+//   // 색상 추출 이미지를 선택하는 버튼 위젯.
+//   const _ColorImageButton({
+//     required this.handleImageSelect, // 이미지 선택 이벤트 핸들러 함수.
+//     required this.imageSelected, // 현재 선택된 이미지.
+//     required this.colorSelectionMethod, // 색상 선택 방식.
+//   });
 
-  final void Function(int) handleImageSelect; // 이미지 선택 이벤트 핸들러 함수.
-  final ColorImageProvider imageSelected; // 선택된 이미지 정보.
-  final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
+//   final void Function(int) handleImageSelect; // 이미지 선택 이벤트 핸들러 함수.
+//   final ColorImageProvider imageSelected; // 선택된 이미지 정보.
+//   final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
 
-  @override
-  Widget build(BuildContext context) {
-    // 위젯의 UI를 빌드.
-    return PopupMenuButton(
-      icon: const Icon(
-        Icons.image_outlined, // 이미지 선택 아이콘.
-      ),
-      tooltip: 'Select a color extraction image', // 툴팁 메시지.
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      // 팝업 메뉴의 모서리를 둥글게 설정.
-      itemBuilder: (context) {
-        // 팝업 메뉴 항목을 생성.
-        return List.generate(ColorImageProvider.values.length, (index) {
-          // ColorImageProvider 열거형의 값들로 항목을 생성.
-          final currentImageProvider = ColorImageProvider.values[index];
-          // 현재 반복 중인 이미지 제공자.
+//   @override
+//   Widget build(BuildContext context) {
+//     // 위젯의 UI를 빌드.
+//     return PopupMenuButton(
+//       icon: const Icon(
+//         Icons.image_outlined, // 이미지 선택 아이콘.
+//       ),
+//       tooltip: 'Select a color extraction image', // 툴팁 메시지.
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+//       // 팝업 메뉴의 모서리를 둥글게 설정.
+//       itemBuilder: (context) {
+//         // 팝업 메뉴 항목을 생성.
+//         return List.generate(ColorImageProvider.values.length, (index) {
+//           // ColorImageProvider 열거형의 값들로 항목을 생성.
+//           final currentImageProvider = ColorImageProvider.values[index];
+//           // 현재 반복 중인 이미지 제공자.
 
-          return PopupMenuItem(
-            value: index, // 선택된 값의 인덱스.
-            enabled: currentImageProvider != imageSelected ||
-                colorSelectionMethod != ColorSelectionMethod.image,
-            // 현재 선택된 이미지가 아니거나 선택 방식이 이미지가 아닌 경우 활성화.
-            child: Wrap(
-              // 아이콘과 텍스트를 가로로 나란히 배치.
-              crossAxisAlignment: WrapCrossAlignment.center, // 세로 중앙 정렬.
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 48),
-                    // 최대 너비를 48로 제한.
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        // 이미지의 모서리를 둥글게 처리.
-                        child: Image(
-                          image: NetworkImage(currentImageProvider.url),
-                          // 네트워크 이미지를 가져옴.
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 20),
-                  child: Text(currentImageProvider.label),
-                  // 이미지 제공자의 레이블을 텍스트로 표시.
-                ),
-              ],
-            ),
-          );
-        });
-      },
-      onSelected: handleImageSelect, // 이미지가 선택되었을 때 이벤트 핸들러 호출.
-    );
-  }
-}
+//           return PopupMenuItem(
+//             value: index, // 선택된 값의 인덱스.
+//             enabled: currentImageProvider != imageSelected ||
+//                 colorSelectionMethod != ColorSelectionMethod.image,
+//             // 현재 선택된 이미지가 아니거나 선택 방식이 이미지가 아닌 경우 활성화.
+//             child: Wrap(
+//               // 아이콘과 텍스트를 가로로 나란히 배치.
+//               crossAxisAlignment: WrapCrossAlignment.center, // 세로 중앙 정렬.
+//               children: [
+//                 Padding(
+//                   padding: const EdgeInsets.only(left: 10),
+//                   child: ConstrainedBox(
+//                     constraints: const BoxConstraints(maxWidth: 48),
+//                     // 최대 너비를 48로 제한.
+//                     child: Padding(
+//                       padding: const EdgeInsets.all(4.0),
+//                       child: ClipRRect(
+//                         borderRadius: BorderRadius.circular(8.0),
+//                         // 이미지의 모서리를 둥글게 처리.
+//                         child: Image(
+//                           image: NetworkImage(currentImageProvider.url),
+//                           // 네트워크 이미지를 가져옴.
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//                 Padding(
+//                   padding: const EdgeInsets.only(left: 20),
+//                   child: Text(currentImageProvider.label),
+//                   // 이미지 제공자의 레이블을 텍스트로 표시.
+//                 ),
+//               ],
+//             ),
+//           );
+//         });
+//       },
+//       onSelected: handleImageSelect, // 이미지가 선택되었을 때 이벤트 핸들러 호출.
+//     );
+//   }
+// }
 
 class _ExpandedTrailingActions extends StatelessWidget {
   // 확장된 추가 동작 위젯.
@@ -544,27 +592,19 @@ class _ExpandedTrailingActions extends StatelessWidget {
           Row(
             // 밝기 전환 스위치.
             children: [
-              const Text('Brightness'),
-              Expanded(child: Container()), // 남은 공간 채우기.
-              Switch(
-                  value: useLightMode, // 현재 밝기 모드 값.
-                  onChanged: (value) {
-                    handleBrightnessChange(value); // 밝기 변경 함수 호출.
-                  })
+              _ProfileButton(showTooltipBelow: true),
+              SizedBox(
+                width: 10,
+              ),
+              Text('Profile')
             ],
           ),
           Row(
             // Material 버전 전환 스위치.
             children: [
-              useMaterial3
-                  ? const Text('Material 3')
-                  : const Text('Material 2'),
-              Expanded(child: Container()), // 남은 공간 채우기.
-              Switch(
-                  value: useMaterial3, // 현재 Material 버전.
-                  onChanged: (_) {
-                    handleMaterialVersionChange(); // 버전 전환 함수 호출.
-                  })
+              _SignoutButton(showTooltipBelow: true),
+              SizedBox(width: 10),
+              Text('Sign out')
             ],
           ),
           const Divider(), // 구분선.

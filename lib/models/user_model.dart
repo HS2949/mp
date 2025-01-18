@@ -28,7 +28,7 @@ class User extends Equatable {
     );
   }
 
-  factory User.initialUser(DocumentSnapshot userDoc) {
+  factory User.initialUser() {
     return User(
       id: '',
       name: '',
@@ -39,7 +39,13 @@ class User extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, email, profileImage, position];
+  List<Object?> get props => [
+        id,
+        name,
+        email,
+        profileImage,
+        position,
+      ];
 
   @override
   bool get stringify => true;
