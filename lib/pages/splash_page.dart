@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mp_db/pages/home_page.dart';
+import 'package:mp_db/pages/home.dart';
 import 'package:mp_db/pages/signin_page.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/auth/auth_state.dart';
@@ -15,7 +15,7 @@ class SplashPage extends StatelessWidget {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (authState.authStatus == AuthStatus.authenticated) {
-        Navigator.pushReplacementNamed(context, HomePage.routeName);
+        Navigator.pushReplacementNamed(context, Home.routeName);
       } else if (authState.authStatus == AuthStatus.unauthenticated) {
         Navigator.pushReplacementNamed(context, SigninPage.routeName);
       }

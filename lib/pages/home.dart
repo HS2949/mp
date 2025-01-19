@@ -19,17 +19,18 @@ import 'package:mp_db/material/elevation_screen.dart';
 
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
+import 'package:mp_db/pages/dialog/dia_Item_category.dart';
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
-import 'package:mp_db/screens/home_screen.dart';
+import 'package:mp_db/pages/item_screen.dart';
 import 'package:provider/provider.dart';
 // 타이포그래피 화면을 정의한 모듈 가져오기.
 
 // HomePage 클래스는 StatefulWidget을 상속하여 상태를 가질 수 있는 위젯으로 정의.
-class HomePage extends StatefulWidget {
+class Home extends StatefulWidget {
   // Home 클래스의 생성자. 외부에서 전달된 값으로 상태를 초기화함.
-  const HomePage({
+  const Home({
     super.key, // Widget의 고유 키. Flutter에서 위젯 식별에 사용.
     required this.useLightMode, // 라이트 모드 활성화 여부.
     required this.useMaterial3, // Material 3 활성화 여부.
@@ -59,12 +60,12 @@ class HomePage extends StatefulWidget {
   final void Function(int value) handleImageSelect; // 이미지 선택 이벤트 핸들러.
 
   @override
-  State<HomePage> createState() => _HomeState();
+  State<Home> createState() => _HomeState();
   // 이 StatefulWidget의 상태를 관리하는 _HomeState를 생성.
 }
 
 // _HomeState는 Home 위젯의 상태를 관리하는 클래스.
-class _HomeState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   // GlobalKey를 생성하여 Scaffold 상태를 관리.
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -187,7 +188,7 @@ class _HomeState extends State<HomePage> with SingleTickerProviderStateMixin {
         //   ),
 
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.component => const HomeScreen(),
+        ScreenSelected.component => const ItemScreen(),
         ScreenSelected.color => const ColorPalettesScreen(),
         ScreenSelected.typography => const TypographyScreen(),
         ScreenSelected.elevation => const ElevationScreen()
@@ -915,6 +916,99 @@ final List<NavigationRailDestination> navRailDestinations = appBarDestinations
       ),
     )
     .toList(); // 리스트로 변환.
+
+class NavigationDrawerSection extends StatefulWidget {
+  const NavigationDrawerSection({super.key});
+
+  @override
+  State<NavigationDrawerSection> createState() =>
+      _NavigationDrawerSectionState();
+}
+
+class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
+  int navDrawerIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return NavigationDrawer(
+      onDestinationSelected: (selectedIndex) {
+        setState(() {
+          navDrawerIndex = selectedIndex;
+          if (navDrawerIndex == 0) {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Item_category(),
+                ));
+
+            // showDialog(
+            //   context: context,
+            //   builder: (context) {
+            //     return const Item_category();
+            //   },
+            // );
+          }
+        });
+      },
+      selectedIndex: navDrawerIndex,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
+          child: Text(
+            'Mail',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        ...destinations.map((destination) {
+          return NavigationDrawerDestination(
+            label: Text(destination.label),
+            icon: destination.icon,
+            selectedIcon: destination.selectedIcon,
+          );
+        }),
+        const Divider(indent: 28, endIndent: 28),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
+          child: Text(
+            'Labels',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        ...labelDestinations.map((destination) {
+          return NavigationDrawerDestination(
+            label: Text(destination.label),
+            icon: destination.icon,
+            selectedIcon: destination.selectedIcon,
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class ExampleDestination {
+  const ExampleDestination(this.label, this.icon, this.selectedIcon);
+
+  final String label;
+  final Widget icon;
+  final Widget selectedIcon;
+}
+
+const List<ExampleDestination> destinations = <ExampleDestination>[
+  ExampleDestination('DB Setting', Icon(Icons.inbox_outlined), Icon(Icons.inbox)),
+  ExampleDestination('Outbox', Icon(Icons.send_outlined), Icon(Icons.send)),
+  ExampleDestination(
+      'Favorites', Icon(Icons.favorite_outline), Icon(Icons.favorite)),
+  ExampleDestination('Trash', Icon(Icons.delete_outline), Icon(Icons.delete)),
+];
+
+const List<ExampleDestination> labelDestinations = <ExampleDestination>[
+  ExampleDestination(
+      'Family', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
+  ExampleDestination(
+      'School', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
+  ExampleDestination('Work', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
+];
 
 class SizeAnimation extends CurvedAnimation {
   // 크기 애니메이션 클래스.

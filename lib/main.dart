@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/material/constants.dart';
-import 'package:mp_db/pages/home_page.dart';
+import 'package:mp_db/pages/home.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
@@ -112,7 +112,7 @@ class MyApp extends StatelessWidget {
         routes: {
           SignupPage.routeName: (context) => SignupPage(),
           SigninPage.routeName: (context) => SigninPage(),
-          HomePage.routeName: (context) => HomePage(
+          Home.routeName: (context) => Home(
               useLightMode: true,
               useMaterial3: false,
               colorSelected: ColorSeed.blue,

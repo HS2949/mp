@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'item_detail_screen.dart';
+import '../screens/item_detail_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class ItemScreen extends StatefulWidget {
+  const ItemScreen({super.key});
 
   @override
-  HomeScreenState createState() => HomeScreenState();
+  ItemScreenState createState() => ItemScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> {
+class ItemScreenState extends State<ItemScreen> {
   String? selectedCategory;
   final Map<String, String> categories = {};
   final TextEditingController _nameController = TextEditingController();
