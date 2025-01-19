@@ -24,7 +24,7 @@ class ProfileRepository {
     } catch (e) {
       throw CustomError(
         code: 'Exception',
-        message: e.toString()!,
+        message: e.toString(),
         plugin: 'flutter_errro/server_error',
       );
     }

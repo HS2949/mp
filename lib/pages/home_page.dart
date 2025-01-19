@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
-import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:provider/provider.dart';
 
 
@@ -72,7 +70,7 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<ProfileProvider>().state.user;
+    // final user = context.watch<ProfileProvider>().state.user;
 
     return NavigatorPopHandler(
       onPop: () {
@@ -96,11 +94,11 @@ class _HomePageState extends State<HomePage>
                 },
               ),
               SizedBox(width: 20),
-              Text(
-                '${user.name}  '
-                '${user.position}님',
-                style: AppTheme.textfieldStyle,
-              ),
+              // Text(
+              //   '${user.name}  '
+              //   '${user.position}님',
+              //   style: AppTheme.textfieldStyle,
+              // ),
             ],
           ),
           actions: [

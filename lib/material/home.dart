@@ -272,8 +272,12 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           ? [
               _ProfileButton(showTooltipBelow: false),
               _SignoutButton(showTooltipBelow: false),
+              _DrawerButton(showTooltipBelow: false, scaffoldKey: scaffoldKey),
             ]
-          : [Container()], // 큰 화면에서는 빈 컨테이너 반환.
+          : [
+              // Container()
+              _DrawerButton(showTooltipBelow: false, scaffoldKey: scaffoldKey)
+            ], // 큰 화면에서는 빈 컨테이너 반환.
     );
   }
 
@@ -284,9 +288,10 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           Flexible(
             child: _ProfileButton(showTooltipBelow: false),
           ),
-          Flexible(
-            child: _SignoutButton(showTooltipBelow: false),
-          ),
+          Flexible(child: _SignoutButton(showTooltipBelow: false)),
+          // Flexible(
+          //     child: _DrawerButton(
+          //         showTooltipBelow: false, scaffoldKey: scaffoldKey)),
           // Flexible(
           //   child: _ColorSeedButton(
           //     handleColorSelect: widget.handleColorSelect,
@@ -308,62 +313,66 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final user = context.watch<ProfileProvider>().state.user;
     // 위젯의 UI를 정의.
-    return AnimatedBuilder(
-      animation: controller, // 애니메이션 컨트롤러를 참조.
-      builder: (context, child) {
-        // 애니메이션 값에 따라 UI를 빌드.
-        return NavigationTransition(
-          scaffoldKey: scaffoldKey, // Scaffold 상태 키.
-          animationController: controller, // 애니메이션 컨트롤러.
-          railAnimation: railAnimation, // 네비게이션 레일 애니메이션.
-          appBar: createAppBar(user), // 앱바 생성.
-          body: createScreenFor(
-              ScreenSelected.values[screenIndex], controller.value == 1),
-          navigationRail: NavigationRail(
-            extended: showLargeSizeLayout, // 큰 화면에서는 확장 레일 표시.
-            destinations: navRailDestinations, // 네비게이션 레일의 목적지.
-            selectedIndex: screenIndex, // 현재 선택된 화면 인덱스.
-            onDestinationSelected: (index) {
-              // 네비게이션 레일에서 목적지가 선택될 때.
-              setState(() {
-                screenIndex = index; // 선택된 화면 인덱스를 업데이트.
-                handleScreenChanged(screenIndex); // 화면 변경 이벤트 호출.
-              });
-            },
-            trailing: Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: showLargeSizeLayout
-                    ? _ExpandedTrailingActions(
-                        // 큰 화면에서는 확장된 동작 제공.
-                        useLightMode: widget.useLightMode,
-                        handleBrightnessChange: widget.handleBrightnessChange,
-                        useMaterial3: widget.useMaterial3,
-                        handleMaterialVersionChange:
-                            widget.handleMaterialVersionChange,
-                        handleImageSelect: widget.handleImageSelect,
-                        handleColorSelect: widget.handleColorSelect,
-                        colorSelectionMethod: widget.colorSelectionMethod,
-                        imageSelected: widget.imageSelected,
-                        colorSelected: widget.colorSelected,
-                      )
-                    : _trailingActions(), // 작은 화면에서는 간략한 동작 제공.
+    return PopScope(
+      canPop: false,
+      child: AnimatedBuilder(
+        animation: controller, // 애니메이션 컨트롤러를 참조.
+        builder: (context, child) {
+          // 애니메이션 값에 따라 UI를 빌드.
+          return NavigationTransition(
+            scaffoldKey: scaffoldKey, // Scaffold 상태 키.
+            animationController: controller, // 애니메이션 컨트롤러.
+            railAnimation: railAnimation, // 네비게이션 레일 애니메이션.
+            appBar: createAppBar(user), // 앱바 생성.
+            body: createScreenFor(
+                ScreenSelected.values[screenIndex], controller.value == 1),
+            navigationRail: NavigationRail(
+              extended: showLargeSizeLayout, // 큰 화면에서는 확장 레일 표시.
+              destinations: navRailDestinations, // 네비게이션 레일의 목적지.
+              selectedIndex: screenIndex, // 현재 선택된 화면 인덱스.
+              onDestinationSelected: (index) {
+                // 네비게이션 레일에서 목적지가 선택될 때.
+                setState(() {
+                  screenIndex = index; // 선택된 화면 인덱스를 업데이트.
+                  handleScreenChanged(screenIndex); // 화면 변경 이벤트 호출.
+                });
+              },
+              trailing: Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: showLargeSizeLayout
+                      ? _ExpandedTrailingActions(
+                          // 큰 화면에서는 확장된 동작 제공.
+                          useLightMode: widget.useLightMode,
+                          handleBrightnessChange: widget.handleBrightnessChange,
+                          useMaterial3: widget.useMaterial3,
+                          handleMaterialVersionChange:
+                              widget.handleMaterialVersionChange,
+                          handleImageSelect: widget.handleImageSelect,
+                          handleColorSelect: widget.handleColorSelect,
+                          colorSelectionMethod: widget.colorSelectionMethod,
+                          imageSelected: widget.imageSelected,
+                          colorSelected: widget.colorSelected,
+                          scaffoldKey : scaffoldKey
+                        )
+                      : _trailingActions(), // 작은 화면에서는 간략한 동작 제공.
+                ),
               ),
             ),
-          ),
-          navigationBar: NavigationBars(
-            onSelectItem: (index) {
-              // 네비게이션 바에서 항목이 선택될 때.
-              setState(() {
-                screenIndex = index; // 선택된 화면 인덱스를 업데이트.
-                handleScreenChanged(screenIndex); // 화면 변경 이벤트 호출.
-              });
-            },
-            selectedIndex: screenIndex, // 현재 선택된 화면 인덱스.
-            isExampleBar: false, // 예제 바인지 여부.
-          ),
-        );
-      },
+            navigationBar: NavigationBars(
+              onSelectItem: (index) {
+                // 네비게이션 바에서 항목이 선택될 때.
+                setState(() {
+                  screenIndex = index; // 선택된 화면 인덱스를 업데이트.
+                  handleScreenChanged(screenIndex); // 화면 변경 이벤트 호출.
+                });
+              },
+              selectedIndex: screenIndex, // 현재 선택된 화면 인덱스.
+              isExampleBar: false, // 예제 바인지 여부.
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -412,6 +421,28 @@ class _SignoutButton extends StatelessWidget {
           Navigator.pushReplacementNamed(context, '/');
         },
         icon: Icon(Icons.exit_to_app),
+      ),
+    );
+  }
+}
+
+class _DrawerButton extends StatelessWidget {
+  const _DrawerButton(
+      {this.showTooltipBelow = true, // 툴팁을 아래쪽에 표시할지 여부. 기본값은 true.
+      required this.scaffoldKey});
+
+  final bool showTooltipBelow; // 툴팁의 위치를 제어.
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      preferBelow: showTooltipBelow, // 툴팁 위치를 아래로 설정 여부.
+      message: 'Open Drawer', // 툴팁 메시지.
+      child: IconButton(
+        onPressed: () {
+          scaffoldKey.currentState!.openEndDrawer();
+        },
+        icon: Icon(Icons.menu),
       ),
     );
   }
@@ -548,6 +579,32 @@ class _ColorSeedButton extends StatelessWidget {
 //     );
 //   }
 // }
+const List<NavigationDestination> appBarDestinations = [
+  NavigationDestination(
+    tooltip: '',
+    icon: Icon(Icons.widgets_outlined),
+    label: 'Home',
+    selectedIcon: Icon(Icons.widgets),
+  ),
+  NavigationDestination(
+    tooltip: '',
+    icon: Icon(Icons.screen_search_desktop_outlined),
+    label: 'Item',
+    selectedIcon: Icon(Icons.screen_search_desktop_rounded),
+  ),
+  NavigationDestination(
+    tooltip: '',
+    icon: Icon(Icons.schedule_outlined),
+    label: 'Planing',
+    selectedIcon: Icon(Icons.travel_explore),
+  ),
+  NavigationDestination(
+    tooltip: '',
+    icon: Icon(Icons.car_crash_outlined),
+    label: 'Rentacar',
+    selectedIcon: Icon(Icons.opacity),
+  )
+];
 
 class _ExpandedTrailingActions extends StatelessWidget {
   // 확장된 추가 동작 위젯.
@@ -561,6 +618,7 @@ class _ExpandedTrailingActions extends StatelessWidget {
     required this.imageSelected, // 선택된 이미지.
     required this.colorSelected, // 선택된 색상.
     required this.colorSelectionMethod, // 색상 선택 방식.
+    required this.scaffoldKey,
   });
 
   final void Function(bool) handleBrightnessChange; // 밝기 전환 이벤트 핸들러.
@@ -574,6 +632,7 @@ class _ExpandedTrailingActions extends StatelessWidget {
   final ColorImageProvider imageSelected; // 현재 선택된 이미지.
   final ColorSeed colorSelected; // 현재 선택된 색상.
   final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
+   final GlobalKey<ScaffoldState> scaffoldKey;
 
   @override
   Widget build(BuildContext context) {
