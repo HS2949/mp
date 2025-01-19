@@ -132,5 +132,117 @@ class AppTheme {
     color: CupertinoColors.systemGrey,
   );
 
+  // Display styles
+  static const TextStyle displayLarge = TextStyle(
+    fontSize: 57.0,
+    height: 64.0 / 57.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: -0.25,
+  );
+
+  static const TextStyle displayMedium = TextStyle(
+    fontSize: 45.0,
+    height: 52.0 / 45.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.0,
+  );
+
+  static const TextStyle displaySmall = TextStyle(
+    fontSize: 36.0,
+    height: 44.0 / 36.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.0,
+  );
+
+  // Headline styles
+  static const TextStyle headlineLarge = TextStyle(
+    fontSize: 32.0,
+    height: 40.0 / 32.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.0,
+  );
+
+  static const TextStyle headlineMedium = TextStyle(
+    fontSize: 28.0,
+    height: 36.0 / 28.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.0,
+  );
+
+  static const TextStyle headlineSmall = TextStyle(
+    fontSize: 24.0,
+    height: 32.0 / 24.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.0,
+  );
+
+  // Title styles
+  static const TextStyle titleLarge = TextStyle(
+    fontSize: 22.0,
+    height: 28.0 / 22.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.0,
+  );
+
+  static const TextStyle titleMedium = TextStyle(
+    fontSize: 16.0,
+    height: 24.0 / 16.0,
+    fontWeight: FontWeight.w500, // medium
+    letterSpacing: 0.15,
+  );
+
+  static const TextStyle titleSmall = TextStyle(
+    fontSize: 14.0,
+    height: 20.0 / 14.0,
+    fontWeight: FontWeight.w500, // medium
+    letterSpacing: 0.1,
+  );
+
+  // Body styles
+  static const TextStyle bodyLarge = TextStyle(
+    fontSize: 16.0,
+    height: 24.0 / 16.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.5,
+  );
+
+  static const TextStyle bodyMedium = TextStyle(
+    fontSize: 14.0,
+    height: 20.0 / 14.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.25,
+  );
+
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 12.0,
+    height: 16.0 / 12.0,
+    fontWeight: FontWeight.w400, // regular
+    letterSpacing: 0.4,
+  );
+
+  // Label styles
+  static const TextStyle labelLarge = TextStyle(
+    fontSize: 14.0,
+    height: 20.0 / 14.0,
+    fontWeight: FontWeight.w500, // medium
+    letterSpacing: 0.1,
+  );
+
+  static const TextStyle labelMedium = TextStyle(
+    fontSize: 12.0,
+    height: 16.0 / 12.0,
+    fontWeight: FontWeight.w500, // medium
+    letterSpacing: 0.5,
+  );
+
+  static const TextStyle labelSmall = TextStyle(
+    fontSize: 11.0,
+    height: 16.0 / 11.0,
+    fontWeight: FontWeight.w500, // medium
+    letterSpacing: 0.5,
+  );
+
+
+
   static const EdgeInsets popupPadding = EdgeInsets.all(16); // 팝업 기본 패딩
 }
