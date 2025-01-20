@@ -103,116 +103,128 @@ class _Item_FieldState extends State<Item_Field> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Fields'),
-      ),
-      body: StreamBuilder(
-        stream: firestoreService.getItemsSnapshot('Fields'),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          final categories = snapshot.data!.docs;
-
-          return Container(
-            width: 500,
-            child: ListView.builder(
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final categoryData = category.data() as Map<String, dynamic>;
-
-                return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Icon(Icons.loyalty,
-                                color:Colors.yellow),
-                            SizedBox(width: 20),
-                            Text(
-                              categoryData['FieldName'] ?? 'No Name',
-                              style: AppTheme.titleMedium,
-                            ),
-                            SizedBox(width: 30),
-                            Text(
-                              categoryData['FieldKey'] ?? ' - ',
-                              style: AppTheme.titleMedium,
-                            ),
-                            Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
-                            IconButton(
-                              icon: Icon(Icons.edit),
-                              onPressed: () => _showDialog(document: category),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                firestoreService.deleteItem(
-                                  collectionName: 'Fields',
-                                  documentId: category.id,
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8.0),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'ID: ${category.id}',
-                                style: AppTheme.bodySmall,
-                              ),
-                            ),
-                            // SizedBox(width: 20),
-                            // Flexible(
-                            //   child: Text(
-                            //     'Icon: ${categoryData['Icon'] ?? '-'}',
-                            //     style: AppTheme.bodySmall,
-                            //   ),
-                            // ),
-                            // SizedBox(width: 20),
-                            // Flexible(
-                            //   child: Text(
-                            //     'Color: ${categoryData['Color'] ?? '-'}',
-                            //     style: AppTheme.bodySmall,
-                            //   ),
-                            // ),
-                          ],
-                        ),
-                      ],
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 500,
+              child: Row(
+                children: [
+                  SizedBox(width: 10),
+                  Text('Fields  -  ', style: AppTheme.titleLarge.copyWith(color: AppTheme.buttonbackgroundColor)),
+                  Text('Default', style: AppTheme.headlineSmall),
+                  Spacer(),
+                  SizedBox(
+                    width: 100,
+                    height: 40,
+                    child: TextButton.icon(
+                      label: Text('Add',
+                          style: AppTheme.titleMedium
+                              .copyWith(color: AppTheme.backgroundColor)),
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              AppTheme.buttonbackgroundColor),
+                          overlayColor:
+                              WidgetStateProperty.all(AppTheme.secondaryColor)),
+                      icon: Icon(
+                        Icons.add,
+                        size: 20,
+                        color: AppTheme.backgroundColor,
+                      ),
+                      onPressed: () => _showDialog(),
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
-          );
-        },
-      ),
-      floatingActionButton: SizedBox(
-        width: 80, // 원하는 너비
-        height: 30, // 원하는 높이
-
-        child: FloatingActionButton.extended(
-          onPressed: () => _showDialog(),
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, size: 10),
-              SizedBox(width: 10),
-              Text('Add', style: AppTheme.bodySmall),
-            ],
-          ),
+            Expanded(
+              child: StreamBuilder(
+                stream: firestoreService.getItemsSnapshot('Fields'),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+      
+                  final categories = snapshot.data!.docs;
+      
+                  return Container(
+                    width: 500,
+                    child: ListView.builder(
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        final categoryData =
+                            category.data() as Map<String, dynamic>;
+      
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                              vertical: 5.0, horizontal: 0.0),
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.loyalty, color: Colors.yellow),
+                                    SizedBox(width: 20),
+                                    SizedBox(
+                                      width: 100,
+                                      child: Text(
+                                        categoryData['FieldName'] ?? 'No Name',
+                                        style: AppTheme.titleMedium,
+                                      ),
+                                    ),
+                                    SizedBox(width: 30),
+                                    Text(
+                                      categoryData['FieldKey'] ?? ' - ',
+                                      style: AppTheme.titleMedium,
+                                    ),
+                                    Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
+                                    IconButton(
+                                      icon: Icon(Icons.edit),
+                                      onPressed: () =>
+                                          _showDialog(document: category),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () {
+                                        firestoreService.deleteItem(
+                                          collectionName: 'Fields',
+                                          documentId: category.id,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8.0),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        'ID: ${category.id}',
+                                        style: AppTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            )
+          ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
   }
 }

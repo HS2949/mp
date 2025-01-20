@@ -194,7 +194,9 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         ScreenSelected.component => const ItemScreen(),
         ScreenSelected.color => const ColorPalettesScreen(),
         ScreenSelected.typography => const TypographyScreen(),
-        ScreenSelected.elevation => const ElevationScreen()
+        ScreenSelected.elevation => const ElevationScreen(),
+        ScreenSelected.setting1 => const Item_Category(),
+        ScreenSelected.setting2 => const Item_Field(),
       };
 
   PreferredSizeWidget createAppBar(User user) {
@@ -231,17 +233,20 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Flexible(
-            child: Image.asset(
-              'assets/images/mp_logo.png',
-              width: 100,
-              height: 50,
-              fit: BoxFit.scaleDown,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.error, size: 50, color: Colors.orange);
-              },
+          // 조건에 따른 위젯 렌더링
+          if (!showMediumSizeLayout && !showLargeSizeLayout)
+            Flexible(
+              child: Image.asset(
+                'assets/images/mp_logo.png',
+                width: 100,
+                height: 50,
+                fit: BoxFit.scaleDown,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.error, size: 50, color: Colors.orange);
+                },
+              ),
             ),
-          ),
+
           SizedBox(width: 20),
           if (showMediumSizeLayout || showLargeSizeLayout) ...[
             Opacity(
@@ -338,7 +343,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
             navigationRail: NavigationRail(
               extended: showLargeSizeLayout, // 큰 화면에서는 확장 레일 표시.
               destinations: navRailDestinations, // 네비게이션 레일의 목적지.
-              selectedIndex: screenIndex, // 현재 선택된 화면 인덱스.
+              selectedIndex:
+                  screenIndex < 4 ? screenIndex : 0, // 5번째 페이지 제외 //lym
               onDestinationSelected: (index) {
                 // 네비게이션 레일에서 목적지가 선택될 때.
                 setState(() {
@@ -377,7 +383,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                   handleScreenChanged(screenIndex); // 화면 변경 이벤트 호출.
                 });
               },
-              selectedIndex: screenIndex, // 현재 선택된 화면 인덱스.
+              selectedIndex:
+                  screenIndex < 4 ? screenIndex : 0, // 5번째 페이지 제외 //lym
               isExampleBar: false, // 예제 바인지 여부.
             ),
           );
@@ -939,17 +946,28 @@ class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
           navDrawerIndex = selectedIndex;
           switch (navDrawerIndex) {
             case (0):
-              throw Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Item_Category(),
-                  ));
+              final homeState = context.findAncestorStateOfType<_HomeState>();
+              if (homeState != null) {
+                homeState.setState(() {
+                  // homeState.screenIndex = 1; // 원하는 Navigation Bar의 index로 설정
+                  homeState.handleScreenChanged(4); // 화면 전환 로직 호출
+                });
+              }
+
             case (1):
-              throw Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Item_Field(),
-                  ));
+              final homeState = context.findAncestorStateOfType<_HomeState>();
+              if (homeState != null) {
+                homeState.setState(() {
+                  // homeState.screenIndex = 1; // 원하는 Navigation Bar의 index로 설정
+                  homeState.handleScreenChanged(5); // 화면 전환 로직 호출
+                });
+              }
+
+            // throw Navigator.push(
+            //     context,
+            //     MaterialPageRoute(
+            //       builder: (context) => Item_Field(),
+            //     ));
 
             case (3):
               throw Navigator.push(
@@ -957,13 +975,8 @@ class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
                   MaterialPageRoute(
                     builder: (context) => Test(),
                   ));
-            // showDialog(
-            //   context: context,
-            //   builder: (context) {
-            //     return const Item_category();
-            //   },
-            // );
           }
+          Navigator.pop(context); // 드로어 닫기
         });
       },
       selectedIndex: navDrawerIndex,
@@ -1011,10 +1024,10 @@ class ExampleDestination {
 }
 
 const List<ExampleDestination> destinations = <ExampleDestination>[
-  ExampleDestination(
-      'Edit - Item Categories', Icon(Icons.category_outlined), Icon(Icons.category)),
-  ExampleDestination('Edit - Item Fields',
-      Icon(Icons.label_important_outline), Icon(Icons.label_important)),
+  ExampleDestination('Edit - Item Categories', Icon(Icons.category_outlined),
+      Icon(Icons.category)),
+  ExampleDestination('Edit - Item Fields', Icon(Icons.label_important_outline),
+      Icon(Icons.label_important)),
   ExampleDestination(
       'Favorites', Icon(Icons.favorite_outline), Icon(Icons.favorite)),
   ExampleDestination('Trash', Icon(Icons.delete_outline), Icon(Icons.delete)),

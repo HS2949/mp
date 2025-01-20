@@ -9,6 +9,13 @@ class Item_Category extends StatefulWidget {
   _Item_CategoryState createState() => _Item_CategoryState();
 }
 
+// color 와 아이콘, firebsae 기본 세팅용
+// FFA500
+// directions_bus
+// 800080
+// restaurant
+// 00008B
+// hotel
 class _Item_CategoryState extends State<Item_Category> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _iconController = TextEditingController();
@@ -88,112 +95,136 @@ class _Item_CategoryState extends State<Item_Category> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Categories'),
-      ),
-      body: StreamBuilder(
-        stream: firestoreService.getItemsSnapshot('Categories'),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          final categories = snapshot.data!.docs;
-
-          return Container(
-            width: 500,
-            child: ListView.builder(
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final categoryData = category.data() as Map<String, dynamic>;
-            
-                return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Icon(getIconFromString(category['Icon']),
-                                color: hexToColor(category['Color']), size: 50),
-                            SizedBox(width: 50),
-                            Text(
-                              categoryData['CategoryName'] ?? 'No Name',
-                              style: AppTheme.titleMedium.copyWith(color:hexToColor(category['Color']) ),
-                            ),
-                            Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
-                            IconButton(
-                              icon: Icon(Icons.edit),
-                              onPressed: () => _showDialog(document: category),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                firestoreService.deleteItem(
-                                  collectionName: 'Categories',
-                                  documentId: category.id,
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8.0),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'ID: ${category.id}',
-                                style: AppTheme.bodySmall,
-                              ),
-                            ),
-                            SizedBox(width: 20),
-                            Flexible(
-                              child: Text(
-                                'Icon: ${categoryData['Icon'] ?? '-'}',
-                                style: AppTheme.bodySmall,
-                              ),
-                            ),
-                            SizedBox(width: 20),
-                            Flexible(
-                              child: Text(
-                                'Color: ${categoryData['Color'] ?? '-'}',
-                                style: AppTheme.bodySmall,
-                              ),
-                            ),
-                            
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
-      floatingActionButton: SizedBox(
-        width: 80, // 원하는 너비
-        height: 30, // 원하는 높이
-        
-        child: FloatingActionButton.extended(
-          onPressed: () => _showDialog(),
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
+    return Expanded(
+      child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.add,size: 10),
-              SizedBox(width: 10),
-              Text('Add',style: AppTheme.bodySmall),
+              Container(
+                width: 500,
+                child: Row(
+                  children: [
+                    Text('Categories',
+                        style: AppTheme.titleLarge
+                            .copyWith(color: AppTheme.buttonbackgroundColor)),
+                    Spacer(),
+                    SizedBox(
+                      width: 100,
+                      height: 40,
+                      child: TextButton.icon(
+                        label: Text('Add',
+                            style: AppTheme.titleMedium
+                                .copyWith(color: AppTheme.backgroundColor)),
+                        style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.all(
+                                AppTheme.buttonbackgroundColor),
+                            overlayColor:
+                                WidgetStateProperty.all(AppTheme.secondaryColor)),
+                        icon: Icon(
+                          Icons.add,
+                          size: 20,
+                          color: AppTheme.backgroundColor,
+                        ),
+                        onPressed: () => _showDialog(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+              child: StreamBuilder(
+                stream: firestoreService.getItemsSnapshot('Categories'),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+      
+                  final categories = snapshot.data!.docs;
+      
+                  return Container(
+                    width: 500,
+                    child: ListView.builder(
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        final categoryData =
+                            category.data() as Map<String, dynamic>;
+      
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                              vertical: 5.0, horizontal: 0.0),
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Icon(getIconFromString(category['Icon']),
+                                        color: hexToColor(category['Color']),
+                                        size: 50),
+                                    SizedBox(width: 50),
+                                    Text(
+                                      categoryData['CategoryName'] ?? 'No Name',
+                                      style: AppTheme.titleMedium.copyWith(
+                                          color: hexToColor(category['Color'])),
+                                    ),
+                                    Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
+                                    IconButton(
+                                      icon: Icon(Icons.edit),
+                                      onPressed: () =>
+                                          _showDialog(document: category),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.delete),
+                                      onPressed: () {
+                                        firestoreService.deleteItem(
+                                          collectionName: 'Categories',
+                                          documentId: category.id,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8.0),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        'ID: ${category.id}',
+                                        style: AppTheme.bodySmall,
+                                      ),
+                                    ),
+                                    SizedBox(width: 20),
+                                    Flexible(
+                                      child: Text(
+                                        'Icon: ${categoryData['Icon'] ?? '-'}',
+                                        style: AppTheme.bodySmall,
+                                      ),
+                                    ),
+                                    SizedBox(width: 20),
+                                    Flexible(
+                                      child: Text(
+                                        'Color: ${categoryData['Color'] ?? '-'}',
+                                        style: AppTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
             ],
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+          )),
     );
   }
 }
