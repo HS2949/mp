@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
-import '../screens/item_detail_screen.dart';
+import 'dialog/item_detail_dialog.dart';
 
 class ItemScreen extends StatefulWidget {
   const ItemScreen({super.key});

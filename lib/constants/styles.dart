@@ -242,7 +242,35 @@ class AppTheme {
     letterSpacing: 0.5,
   );
 
-
-
   static const EdgeInsets popupPadding = EdgeInsets.all(16); // 팝업 기본 패딩
+}
+
+IconData getIconFromString(String iconName) {
+  // Map of string icon names to Icons
+  final iconMap = <String, IconData>{
+    'directions_bus': Icons.directions_bus_filled_outlined,
+    'restaurant': Icons.restaurant,
+    'hotel': Icons.hotel_outlined,
+  };
+
+  // Return IconData from the map or a default icon if not found
+  return iconMap[iconName] ?? Icons.help_outline;
+}
+
+Color hexToColor(String hexColor) {
+  try {
+    // '#' 기호 제거
+    hexColor = hexColor.replaceAll('#', '');
+    
+    // 6자리 색상 문자열에 불투명도 추가
+    if (hexColor.length == 6) {
+      hexColor = 'FF$hexColor'; // 기본 불투명도 100%
+    }
+    
+    // 8자리 색상 문자열을 Color로 변환
+    return Color(int.parse('0x$hexColor'));
+  } catch (e) {
+    // 변환 실패 시 기본값으로 검정색 반환
+    return Colors.black;
+  }
 }

@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mp_db/constants/db_contants.dart';
 import 'package:mp_db/models/custom_error.dart';
 import 'package:mp_db/models/user_model.dart';
 
 class ProfileRepository {
   final FirebaseFirestore firebaseFirestore;
+  final usersRef = FirebaseFirestore.instance.collection('users');
   ProfileRepository({
     required this.firebaseFirestore,
   });

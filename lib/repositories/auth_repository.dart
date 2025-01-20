@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mp_db/constants/db_contants.dart';
 import 'package:mp_db/models/custom_error.dart';
 
 class AuthRepository {
   final FirebaseFirestore firebaseFirestore;
   final fbAuth.FirebaseAuth firebaseAuth;
+  final usersRef = FirebaseFirestore.instance.collection('users');
   AuthRepository({
     required this.firebaseFirestore,
     required this.firebaseAuth,
