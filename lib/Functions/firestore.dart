@@ -80,7 +80,7 @@ class FirestoreService {
         }
 
         // 중간에 빠진 ID가 없는 경우 가장 큰 ID + 1
-        if (!chk) {
+        if (!chk && existingIds.length > 0) {
           newId = existingIds.last + 1;
         }
 
@@ -109,7 +109,8 @@ class FirestoreService {
     }
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getItemsSnapshot(String collectionName) {
+  Stream<QuerySnapshot<Map<String, dynamic>>> getItemsSnapshot(
+      String collectionName) {
     try {
       // Firestore 컬렉션의 데이터를 실시간 스트림으로 구독
       final Stream<QuerySnapshot<Map<String, dynamic>>> stream =

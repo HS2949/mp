@@ -19,14 +19,15 @@ import 'package:mp_db/material/elevation_screen.dart';
 
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
-import 'package:mp_db/pages/dialog/Item_group_dialog.dart';
+import 'package:mp_db/pages/dialog/Item_Category_dialog.dart';
+import 'package:mp_db/pages/dialog/test.dart';
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/pages/item_screen.dart';
 import 'package:provider/provider.dart';
 
-import 'dialog/Item_category_dialog.dart';
+import 'dialog/Item_Field_dialog.dart';
 // 타이포그래피 화면을 정의한 모듈 가져오기.
 
 // HomePage 클래스는 StatefulWidget을 상속하여 상태를 가질 수 있는 위젯으로 정의.
@@ -941,13 +942,20 @@ class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
               throw Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Item_category(),
+                    builder: (context) => Item_Category(),
                   ));
             case (1):
               throw Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Item_Group(),
+                    builder: (context) => Item_Field(),
+                  ));
+
+            case (3):
+              throw Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Test(),
                   ));
             // showDialog(
             //   context: context,
@@ -963,7 +971,7 @@ class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
           child: Text(
-            'Mail',
+            'Setting',
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
@@ -1004,8 +1012,9 @@ class ExampleDestination {
 
 const List<ExampleDestination> destinations = <ExampleDestination>[
   ExampleDestination(
-      'DB Setting', Icon(Icons.inbox_outlined), Icon(Icons.inbox)),
-  ExampleDestination('Outbox', Icon(Icons.send_outlined), Icon(Icons.send)),
+      'Edit - Item Categories', Icon(Icons.category_outlined), Icon(Icons.category)),
+  ExampleDestination('Edit - Item Fields',
+      Icon(Icons.label_important_outline), Icon(Icons.label_important)),
   ExampleDestination(
       'Favorites', Icon(Icons.favorite_outline), Icon(Icons.favorite)),
   ExampleDestination('Trash', Icon(Icons.delete_outline), Icon(Icons.delete)),
