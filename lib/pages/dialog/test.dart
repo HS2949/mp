@@ -167,10 +167,13 @@ class RootPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        
         title: Text('${destination.title} RootPage - /'),
+        automaticallyImplyLeading: true,
         backgroundColor: destination.color,
         foregroundColor: Colors.white,
       ),
+      
       backgroundColor: destination.color[50],
       body: Center(
         child: Column(
@@ -265,6 +268,7 @@ class ListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('${destination.title} ListPage - /list'),
+        automaticallyImplyLeading: true,
         backgroundColor: destination.color,
         foregroundColor: Colors.white,
       ),
@@ -325,6 +329,7 @@ class _TextPageState extends State<TextPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.destination.title} TextPage - /list/text'),
+        automaticallyImplyLeading: true,
         backgroundColor: widget.destination.color,
         foregroundColor: Colors.white,
       ),

@@ -300,9 +300,26 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.end, // 아래쪽 정렬.
         children: [
           Flexible(
+            child: Opacity(
+              opacity: 0.8,
+              child: Image.asset(
+                'assets/images/mp_logo.png',
+                width: 50,
+                height: 30,
+                fit: BoxFit.scaleDown,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.error, size: 50, color: Colors.orange);
+                },
+              ),
+            ),
+          ),
+          SizedBox(height: 5),
+          Flexible(
             child: _ProfileButton(showTooltipBelow: false),
           ),
           Flexible(child: _SignoutButton(showTooltipBelow: false)),
+          
+          
           // Flexible(
           //     child: _DrawerButton(
           //         showTooltipBelow: false, scaffoldKey: scaffoldKey)),
@@ -692,18 +709,26 @@ class _ExpandedTrailingActions extends StatelessWidget {
       // 수평 패딩 추가.
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _ProfileButton(showTooltipBelow: true, showTextNext: true),
-            ],
+          Center(
+            child: Opacity(
+              opacity: 0.2,
+              child: Image.asset(
+                'assets/images/mp_logo.png',
+                width: 200,
+                height: 100,
+                fit: BoxFit.scaleDown,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(Icons.error, size: 50, color: Colors.orange);
+                },
+              ),
+            ),
           ),
-          Row(
-            children: [
-              _SignoutButton(showTooltipBelow: true, showTextNext: true),
-            ],
-          ),
+          SizedBox(height: 20),
+          _ProfileButton(showTooltipBelow: true, showTextNext: true),
+          _SignoutButton(showTooltipBelow: true, showTextNext: true),
+          
           if (screenIndex == 3) ...[
             const Divider(), // 구분선.
             _ExpandedColorSeedAction(
@@ -893,7 +918,13 @@ class _NavigationTransitionState extends State<NavigationTransition> {
           RailTransition(
             animation: railAnimation, // 레일 애니메이션.
             backgroundColor: colorScheme.surface, // 레일 배경색.
-            child: widget.navigationRail, // 네비게이션 레일.
+            child: Column(
+              children: [
+                //레일 상단에 위젯 추가 공간간
+                SizedBox(height: 10),
+                Expanded(child: widget.navigationRail),
+              ],
+            ), // 네비게이션 레일.
           ),
           widget.body, // 본문 내용.
         ],
@@ -936,7 +967,7 @@ class NavigationDrawerSection extends StatefulWidget {
 }
 
 class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
-  int navDrawerIndex = 0;
+  int navDrawerIndex = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -970,11 +1001,11 @@ class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
             //     ));
 
             case (3):
-              throw Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Test(),
-                  ));
+              // throw Navigator.push(
+              //     context,
+              //     MaterialPageRoute(
+              //       builder: (context) => Test(),
+              //     ));
           }
           Navigator.pop(context); // 드로어 닫기
         });

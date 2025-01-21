@@ -102,6 +102,7 @@ class _Item_CategoryState extends State<Item_Category> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
+                padding: EdgeInsets.only(bottom: 10),
                 width: 500,
                 child: Row(
                   children: [

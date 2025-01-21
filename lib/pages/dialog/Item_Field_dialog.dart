@@ -103,6 +103,7 @@ class _Item_FieldState extends State<Item_Field> {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -110,11 +111,14 @@ class _Item_FieldState extends State<Item_Field> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
+              padding: EdgeInsets.only(bottom: 10),
               width: 500,
               child: Row(
                 children: [
                   SizedBox(width: 10),
-                  Text('Fields  -  ', style: AppTheme.titleLarge.copyWith(color: AppTheme.buttonbackgroundColor)),
+                  Text('Fields  -  ',
+                      style: AppTheme.titleLarge
+                          .copyWith(color: AppTheme.buttonbackgroundColor)),
                   Text('Default', style: AppTheme.headlineSmall),
                   Spacer(),
                   SizedBox(
@@ -142,14 +146,17 @@ class _Item_FieldState extends State<Item_Field> {
             ),
             Expanded(
               child: StreamBuilder(
-                stream: firestoreService.getItemsSnapshot('Fields'),
+                // stream: firestoreService.getItemsSnapshot('Fields'),
+                stream: firestoreService.getConditionSnapshot('Fields', {'IsDefault': true}),
+
+                
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (!snapshot.hasData) {
                     return Center(child: CircularProgressIndicator());
                   }
-      
+
                   final categories = snapshot.data!.docs;
-      
+
                   return Container(
                     width: 500,
                     child: ListView.builder(
@@ -158,7 +165,7 @@ class _Item_FieldState extends State<Item_Field> {
                         final category = categories[index];
                         final categoryData =
                             category.data() as Map<String, dynamic>;
-      
+                        bool isDefault = categoryData['IsDefault'];
                         return Card(
                           margin: EdgeInsets.symmetric(
                               vertical: 5.0, horizontal: 0.0),
@@ -170,20 +177,46 @@ class _Item_FieldState extends State<Item_Field> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    Icon(Icons.loyalty, color: Colors.yellow),
-                                    SizedBox(width: 20),
-                                    SizedBox(
-                                      width: 100,
-                                      child: Text(
-                                        categoryData['FieldName'] ?? 'No Name',
+                                    Icon(Icons.loyalty,
+                                        color: isDefault
+                                            ? Colors.yellow
+                                            : Colors.blue),
+                                    SizedBox(width: 30),
+                                    if (screenWidth > 500) ...[
+                                      SizedBox(
+                                        width: 100,
+                                        child: Text(
+                                          categoryData['FieldName'] ??
+                                              'No Name',
+                                          style: AppTheme.titleMedium,
+                                        ),
+                                      ),
+                                      SizedBox(width: 30),
+                                      Text(
+                                        categoryData['FieldKey'] ?? ' - ',
                                         style: AppTheme.titleMedium,
                                       ),
-                                    ),
-                                    SizedBox(width: 30),
-                                    Text(
-                                      categoryData['FieldKey'] ?? ' - ',
-                                      style: AppTheme.titleMedium,
-                                    ),
+                                    ] else ...[
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            width: 100,
+                                            child: Text(
+                                              categoryData['FieldName'] ??
+                                                  'No Name',
+                                              style: AppTheme.titleMedium,
+                                            ),
+                                          ),
+                                          SizedBox(height: 5),
+                                          Text(
+                                            categoryData['FieldKey'] ?? ' - ',
+                                            style: AppTheme.titleMedium,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                     Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
                                     IconButton(
                                       icon: Icon(Icons.edit),
@@ -203,11 +236,13 @@ class _Item_FieldState extends State<Item_Field> {
                                 ),
                                 SizedBox(height: 8.0),
                                 Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     Flexible(
                                       child: Text(
                                         'ID: ${category.id}',
-                                        style: AppTheme.bodySmall,
+                                        style: AppTheme.bodySmall
+                                            .copyWith(color: Colors.grey),
                                       ),
                                     ),
                                   ],

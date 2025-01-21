@@ -123,6 +123,34 @@ class FirestoreService {
     }
   }
 
+
+
+// getItemsSnapshot('your_collection_name', {
+//   'IsDefault': true,
+//   'Category': 'Books',
+// });
+Stream<QuerySnapshot<Map<String, dynamic>>> getConditionSnapshot(
+    String collectionName, Map<String, dynamic> conditions) {
+  try {
+    // Firestore 컬렉션에 접근
+    Query<Map<String, dynamic>> query = _firestore.collection(collectionName);
+
+    // 조건을 동적으로 추가
+    conditions.forEach((field, value) {
+      query = query.where(field, isEqualTo: value);
+    });
+
+    // 스트림 반환
+    final Stream<QuerySnapshot<Map<String, dynamic>>> stream = query.snapshots();
+
+    print('조건에 맞는 실시간 데이터 구독 성공');
+    return stream;
+  } catch (e) {
+    print('실시간 데이터 구독 오류: $e');
+    rethrow;
+  }
+}
+
   Future<DocumentSnapshot<Map<String, dynamic>>> getItemById(
       {required String collectionName, required String documentId}) async {
     try {

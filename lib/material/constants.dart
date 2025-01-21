@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 // narrowScreenWidthThreshold; otherwise, NavigationBar is used for navigation.
 const double narrowScreenWidthThreshold = 450;
 
-const double mediumWidthBreakpoint = 1000;
-const double largeWidthBreakpoint = 1500;
+const double mediumWidthBreakpoint = 1000*0.8;
+const double largeWidthBreakpoint = 1500*0.8;
 
 const double transitionLength = 500;
 
