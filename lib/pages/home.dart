@@ -1,6 +1,7 @@
 // Copyright 2021 The Flutter team. All rights reserved.
 // Flutter 팀의 소스 코드. BSD-style 라이선스에 따라 배포 가능. 자세한 내용은 LICENSE 파일 참조.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 // Flutter의 Material Design 위젯 및 테마를 사용하기 위한 패키지.
@@ -19,15 +20,15 @@ import 'package:mp_db/material/elevation_screen.dart';
 
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
-import 'package:mp_db/pages/dialog/Item_Category_dialog.dart';
-import 'package:mp_db/pages/dialog/test.dart';
+import 'package:mp_db/pages/dialog/Item_category_dialog.dart';
+
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/pages/item_screen.dart';
 import 'package:provider/provider.dart';
 
-import 'dialog/Item_Field_dialog.dart';
+import 'dialog/Item_field_dialog.dart';
 // 타이포그래피 화면을 정의한 모듈 가져오기.
 
 // HomePage 클래스는 StatefulWidget을 상속하여 상태를 가질 수 있는 위젯으로 정의.
@@ -172,33 +173,72 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     bool showNavBarExample, // 네비게이션 바 예제를 표시할지 여부.
   ) =>
       switch (screenSelected) {
-        // ScreenSelected.component => Expanded(
-        //     // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
-        //     child: OneTwoTransition(
-        //       animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-        //       one: FirstComponentList(
-        //         // 첫 번째 구성 요소 리스트.
-        //         showNavBottomBar: showNavBarExample, // 네비게이션 바 예제 표시 여부.
-        //         scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-        //         showSecondList: showMediumSizeLayout || showLargeSizeLayout,
-        //         // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-        //       ),
-        //       two: SecondComponentList(
-        //         // 두 번째 구성 요소 리스트.
-        //         scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-        //       ),
-        //     ),
-        //   ),
-
         // 선택된 화면에 따라 반환할 위젯을 지정.
         ScreenSelected.component => const ItemScreen(),
-        ScreenSelected.color => const ColorPalettesScreen(),
-        ScreenSelected.typography => const TypographyScreen(),
+        ScreenSelected.setting1 => const ColorPalettesScreen(),
+        ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.elevation => const ElevationScreen(),
-        ScreenSelected.setting1 => const Item_Category(),
-        ScreenSelected.setting2 => const Item_Field(),
+        ScreenSelected.setting2 => const Item_Category(),
+        ScreenSelected.color => DefaultTabController(
+            length: 2, // Number of tabs
+            child: Expanded(
+              child: Container(
+                // width: MediaQuery.of(context).size.width,
+                // height: MediaQuery.of(context).size.height,
+                child: Scaffold(
+                  appBar: AppBar(
+                    title: Text('Key Setting',style: AppTheme.titleMedium,),
+                    centerTitle: true,
+                    bottom: TabBar(
+                      tabs: [
+                        Tab(icon: Icon(Icons.list), text: 'Categories'),
+                        Tab(icon: Icon(Icons.label), text: 'Fields'),
+                      ],
+                    ),
+                  ),
+                  body: TabBarView(
+                    children: [
+                      Item_Category(),
+                      // _buildInfoTab(),
+                      Expanded(
+                        // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
+                        child: OneTwoTransition(
+                          animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+                          one: First_Field_Page(
+                            showNavBottomBar:
+                                showNavBarExample, // 네비게이션 바 예제 표시 여부.
+                            scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                            showSecondList:
+                                showMediumSizeLayout || showLargeSizeLayout,
+                            // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+                          ), // 첫 번째 구성 요소 리스트.
+                          two: Second_Field_Page(
+                            scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                          ), // 두 번째 구성 요소 리스트.
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ScreenSelected.typography => Expanded(
+            // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
+            child: OneTwoTransition(
+              animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+              one: FirstComponentList(
+                showNavBottomBar: showNavBarExample, // 네비게이션 바 예제 표시 여부.
+                scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                showSecondList: showMediumSizeLayout || showLargeSizeLayout,
+                // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+              ), // 첫 번째 구성 요소 리스트.
+              two: SecondComponentList(
+                scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+              ), // 두 번째 구성 요소 리스트.
+            ),
+          ),
       };
-
   PreferredSizeWidget createAppBar(User user) {
     // 앱바(AppBar)를 생성하는 함수.
     // return AppBar(
@@ -318,8 +358,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
             child: _ProfileButton(showTooltipBelow: false),
           ),
           Flexible(child: _SignoutButton(showTooltipBelow: false)),
-          
-          
+
           // Flexible(
           //     child: _DrawerButton(
           //         showTooltipBelow: false, scaffoldKey: scaffoldKey)),
@@ -728,7 +767,6 @@ class _ExpandedTrailingActions extends StatelessWidget {
           SizedBox(height: 20),
           _ProfileButton(showTooltipBelow: true, showTextNext: true),
           _SignoutButton(showTooltipBelow: true, showTextNext: true),
-          
           if (screenIndex == 3) ...[
             const Divider(), // 구분선.
             _ExpandedColorSeedAction(
@@ -1000,12 +1038,14 @@ class _NavigationDrawerSectionState extends State<NavigationDrawerSection> {
             //       builder: (context) => Item_Field(),
             //     ));
 
-            case (3):
-              // throw Navigator.push(
-              //     context,
-              //     MaterialPageRoute(
-              //       builder: (context) => Test(),
-              //     ));
+            case (2):
+              final homeState = context.findAncestorStateOfType<_HomeState>();
+              if (homeState != null) {
+                homeState.setState(() {
+                  // homeState.screenIndex = 1; // 원하는 Navigation Bar의 index로 설정
+                  homeState.handleScreenChanged(6); // 화면 전환 로직 호출
+                });
+              }
           }
           Navigator.pop(context); // 드로어 닫기
         });
@@ -1055,8 +1095,7 @@ class ExampleDestination {
 }
 
 const List<ExampleDestination> destinations = <ExampleDestination>[
-  ExampleDestination('Edit - Item Categories', Icon(Icons.category_outlined),
-      Icon(Icons.category)),
+  ExampleDestination('Setting', Icon(Icons.settings), Icon(Icons.settings)),
   ExampleDestination('Edit - Item Fields', Icon(Icons.label_important_outline),
       Icon(Icons.label_important)),
   ExampleDestination(

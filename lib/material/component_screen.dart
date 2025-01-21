@@ -5,7 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/pages/dialog/Item_category_dialog.dart';
 import 'package:mp_db/pages/home.dart';
+import 'package:mp_db/utils/two_line.dart';
+import 'package:mp_db/utils/widget_help.dart';
 
 const rowDivider = SizedBox(width: 20);
 const colDivider = SizedBox(height: 10);
@@ -57,7 +61,7 @@ class FirstComponentList extends StatelessWidget {
               delegate: BuildSlivers(
                 heights: heights,
                 builder: (context, index) {
-                  return _CacheHeight(
+                  return CacheHeight(
                     heights: heights,
                     index: index,
                     child: children[index],
@@ -101,7 +105,7 @@ class SecondComponentList extends StatelessWidget {
               delegate: BuildSlivers(
                 heights: heights,
                 builder: (context, index) {
-                  return _CacheHeight(
+                  return CacheHeight(
                     heights: heights,
                     index: index,
                     child: children[index],
@@ -113,77 +117,6 @@ class SecondComponentList extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// If the content of a CustomScrollView does not change, then it's
-// safe to cache the heights of each item as they are laid out. The
-// sum of the cached heights are returned by an override of
-// `SliverChildDelegate.estimateMaxScrollOffset`. The default version
-// of this method bases its estimate on the average height of the
-// visible items. The override ensures that the scrollbar thumb's
-// size, which depends on the max scroll offset, will shrink smoothly
-// as the contents of the list are exposed for the first time, and
-// then remain fixed.
-class _CacheHeight extends SingleChildRenderObjectWidget {
-  const _CacheHeight({
-    super.child,
-    required this.heights,
-    required this.index,
-  });
-
-  final List<double?> heights;
-  final int index;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _RenderCacheHeight(
-      heights: heights,
-      index: index,
-    );
-  }
-
-  @override
-  void updateRenderObject(
-      BuildContext context, _RenderCacheHeight renderObject) {
-    renderObject
-      ..heights = heights
-      ..index = index;
-  }
-}
-
-class _RenderCacheHeight extends RenderProxyBox {
-  _RenderCacheHeight({
-    required List<double?> heights,
-    required int index,
-  })  : _heights = heights,
-        _index = index,
-        super();
-
-  List<double?> _heights;
-  List<double?> get heights => _heights;
-  set heights(List<double?> value) {
-    if (value == _heights) {
-      return;
-    }
-    _heights = value;
-    markNeedsLayout();
-  }
-
-  int _index;
-  int get index => _index;
-  set index(int value) {
-    if (value == index) {
-      return;
-    }
-    _index = value;
-    markNeedsLayout();
-  }
-
-  @override
-  void performLayout() {
-    super.performLayout();
-    heights[index] = size.height;
   }
 }
 
@@ -1063,8 +996,6 @@ class _ProgressIndicatorsState extends State<ProgressIndicators> {
   }
 }
 
-
-
 const List<Widget> exampleBarDestinations = [
   NavigationDestination(
     tooltip: '',
@@ -1773,94 +1704,6 @@ class BottomAppBars extends StatelessWidget {
   }
 }
 
-class IconButtonAnchorExample extends StatelessWidget {
-  const IconButtonAnchorExample({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MenuAnchor(
-      builder: (context, controller, child) {
-        return IconButton(
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          icon: const Icon(Icons.more_vert),
-        );
-      },
-      menuChildren: [
-        MenuItemButton(
-          child: const Text('Menu 1'),
-          onPressed: () {},
-        ),
-        MenuItemButton(
-          child: const Text('Menu 2'),
-          onPressed: () {},
-        ),
-        SubmenuButton(
-          menuChildren: <Widget>[
-            MenuItemButton(
-              onPressed: () {},
-              child: const Text('Menu 3.1'),
-            ),
-            MenuItemButton(
-              onPressed: () {},
-              child: const Text('Menu 3.2'),
-            ),
-            MenuItemButton(
-              onPressed: () {},
-              child: const Text('Menu 3.3'),
-            ),
-          ],
-          child: const Text('Menu 3'),
-        ),
-      ],
-    );
-  }
-}
-
-class ButtonAnchorExample extends StatelessWidget {
-  const ButtonAnchorExample({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MenuAnchor(
-      builder: (context, controller, child) {
-        return FilledButton.tonal(
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          child: const Text('Show menu'),
-        );
-      },
-      menuChildren: [
-        MenuItemButton(
-          leadingIcon: const Icon(Icons.people_alt_outlined),
-          child: const Text('Item 1'),
-          onPressed: () {},
-        ),
-        MenuItemButton(
-          leadingIcon: const Icon(Icons.remove_red_eye_outlined),
-          child: const Text('Item 2'),
-          onPressed: () {},
-        ),
-        MenuItemButton(
-          leadingIcon: const Icon(Icons.refresh),
-          onPressed: () {},
-          child: const Text('Item 3'),
-        ),
-      ],
-    );
-  }
-}
-
 class NavigationDrawers extends StatelessWidget {
   const NavigationDrawers({super.key, required this.scaffoldKey});
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -1888,10 +1731,6 @@ class NavigationDrawers extends StatelessWidget {
     );
   }
 }
-
-
-
-
 
 class NavigationRails extends StatelessWidget {
   const NavigationRails({super.key});
@@ -2065,118 +1904,6 @@ class TopAppBars extends StatelessWidget {
       ),
     );
   }
-}
-
-class Menus extends StatefulWidget {
-  const Menus({super.key});
-
-  @override
-  State<Menus> createState() => _MenusState();
-}
-
-class _MenusState extends State<Menus> {
-  final TextEditingController colorController = TextEditingController();
-  final TextEditingController iconController = TextEditingController();
-  IconLabel? selectedIcon = IconLabel.smile;
-  ColorLabel? selectedColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<DropdownMenuEntry<ColorLabel>> colorEntries =
-        <DropdownMenuEntry<ColorLabel>>[];
-    for (final ColorLabel color in ColorLabel.values) {
-      colorEntries.add(DropdownMenuEntry<ColorLabel>(
-          value: color, label: color.label, enabled: color.label != 'Grey'));
-    }
-
-    final List<DropdownMenuEntry<IconLabel>> iconEntries =
-        <DropdownMenuEntry<IconLabel>>[];
-    for (final IconLabel icon in IconLabel.values) {
-      iconEntries
-          .add(DropdownMenuEntry<IconLabel>(value: icon, label: icon.label));
-    }
-
-    return ComponentDecoration(
-      label: 'Menus',
-      tooltipMessage: 'Use MenuAnchor or DropdownMenu<T>',
-      child: Column(
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              ButtonAnchorExample(),
-              rowDivider,
-              IconButtonAnchorExample(),
-            ],
-          ),
-          colDivider,
-          Wrap(
-            alignment: WrapAlignment.spaceAround,
-            runAlignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: smallSpacing,
-            runSpacing: smallSpacing,
-            children: [
-              DropdownMenu<ColorLabel>(
-                controller: colorController,
-                label: const Text('Color'),
-                enableFilter: true,
-                dropdownMenuEntries: colorEntries,
-                inputDecorationTheme: const InputDecorationTheme(filled: true),
-                onSelected: (color) {
-                  setState(() {
-                    selectedColor = color;
-                  });
-                },
-              ),
-              DropdownMenu<IconLabel>(
-                initialSelection: IconLabel.smile,
-                controller: iconController,
-                leadingIcon: const Icon(Icons.search),
-                label: const Text('Icon'),
-                dropdownMenuEntries: iconEntries,
-                onSelected: (icon) {
-                  setState(() {
-                    selectedIcon = icon;
-                  });
-                },
-              ),
-              Icon(
-                selectedIcon?.icon,
-                color: selectedColor?.color ?? Colors.grey.withAlpha(128),
-              )
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-enum ColorLabel {
-  blue('Blue', Colors.blue),
-  pink('Pink', Colors.pink),
-  green('Green', Colors.green),
-  yellow('Yellow', Colors.yellow),
-  grey('Grey', Colors.grey);
-
-  const ColorLabel(this.label, this.color);
-  final String label;
-  final Color color;
-}
-
-enum IconLabel {
-  smile('Smile', Icons.sentiment_satisfied_outlined),
-  cloud(
-    'Cloud',
-    Icons.cloud_outlined,
-  ),
-  brush('Brush', Icons.brush_outlined),
-  heart('Heart', Icons.favorite);
-
-  const IconLabel(this.label, this.icon);
-  final String label;
-  final IconData icon;
 }
 
 class Sliders extends StatefulWidget {
@@ -2377,80 +2104,137 @@ class Carousels extends StatelessWidget {
   }
 }
 
-class ComponentDecoration extends StatefulWidget {
-  const ComponentDecoration({
-    super.key,
-    required this.label,
-    required this.child,
-    this.tooltipMessage = '',
-  });
-
-  final String label;
-  final Widget child;
-  final String? tooltipMessage;
+class Menus extends StatefulWidget {
+  const Menus({super.key});
 
   @override
-  State<ComponentDecoration> createState() => _ComponentDecorationState();
+  State<Menus> createState() => _MenusState();
 }
 
-class _ComponentDecorationState extends State<ComponentDecoration> {
-  final focusNode = FocusNode();
+class _MenusState extends State<Menus> {
+  final TextEditingController colorController = TextEditingController();
+  final TextEditingController iconController = TextEditingController();
+  IconLabel? selectedIcon = IconLabel.smile;
+  ColorLabel? selectedColor;
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: smallSpacing),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(widget.label,
-                    style: Theme.of(context).textTheme.titleMedium),
-                Tooltip(
-                  message: widget.tooltipMessage,
-                  child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 5.0),
-                      child: Icon(Icons.info_outline, size: 16)),
-                ),
-              ],
-            ),
-            ConstrainedBox(
-              constraints:
-                  const BoxConstraints.tightFor(width: widthConstraint),
-              // Tapping within the a component card should request focus
-              // for that component's children.
-              child: Focus(
-                focusNode: focusNode,
-                canRequestFocus: true,
-                child: GestureDetector(
-                  onTapDown: (_) {
-                    focusNode.requestFocus();
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                      borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5.0, vertical: 20.0),
-                      child: Center(
-                        child: widget.child,
-                      ),
-                    ),
-                  ),
-                ),
+    final List<DropdownMenuEntry<ColorLabel>> colorEntries =
+        <DropdownMenuEntry<ColorLabel>>[];
+    for (final ColorLabel color in ColorLabel.values) {
+      colorEntries.add(DropdownMenuEntry<ColorLabel>(
+          value: color, label: color.label, enabled: color.label != 'Grey'));
+    }
+
+    final List<DropdownMenuEntry<IconLabel>> iconEntries =
+        <DropdownMenuEntry<IconLabel>>[];
+    for (final IconLabel icon in IconLabel.values) {
+      iconEntries
+          .add(DropdownMenuEntry<IconLabel>(value: icon, label: icon.label));
+    }
+
+    return ComponentDecoration(
+      label: 'Menus',
+      tooltipMessage: 'Use MenuAnchor or DropdownMenu<T>',
+      child: Column(
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              ButtonAnchorExample(),
+              SizedBox(width: 20),
+              IconButtonAnchorExample(),
+            ],
+          ),
+          SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.spaceAround,
+            runAlignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              DropdownMenu<ColorLabel>(
+                controller: colorController,
+                label: const Text('Color'),
+                enableFilter: true,
+                dropdownMenuEntries: colorEntries,
+                inputDecorationTheme: const InputDecorationTheme(filled: true),
+                onSelected: (color) {
+                  setState(() {
+                    selectedColor = color;
+                  });
+                },
               ),
+              DropdownMenu<IconLabel>(
+                initialSelection: IconLabel.smile,
+                controller: iconController,
+                leadingIcon: const Icon(Icons.search),
+                label: const Text('Icon'),
+                dropdownMenuEntries: iconEntries,
+                onSelected: (icon) {
+                  setState(() {
+                    selectedIcon = icon;
+                  });
+                },
+              ),
+              Icon(
+                selectedIcon?.icon,
+                color: selectedColor?.color ?? Colors.grey.withAlpha(128),
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class IconButtonAnchorExample extends StatelessWidget {
+  const IconButtonAnchorExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      builder: (context, controller, child) {
+        return IconButton(
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          icon: const Icon(Icons.more_vert),
+        );
+      },
+      menuChildren: [
+        MenuItemButton(
+          child: const Text('Menu 1'),
+          onPressed: () {},
+        ),
+        MenuItemButton(
+          child: const Text('Menu 2'),
+          onPressed: () {},
+        ),
+        SubmenuButton(
+          menuChildren: <Widget>[
+            MenuItemButton(
+              onPressed: () {},
+              child: const Text('Menu 3.1'),
+            ),
+            MenuItemButton(
+              onPressed: () {},
+              child: const Text('Menu 3.2'),
+            ),
+            MenuItemButton(
+              onPressed: () {},
+              child: const Text('Menu 3.3'),
             ),
           ],
+          child: const Text('Menu 3'),
         ),
-      ),
+      ],
     );
   }
 }
@@ -2477,7 +2261,7 @@ class ComponentGroupDecoration extends StatelessWidget {
             child: Column(
               children: [
                 Text(label, style: Theme.of(context).textTheme.titleLarge),
-                colDivider,
+                SizedBox(height: 10),
                 ...children
               ],
             ),

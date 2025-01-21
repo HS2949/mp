@@ -61,7 +61,8 @@ enum ScreenSelected {
   typography(2),
   elevation(3),
   setting1(4),
-  setting2(5);
+  setting2(5),
+  setting3(6);
 
   const ScreenSelected(this.value);
   final int value;

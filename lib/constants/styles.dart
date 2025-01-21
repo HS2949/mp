@@ -1,6 +1,43 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+enum IconLabel {
+  smile('Smile', Icons.sentiment_satisfied_outlined),
+  cloud('Cloud', Icons.cloud_outlined),
+  brush('Brush', Icons.brush_outlined),
+  heart('Heart', Icons.favorite),
+  bus('directions_bus', Icons.directions_bus_filled_outlined),
+  restaurant('restaurant', Icons.restaurant),
+  hotel('hotel', Icons.hotel_outlined);
+
+  const IconLabel(this.label, this.icon);
+  final String label;
+  final IconData icon;
+}
+
+enum ColorLabel {
+  blue('Blue', Colors.blue),
+  pink('Pink', Colors.pink),
+  green('Green', Colors.green),
+  yellow('Yellow', Colors.yellow),
+  grey('Grey', Colors.grey),
+  red('red', Colors.red),
+  orange('orange', Colors.orange),
+  indigo('indigo', Colors.indigo),
+  violet('violet', Color(0xFF8F00FF)),
+  purple('purple', Colors.purple),
+  silver('silver', Color(0xFF808080)),
+  gold('gold', Color(0xFFFFD700)),
+  beige('beige', Color(0xFFF5F5DC)),
+  brown('brown', Colors.brown),
+  black('black', Colors.black),
+  white('white', Colors.white);
+
+  const ColorLabel(this.label, this.color);
+  final String label;
+  final Color color;
+}
+
 class AppTheme {
   // 색상 변수 정의
   static const Color primaryColor = Color(0xFF414141); //
@@ -36,36 +73,37 @@ class AppTheme {
       iconTheme: IconThemeData(color: secondaryColor), // 아이콘 색상
 
       inputDecorationTheme: InputDecorationTheme(
-        // TextField 스타일
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(textfieldRadious),
-          borderSide: BorderSide(
-            color: secondaryColor,
-            width: 1.0,
+          // TextField 스타일
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(textfieldRadious),
+            borderSide: BorderSide(
+              color: secondaryColor,
+              width: 1.0,
+            ),
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(textfieldRadious),
-          borderSide: BorderSide(color: secondaryColor, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(textfieldRadious),
-          borderSide: BorderSide(color: secondaryColor, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(textfieldRadious),
-          borderSide: BorderSide(color: secondaryColor, width: 1.0),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(textfieldRadious),
-          borderSide: BorderSide(color: secondaryColor, width: 1.5),
-        ),
-        isDense: true, // 높이를 줄이는 옵션
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        errorStyle: errorTextStyle, // 에러 메시지 스타일 적용
-        prefixIconColor: secondaryColor,
-        labelStyle: textfieldStyle,
-      ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(textfieldRadious),
+            borderSide: BorderSide(color: secondaryColor, width: 1.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(textfieldRadious),
+            borderSide: BorderSide(color: secondaryColor, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(textfieldRadious),
+            borderSide: BorderSide(color: secondaryColor, width: 1.0),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(textfieldRadious),
+            borderSide: BorderSide(color: secondaryColor, width: 1.5),
+          ),
+          isDense: true, // 높이를 줄이는 옵션
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          errorStyle: errorTextStyle, // 에러 메시지 스타일 적용
+          prefixIconColor: secondaryColor,
+          labelStyle: textfieldStyle,
+          hintStyle: bodyMedium.copyWith(color: Colors.grey[400])),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -245,28 +283,38 @@ class AppTheme {
   static const EdgeInsets popupPadding = EdgeInsets.all(16); // 팝업 기본 패딩
 }
 
-IconData getIconFromString(String iconName) {
-  // Map of string icon names to Icons
-  final iconMap = <String, IconData>{
-    'directions_bus': Icons.directions_bus_filled_outlined,
-    'restaurant': Icons.restaurant,
-    'hotel': Icons.hotel_outlined,
-  };
+// IconData getIconFromString(String iconName) {
+//   // Map of string icon names to Icons
+//   final iconMap = <String, IconData>{
+//     'directions_bus': Icons.directions_bus_filled_outlined,
+//     'restaurant': Icons.restaurant,
+//     'hotel': Icons.hotel_outlined,
+//   };
 
-  // Return IconData from the map or a default icon if not found
-  return iconMap[iconName] ?? Icons.help_outline;
+//   // Return IconData from the map or a default icon if not found
+//   return iconMap[iconName] ?? Icons.help_outline;
+// }
+IconData getIconFromString(String iconName) {
+  // `IconLabel`의 모든 값을 순회하여 해당 label과 일치하는 IconData를 반환
+  for (var iconLabel in IconLabel.values) {
+    if (iconLabel.label == iconName) {
+      return iconLabel.icon;
+    }
+  }
+  // 일치하는 값이 없을 경우 기본 아이콘 반환
+  return Icons.help_outline;
 }
 
 Color hexToColor(String hexColor) {
   try {
     // '#' 기호 제거
     hexColor = hexColor.replaceAll('#', '');
-    
+
     // 6자리 색상 문자열에 불투명도 추가
     if (hexColor.length == 6) {
       hexColor = 'FF$hexColor'; // 기본 불투명도 100%
     }
-    
+
     // 8자리 색상 문자열을 Color로 변환
     return Color(int.parse('0x$hexColor'));
   } catch (e) {
