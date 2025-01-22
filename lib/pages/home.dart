@@ -187,9 +187,21 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 // height: MediaQuery.of(context).size.height,
                 child: Scaffold(
                   appBar: AppBar(
-                    title: Text('Key Setting',style: AppTheme.titleMedium,),
-                    centerTitle: true,
+                    automaticallyImplyLeading: false,
+                    toolbarHeight: 0, 
+                    // title: Row(
+                    //   children: [
+                    //     Icon(Icons.settings, color: AppTheme.primaryColor),
+                    //     SizedBox(width: 10),
+                    //     Text('Key Setting', style: AppTheme.titleMedium),
+                    //   ],
+                    // ),
                     bottom: TabBar(
+                      indicatorColor: AppTheme.textColor,
+                      indicatorSize: TabBarIndicatorSize.label ,
+                       indicatorWeight: 4.0,
+                        labelColor: AppTheme.textColor,
+                         unselectedLabelColor: Colors.grey,
                       tabs: [
                         Tab(icon: Icon(Icons.list), text: 'Categories'),
                         Tab(icon: Icon(Icons.label), text: 'Fields'),

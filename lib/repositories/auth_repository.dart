@@ -15,6 +15,7 @@ class AuthRepository {
 
   Future<void> signup({
     required String name,
+    required String position,
     required String email,
     required String password,
   }) async {
@@ -29,7 +30,7 @@ class AuthRepository {
         'name': name,
         'email': email,
         'profileImage': 'https://picsum.photos/300',
-        'position': 'Guest'
+        'position': position,
       });
     } on fbAuth.FirebaseAuthException catch (e) {
       throw CustomError(

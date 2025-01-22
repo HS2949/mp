@@ -1,8 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/models/custom_error.dart';
+
 import 'package:mp_db/providers/signup/signup_provider.dart';
 import 'package:mp_db/providers/signup/signup_state.dart';
+import 'package:mp_db/utils/widget_help.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:validators/validators.dart';
 import 'package:provider/provider.dart';
 import '../utils/error_dialog.dart';
@@ -19,16 +23,22 @@ class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
 
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
-  String? _name, _email, _password ;
-  String? _nameError, _emailError, _passwordError, _repasswordError;
-  final _passwordController = TextEditingController();
+  String? _name, _position, _email, _password;
 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _positionController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController1 = TextEditingController();
+  final TextEditingController _passwordController2 = TextEditingController();
+
+  Future<void> _saveEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_email', email);
+  }
   void _submit() async {
     setState(() {
       _autovalidateMode = AutovalidateMode.always;
     });
-
-    if (_nameError != null || _emailError != null || _passwordError != null|| _repasswordError != null) return;
 
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
@@ -36,23 +46,17 @@ class _SignupPageState extends State<SignupPage> {
     form.save();
 
     print('name: $_name, email: $_email, password: $_password');
-
-    await context.read<SignupProvider>().signup(
-          name: _name!,
-          email: _email!,
-          password: _password!,
-        );
-
-    final signupState = context.read<SignupProvider>().state;
-
-    if (signupState.signupStatus == SignupStatus.error) {
+    try {
+      await context
+          .read<SignupProvider>()
+          .signup(name: _name!, position: _position!, email: _email!, password: _password!);
       if (mounted) {
-        errorDialog(context, signupState.error);
+        // 로그인 성공 시 이메일 저장
+        await _saveEmail(_email!);
+        Navigator.pushNamed(context, '/');
       }
-    } else if (signupState.signupStatus == SignupStatus.success) {
-      if (mounted) {
-        Navigator.pushNamed(context, '/home');
-      }
+    } on CustomError catch (e) {
+      errorDialog(context, e);
     }
   }
 
@@ -61,193 +65,178 @@ class _SignupPageState extends State<SignupPage> {
     final signupState = context.watch<SignupProvider>().state;
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: Text('Sign In'),
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text('Sign Up'),
+          centerTitle: true,
         ),
-        child: Center(
+        body: Center(
           child: SizedBox(
-            width: 350, // 최대 폭을 500으로 설정
+            width: 400, // 최대 폭을 500으로 설정
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30.0),
               child: Form(
                 key: _formKey,
                 autovalidateMode: _autovalidateMode,
                 child: ListView(
+                  reverse: true,
                   shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
                   children: [
                     SizedBox(height: 50.0),
                     Image.asset(
-                      'assets/images/miceplan_logo.png',
+                      'assets/images/miceplan_font.png',
                       width: 250,
-                      height: 250,
+                      height: 60,
                       fit: BoxFit.scaleDown,
                       errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.error, size: 50, color: Colors.red);
+                        return Icon(Icons.error,
+                            size: 50, color: Colors.orange);
                       },
                     ),
+                    SizedBox(height: 10.0),
+                    Center(child: Text('사용자 등록',style: AppTheme.titleLarge,)),
                     SizedBox(height: 50.0),
-                                        CupertinoTextField(
-                      placeholder: 'Name',
-                      prefix: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(Icons.account_box_rounded),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _name = value;
-                          if (value.trim().isEmpty) {
-                            _nameError = '이름을 입력하세요';
-                          } else if (value.trim().length < 2) {
-                            _nameError = '이름은 최소 2자 이상이어야 합니다';
-                          } else {
-                            _nameError = null;
-                          }
-                        });
-                      },
-                      decoration: BoxDecoration(
-                        border: Border.all(color: CupertinoColors.systemGrey),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                    if (_emailError != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 5.0),
-                        child: Text(
-                          _emailError!,
-                          style: AppTheme.errorTextStyle,
-                        ),
-                      ),
-                    SizedBox(height: 20.0),
-                    CupertinoTextField(
+                    TextFormField(
+                      controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      placeholder: 'Email',
-                      prefix: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(CupertinoIcons.mail),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Email',
+                        hintText: '이메일을 입력해 주세요.',
+                        prefixIcon: Icon(Icons.email_outlined),
+                        suffixIcon: ClearButton(controller: _emailController),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _email = value;
-                          if (value.trim().isEmpty) {
-                            _emailError = '이메일 주소가 필요합니다';
-                          } else if (!isEmail(value.trim())) {
-                            _emailError = '유효한 이메일 주소를 입력하세요';
-                          } else {
-                            _emailError = null;
-                          }
-                        });
+                      validator: (String? value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return '이메일 주소가 필요합니다';
+                        }
+                        if (!isEmail(value.trim())) {
+                          return '유효한 이메일 주소를 입력하세요';
+                        }
+                        return null;
                       },
-                      decoration: BoxDecoration(
-                        border: Border.all(color: CupertinoColors.systemGrey),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
+                      onSaved: (String? value) {
+                        _email = value;
+                      },
                     ),
-                    if (_emailError != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 5.0),
-                        child: Text(
-                          _emailError!,
-                          style: AppTheme.errorTextStyle,
-                        ),
-                      ),
                     SizedBox(height: 20.0),
-                    CupertinoTextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      placeholder: 'Password',
-                      prefix: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(CupertinoIcons.lock),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Name',
+                        hintText: '성함을 입력하세요.',
+                        prefixIcon: Icon(Icons.people_alt),
+                        suffixIcon: ClearButton(controller: _nameController),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _password = value;
-                          if (value.trim().isEmpty) {
-                            _passwordError = '비밀번호를 입력하세요';
-                          } else if (value.trim().length < 6) {
-                            _passwordError = '비밀번호는 최소 6자 이상이어야 합니다';
-                          } else {
-                            _passwordError = null;
-                          }
-                        });
+                      validator: (String? value) {
+                        if (value == null|| value.trim().isEmpty) {
+                          return '성함을 입력하세요.';
+                        }
+                        return null;
                       },
-                      decoration: BoxDecoration(
-                        border: Border.all(color: CupertinoColors.systemGrey),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
+                      onSaved: (String? value) {
+                        _name = value;
+                      },
                     ),
-                    if (_passwordError != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 5.0),
-                        child: Text(
-                          _passwordError!,
-                          style: AppTheme.errorTextStyle,
-                        ),
-                      ),
                     SizedBox(height: 20.0),
-                    CupertinoTextField(
-                      obscureText: true,
-                      placeholder: 'Confirm Password',
-                      prefix: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(CupertinoIcons.lock),
+                    TextFormField(
+                      controller: _positionController,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Position',
+                        hintText: '예) 부장, 차장, 매니저 등 .. ',
+                        prefixIcon: Icon(Icons.people_alt),
+                        suffixIcon:
+                            ClearButton(controller: _positionController),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          if (_passwordController.text != value) {
-                            _repasswordError = '비밀번호가 일치하지 않습니다';
-                          } else {
-                            _repasswordError = null;
-                          }
-                        });
+                      validator: (String? value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return '직급을 입력하세요.';
+                        }
+                        return null;
                       },
-                      decoration: BoxDecoration(
-                        border: Border.all(color: CupertinoColors.systemGrey),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
+                      onSaved: (String? value) {
+                        _position = value;
+                      },
                     ),
-                    if (_repasswordError != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 5.0),
-                        child: Text(
-                          _repasswordError!,
-                          style: AppTheme.errorTextStyle,
-                        ),
-                      ),
+                    SizedBox(height: 20.0),
+                    TextFormField(
+                      obscureText: true,
+                      controller: _passwordController1,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          labelText: 'Password',
+                          hintText: '비밀번호를 입력해 주세요',
+                          prefixIcon: Icon(Icons.lock),
+                          suffixIcon:
+                              ClearButton(controller: _passwordController1)),
+                      validator: (String? value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return '비밀번호를 입력하세요';
+                        }
+                        if (value.trim().length < 6) {
+                          return '비밀번호는 최소 6자 이상이어야 합니다';
+                        }
+                        return null;
+                      },
+                      onSaved: (String? value) {
+                        _password = value;
+                      },
+
+                    ),
+                    SizedBox(height: 20.0),
+                    TextFormField(
+                      obscureText: true,
+                      controller: _passwordController2,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          labelText: 'Confirm Password',
+                          prefixIcon: Icon(Icons.lock),
+                          suffixIcon:
+                              ClearButton(controller: _passwordController2)),
+                      validator: (String? value) {
+                        if (_passwordController1.text != value) {
+                          return '비밀번호가 일치하지 않습니다.';
+                        }
+                        return null;
+                      },
+                    ),
                     SizedBox(height: 30.0),
-                    CupertinoButton.filled(
+                    ElevatedButton(
                       onPressed:
                           signupState.signupStatus == SignupStatus.submitting
                               ? null
                               : _submit,
                       child: Text(
-                        signupState.signupStatus == SignupStatus.submitting
-                            ? 'Loading...'
-                            : 'Sign Up',
-                        style: TextStyle(
-                          fontSize: 20.0,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                          signupState.signupStatus == SignupStatus.submitting
+                              ? 'Loading...'
+                              : 'Sign Up'),
                     ),
                     SizedBox(height: 10.0),
-                    CupertinoButton(
+                    TextButton(
                       onPressed:
                           signupState.signupStatus == SignupStatus.submitting
                               ? null
                               : () {
                                   Navigator.pop(context);
                                 },
-                      child: Text(
-                        'Alread a member? Sign In!',
-                        style: TextStyle(
+                      style: TextButton.styleFrom(
+                        textStyle: TextStyle(
                           fontSize: 16.0,
                           decoration: TextDecoration.underline,
                         ),
                       ),
+                      child: Text('Already a member? Sign in!'),
                     ),
-                  ],
+                    SizedBox(height: 10)
+                  ].reversed.toList(),
                 ),
               ),
             ),

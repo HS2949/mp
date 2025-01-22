@@ -3,6 +3,7 @@ import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/signup_page.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signin/signin_state.dart';
+import 'package:mp_db/utils/widget_help.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:validators/validators.dart';
 import 'package:provider/provider.dart';
@@ -24,8 +25,7 @@ class _SigninPageState extends State<SigninPage> {
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final FocusNode _emailFocusNode = FocusNode(); // 이메일 텍스트 필드 포커스 노드
-  final FocusNode _passwordFocusNode = FocusNode(); // 비밀번호 텍스트 필드 포커스 노드
+
 
   @override
   void initState() {
@@ -77,8 +77,7 @@ class _SigninPageState extends State<SigninPage> {
       if (mounted) {
         // 로그인 성공 시 이메일 저장
         await _saveEmail(_email!);
-
-        Navigator.pushNamed(context, '/home');
+        Navigator.pushNamed(context, '/');
       }
     }
   }
@@ -123,23 +122,12 @@ class _SigninPageState extends State<SigninPage> {
                       SizedBox(height: 50.0),
                       TextFormField(
                         controller: _emailController,
-                        focusNode: _emailFocusNode, // 이메일 텍스트 필드 포커스 노드 연결
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.email_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(Icons.cancel_outlined,
-                                color: AppTheme.secondaryColor),
-                            onPressed: () {
-                              setState(() {
-                                _emailController.clear(); // 텍스트 필드 초기화
-                                FocusScope.of(context).requestFocus(
-                                    _emailFocusNode); // 이메일 필드로 포커스 이동
-                              });
-                            },
-                          ),
+                          suffixIcon: ClearButton(controller: _emailController),
                         ),
                         validator: (String? value) {
                           if (value == null || value.trim().isEmpty) {
@@ -158,24 +146,13 @@ class _SigninPageState extends State<SigninPage> {
                       TextFormField(
                         obscureText: true,
                         controller: _passwordController,
-                        focusNode: _passwordFocusNode, // 비밀번호 필드에 포커스 노드 추가
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
                           filled: true,
                           labelText: 'Password',
                           prefixIcon: Icon(Icons.lock),
-                          suffixIcon: IconButton(
-                            icon: Icon(Icons.cancel_outlined,
-                                color: AppTheme.secondaryColor),
-                            onPressed: () {
-                              setState(() {
-                                _passwordController.clear(); // 텍스트 필드 초기화
-                                FocusScope.of(context).requestFocus(
-                                    _passwordFocusNode); // 이메일 필드로 포커스 이동
-                              });
-                            },
-                          ),
+                          suffixIcon: ClearButton(controller: _passwordController),
                         ),
                         validator: (String? value) {
                           if (value == null || value.trim().isEmpty) {
@@ -189,6 +166,7 @@ class _SigninPageState extends State<SigninPage> {
                         onSaved: (String? value) {
                           _password = value;
                         },
+                        // 엔터키로 sign in _submit 호출출
                         onFieldSubmitted: (_) {
                           if (signinState.signinStatus !=
                               SigninStatus.submitting) {

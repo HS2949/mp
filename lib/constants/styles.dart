@@ -6,14 +6,15 @@ enum IconLabel {
   cloud('Cloud', Icons.cloud_outlined),
   brush('Brush', Icons.brush_outlined),
   heart('Heart', Icons.favorite),
-  bus('directions_bus', Icons.directions_bus_filled_outlined),
-  restaurant('restaurant', Icons.restaurant),
-  hotel('hotel', Icons.hotel_outlined);
+  bus('Bus', Icons.directions_bus_filled_outlined),
+  restaurant('Restaurant', Icons.restaurant),
+  hotel('Hotel', Icons.hotel_outlined);
 
   const IconLabel(this.label, this.icon);
   final String label;
   final IconData icon;
 }
+
 
 enum ColorLabel {
   blue('Blue', Colors.blue),
@@ -21,22 +22,23 @@ enum ColorLabel {
   green('Green', Colors.green),
   yellow('Yellow', Colors.yellow),
   grey('Grey', Colors.grey),
-  red('red', Colors.red),
-  orange('orange', Colors.orange),
-  indigo('indigo', Colors.indigo),
-  violet('violet', Color(0xFF8F00FF)),
-  purple('purple', Colors.purple),
-  silver('silver', Color(0xFF808080)),
-  gold('gold', Color(0xFFFFD700)),
-  beige('beige', Color(0xFFF5F5DC)),
-  brown('brown', Colors.brown),
-  black('black', Colors.black),
-  white('white', Colors.white);
+  red('Red', Colors.red),
+  orange('Orange', Colors.orange),
+  indigo('Indigo', Colors.indigo),
+  violet('Violet', Color(0xFF8F00FF)),
+  purple('Purple', Colors.purple),
+  silver('Silver', Color(0xFF808080)),
+  gold('Gold', Color(0xFFFFD700)),
+  beige('Beige', Color(0xFFF5F5DC)),
+  brown('Brown', Colors.brown),
+  black('Black', Colors.black),
+  white('White', Colors.white);
 
   const ColorLabel(this.label, this.color);
   final String label;
   final Color color;
 }
+
 
 class AppTheme {
   // 색상 변수 정의

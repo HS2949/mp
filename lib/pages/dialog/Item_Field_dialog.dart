@@ -146,17 +146,22 @@ class _Item_FieldState extends State<Item_Field> {
                       style: AppTheme.titleLarge
                           .copyWith(color: AppTheme.buttonbackgroundColor)),
                   Text(widget.title, style: AppTheme.headlineSmall),
-                  Spacer(),
-                  SizedBox(
-                    width: 100,
-                    height: 40,
-                    child: FloatingActionButton.extended(
-                      onPressed: () => _showDialog(),
-                      tooltip: '필드명 추가',
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
+                  if (widget.isDefault == true) ...[
+                    Spacer(),
+                    SizedBox(
+                      width: 100,
+                      height: 40,
+                      child: FloatingActionButton.extended(
+                        onPressed: () => _showDialog(),
+                        tooltip: '필드명 추가',
+                        icon:
+                            const Icon(Icons.add, color: AppTheme.primaryColor),
+                        label: const Text('Add',
+                            style: TextStyle(color: AppTheme.primaryColor)),
+                        backgroundColor: Colors.grey[300],
+                      ),
                     ),
-                  ),
+                  ]
                 ],
               ),
             ),
@@ -195,7 +200,7 @@ class _Item_FieldState extends State<Item_Field> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.loyalty,
+                                  Icon(isDefault ? Icons.loyalty : Icons.label_important_outline,
                                       color: isDefault
                                           ? Colors.yellow
                                           : Colors.blue),

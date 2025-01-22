@@ -14,6 +14,7 @@ class SignupProvider with ChangeNotifier {
 
   Future<void> signup({
     required String name,
+    required String position,
     required String email,
     required String password,
   }) async {
@@ -21,7 +22,7 @@ class SignupProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await authRepository.signup(name: name, email: email, password: password);
+      await authRepository.signup(name: name, position: position, email: email, password: password);
       _state = _state.copyWith(signupStatus: SignupStatus.success);
       notifyListeners();
     } on CustomError catch (e) {

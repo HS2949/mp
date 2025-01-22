@@ -19,159 +19,154 @@ class _Item_CategoryState extends State<Item_Category> {
 
   final TextEditingController colorController = TextEditingController();
   final TextEditingController iconController = TextEditingController();
-  IconLabel? selectedIcon = IconLabel.smile;
+  IconLabel? selectedIcon;
   ColorLabel? selectedColor;
 
   void _showDialog({DocumentSnapshot? document}) {
     if (document != null) {
       _nameController.text = document['CategoryName'];
-      _iconController.text = document['Icon'];
-      _colorController.text = document['Color'];
+      selectedColor = ColorLabel.values.firstWhere(
+        (e) => e.label == document['Color'],
+        orElse: () => ColorLabel.silver, // 기본값 설정
+      );
+
+      // Icon 값을 label로 찾기
+      selectedIcon = IconLabel.values.firstWhere(
+        (e) => e.label == document['Icon'],
+        orElse: () => IconLabel.smile, // 기본값 설정
+      );
     } else {
       _nameController.clear();
-      _iconController.clear();
-      _colorController.clear();
+      selectedIcon = IconLabel.values.firstWhere((e) => e.label == 'Smile');
+      selectedColor = ColorLabel.values.firstWhere((e) => e.label == 'Grey');
     }
 
-    // showDialog(
-    //   context: context,
-    //   builder: (context) {
-    //     return StatefulBuilder(
-    //       child: AlertDialog(
-    //         title: Text(document == null ? 'Add Category' : 'Edit Category'),
-    //         content: Column(
-    //           mainAxisSize: MainAxisSize.min,
-    //           children: [
-    //             SizedBox(height: 10),
-    //             TextField(
-    //               controller: _nameController,
-    //               decoration: InputDecoration(
-    //                 suffixIcon: ClearButton(controller: _nameController),
-    //                 labelText: 'Category Name',
-    //                 hintText: '예) 관광, 식당, 호텔, 차량량 ... ',
-    //                 filled: true,
-    //               ),
-    //             ),
-    //             SizedBox(height: 10),
-
-    //             TextField(
-    //               controller: _iconController,
-    //               decoration: InputDecoration(labelText: 'Icon'),
-    //             ),
-    //             SizedBox(height: 10),
-    //             TextField(
-    //               controller: _colorController,
-    //               decoration: InputDecoration(labelText: 'HEX Color'),
-    //             ),
-    //           ],
-    //         ),
-    //         actions: [
-    //           TextButton(
-    //             onPressed: () => Navigator.of(context).pop(),
-    //             child: Text('Cancel'),
-    //           ),
-    //           TextButton(
-    //             onPressed: () {
-    //               if (document == null) {
-    //                 firestoreService.addItem(
-    //                     collectionName: 'Categories',
-    //                     data: {
-    //                       'CategoryName': _nameController.text,
-    //                       'Icon': _iconController.text,
-    //                       'Color': _colorController.text,
-    //                     },
-    //                     autoGenerateId: false);
-    //               } else {
-    //                 firestoreService.updateItem(
-    //                     collectionName: 'Categories',
-    //                     documentId: document.id,
-    //                     updatedData: {
-    //                       'CategoryName': _nameController.text,
-    //                       'Icon': _iconController.text,
-    //                       'Color': _colorController.text
-    //                     });
-    //               }
-    //               Navigator.of(context).pop();
-    //             },
-    //             child: Text('Save'),
-    //           ),
-    //         ],
-    //       ),
-    //     );
-    //   },
-    // );
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Select Options'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      suffixIcon: ClearButton(controller: _nameController),
-                      labelText: 'Category Name',
-                      hintText: '예) 관광, 식당, 호텔, 차량량 ... ',
-                      filled: true,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  DropdownMenu<ColorLabel>(
-                    label: Text('Color'),
-                    dropdownMenuEntries: ColorLabel.values
-                        .map((color) => DropdownMenuEntry<ColorLabel>(
-                              value: color,
-                              label: color.label,
-                            ))
-                        .toList(),
-                    onSelected: (color) {
-                      setState(() {
-                        selectedColor = color;
-                      });
-                    },
-                  ),
-                  SizedBox(height: 10),
-                  DropdownMenu<IconLabel>(
-                    label: Text('Icon'),
-                    dropdownMenuEntries: IconLabel.values
-                        .map((icon) => DropdownMenuEntry<IconLabel>(
-                              value: icon,
-                              label: icon.label,
-                            ))
-                        .toList(),
-                    onSelected: (icon) {
-                      setState(() {
-                        selectedIcon = icon;
-                      });
-                    },
-                  ),
-                  SizedBox(height: 10),
-                  Icon(
-                    selectedIcon?.icon,
-                    color: selectedColor?.color ?? Colors.grey.withAlpha(128),
-                    size: 40,
-                  ),
-                ],
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Cancel'),
+              child: Container(
+                width: 400,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Select Options',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          suffixIcon: ClearButton(controller: _nameController),
+                          labelText: 'Category Name',
+                          hintText: '예) 관광, 식당, 호텔, 차량 ... ',
+                          filled: true,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Icon(
+                            selectedIcon?.icon,
+                            color: selectedColor?.color ??
+                                Colors.grey.withAlpha(128),
+                            size: 40,
+                          ),
+                          SizedBox(width: 10),
+                          Flexible(
+                            child: DropdownMenu<IconLabel>(
+                              initialSelection: selectedIcon,
+                              label: Text('Icon'),
+                              dropdownMenuEntries: IconLabel.values
+                                  .map(
+                                    (icon) => DropdownMenuEntry<IconLabel>(
+                                      value: icon,
+                                      leadingIcon: Icon(icon.icon, size: 20),
+                                      label: icon.label,
+                                    ),
+                                  )
+                                  .toList(),
+                              onSelected: (icon) {
+                                setState(() {
+                                  selectedIcon = icon;
+                                });
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Flexible(
+                            child: DropdownMenu<ColorLabel>(
+                              initialSelection: selectedColor,
+                              label: Text('Color'),
+                              dropdownMenuEntries: ColorLabel.values
+                                  .map((color) => DropdownMenuEntry<ColorLabel>(
+                                        value: color,
+                                        leadingIcon: Icon(Icons.favorite,
+                                            color: color.color, size: 20),
+                                        label: color.label,
+                                      ))
+                                  .toList(),
+                              onSelected: (color) {
+                                setState(() {
+                                  selectedColor = color;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              if (document == null) {
+                                firestoreService.addItem(
+                                  collectionName: 'Categories',
+                                  data: {
+                                    'CategoryName': _nameController.text,
+                                    'Icon': selectedIcon?.label,
+                                    'Color': selectedColor?.label
+                                  },
+                                  autoGenerateId: false,
+                                );
+                              } else {
+                                firestoreService.updateItem(
+                                  collectionName: 'Categories',
+                                  documentId: document.id,
+                                  updatedData: {
+                                    'CategoryName': _nameController.text,
+                                    'Icon': selectedIcon?.label,
+                                    'Color': selectedColor?.label
+                                  },
+                                );
+                              }
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('Save'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    // Handle selected options
-                    print('Selected Icon: $selectedIcon');
-                    print('Selected Color: $selectedColor');
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Save'),
-                ),
-              ],
+              ),
             );
           },
         );
@@ -215,8 +210,10 @@ class _Item_CategoryState extends State<Item_Category> {
                     child: FloatingActionButton.extended(
                       onPressed: () => _showDialog(),
                       tooltip: '카테고리 추가',
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
+                      icon: const Icon(Icons.add, color: AppTheme.primaryColor),
+                      label: const Text('Add',
+                          style: TextStyle(color: AppTheme.primaryColor)),
+                      backgroundColor: Colors.grey[300],
                     ),
                   ),
                 ],
@@ -243,7 +240,16 @@ class _Item_CategoryState extends State<Item_Category> {
                         final category = categories[index];
                         final categoryData =
                             category.data() as Map<String, dynamic>;
+                        selectedColor = ColorLabel.values.firstWhere(
+                          (e) => e.label == categoryData['Color'],
+                          orElse: () => ColorLabel.silver, // 기본값 설정
+                        );
 
+                        // Icon 값을 label로 찾기
+                        selectedIcon = IconLabel.values.firstWhere(
+                          (e) => e.label == categoryData['Icon'],
+                          orElse: () => IconLabel.smile, // 기본값 설정
+                        );
                         return Card(
                           margin: EdgeInsets.symmetric(
                               vertical: 5.0, horizontal: 0.0),
@@ -255,9 +261,8 @@ class _Item_CategoryState extends State<Item_Category> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    Icon(getIconFromString(category['Icon']),
-                                        color: hexToColor(category['Color']),
-                                        size: 50),
+                                    Icon(selectedIcon?.icon,
+                                        color: selectedColor?.color, size: 50),
                                     SizedBox(width: 50),
                                     Text(
                                       categoryData['CategoryName'] ?? 'No Name',
@@ -327,5 +332,3 @@ class _Item_CategoryState extends State<Item_Category> {
     );
   }
 }
-
-

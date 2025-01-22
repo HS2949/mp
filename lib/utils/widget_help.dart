@@ -12,6 +12,7 @@ class ClearButton extends StatelessWidget {
   Widget build(BuildContext context) => IconButton(
         icon: const Icon(Icons.clear, color: AppTheme.primaryColor,size: 15),
         onPressed: () => controller.clear(),
+        focusNode: FocusNode(skipTraversal: true), // 탭 키 포커스 스킵
       );
 }
 //삭제 버튼 onpressd
