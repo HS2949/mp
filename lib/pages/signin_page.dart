@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/signup_page.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signin/signin_state.dart';

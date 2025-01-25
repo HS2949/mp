@@ -6,6 +6,7 @@ enum IconLabel {
   cloud('Cloud', Icons.cloud_outlined),
   brush('Brush', Icons.brush_outlined),
   heart('Heart', Icons.favorite),
+  list('List', Icons.list),
   bus('Bus', Icons.directions_bus_filled_outlined),
   restaurant('Restaurant', Icons.restaurant),
   hotel('Hotel', Icons.hotel_outlined);

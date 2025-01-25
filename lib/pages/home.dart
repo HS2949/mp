@@ -1,7 +1,6 @@
 // Copyright 2021 The Flutter team. All rights reserved.
 // Flutter 팀의 소스 코드. BSD-style 라이선스에 따라 배포 가능. 자세한 내용은 LICENSE 파일 참조.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 // Flutter의 Material Design 위젯 및 테마를 사용하기 위한 패키지.
@@ -20,15 +19,16 @@ import 'package:mp_db/material/elevation_screen.dart';
 
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
-import 'package:mp_db/pages/dialog/Item_category_dialog.dart';
+import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 
 import 'package:mp_db/pages/profile_page.dart';
+import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
-import 'package:mp_db/pages/item_screen.dart';
+import 'package:mp_db/repositories/item_screen.dart';
 import 'package:provider/provider.dart';
 
-import 'dialog/Item_field_dialog.dart';
+import 'subpage/item_field_subpage.dart';
 // 타이포그래피 화면을 정의한 모듈 가져오기.
 
 // HomePage 클래스는 StatefulWidget을 상속하여 상태를 가질 수 있는 위젯으로 정의.
@@ -174,10 +174,10 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.component => const ItemScreen(),
+        ScreenSelected.typography => const ItemScreen(),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
-        ScreenSelected.elevation => const ElevationScreen(),
+        ScreenSelected.component => const Item_page(),
         ScreenSelected.setting2 => const Item_Category(),
         ScreenSelected.color => DefaultTabController(
             length: 2, // Number of tabs
@@ -188,20 +188,13 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 child: Scaffold(
                   appBar: AppBar(
                     automaticallyImplyLeading: false,
-                    toolbarHeight: 0, 
-                    // title: Row(
-                    //   children: [
-                    //     Icon(Icons.settings, color: AppTheme.primaryColor),
-                    //     SizedBox(width: 10),
-                    //     Text('Key Setting', style: AppTheme.titleMedium),
-                    //   ],
-                    // ),
+                    toolbarHeight: 0, //
                     bottom: TabBar(
                       indicatorColor: AppTheme.textColor,
-                      indicatorSize: TabBarIndicatorSize.label ,
-                       indicatorWeight: 4.0,
-                        labelColor: AppTheme.textColor,
-                         unselectedLabelColor: Colors.grey,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 4.0,
+                      labelColor: AppTheme.textColor,
+                      unselectedLabelColor: Colors.grey,
                       tabs: [
                         Tab(icon: Icon(Icons.list), text: 'Categories'),
                         Tab(icon: Icon(Icons.label), text: 'Fields'),
@@ -235,7 +228,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
               ),
             ),
           ),
-        ScreenSelected.typography => Expanded(
+        ScreenSelected.elevation => Expanded(
             // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
             child: OneTwoTransition(
               animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.

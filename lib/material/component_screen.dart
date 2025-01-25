@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/Item_category_dialog.dart';
+import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 import 'package:mp_db/pages/home.dart';
 import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
@@ -2151,13 +2151,16 @@ class _MenusState extends State<Menus> {
             alignment: WrapAlignment.spaceAround,
             runAlignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
+            
             spacing: 10,
             runSpacing: 10,
             children: [
+              
               DropdownMenu<ColorLabel>(
                 controller: colorController,
                 label: const Text('Color'),
                 enableFilter: true,
+                
                 dropdownMenuEntries: colorEntries,
                 inputDecorationTheme: const InputDecorationTheme(filled: true),
                 onSelected: (color) {
@@ -2189,7 +2192,44 @@ class _MenusState extends State<Menus> {
     );
   }
 }
+class ButtonAnchorExample extends StatelessWidget {
+  const ButtonAnchorExample({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      builder: (context, controller, child) {
+        return FilledButton.tonal(
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          child: const Text('Show menu'),
+        );
+      },
+      menuChildren: [
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.people_alt_outlined),
+          child: const Text('Item 1'),
+          onPressed: () {},
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.remove_red_eye_outlined),
+          child: const Text('Item 2'),
+          onPressed: () {},
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.refresh),
+          onPressed: () {},
+          child: const Text('Item 3'),
+        ),
+      ],
+    );
+  }
+}
 class IconButtonAnchorExample extends StatelessWidget {
   const IconButtonAnchorExample({super.key});
 

@@ -1,12 +1,8 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/material/component_screen.dart';
-import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
@@ -200,7 +196,10 @@ class _Item_FieldState extends State<Item_Field> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
-                                  Icon(isDefault ? Icons.loyalty : Icons.label_important_outline,
+                                  Icon(
+                                      isDefault
+                                          ? Icons.loyalty
+                                          : Icons.label_important_outline,
                                       color: isDefault
                                           ? Colors.yellow
                                           : Colors.blue),

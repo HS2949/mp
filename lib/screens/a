@@ -1,0 +1,158 @@
+{
+  "items": [
+    {
+      "category": "식당",
+      "itemName": "제주 해물 식당",
+      "fields": {
+        "store_name": {
+          "value": "제주 해물 식당",
+          "keyName": "상호명"
+        },
+        "address": {
+          "value": "제주도 어딘가",
+          "keyName": "주소"
+        },
+        "contact": {
+          "value": "010-1234-5678",
+          "keyName": "연락처"
+        },
+        "holiday": {
+          "value": "화요일",
+          "keyName": "휴무"
+        }
+      },
+      "details": [
+        {
+          "key": "menu",
+          "keyName": "메뉴 정보",
+          "value": [
+            {
+              "name": {
+                "value": "해물탕",
+                "keyName": "메뉴 이름"
+              },
+              "price_card": {
+                "value": 30000,
+                "keyName": "카드 결제 가격"
+              },
+              "price_cash": {
+                "value": 28000,
+                "keyName": "현금 결제 가격"
+              },
+              "discount_price": {
+                "value": 25000,
+                "keyName": "할인가"
+              },
+              "composition": {
+                "value": ["문어", "전복", "새우"],
+                "keyName": "구성 재료"
+              }
+            },
+            {
+              "name": {
+                "value": "갈치조림",
+                "keyName": "메뉴 이름"
+              },
+              "price_card": {
+                "value": 25000,
+                "keyName": "카드 결제 가격"
+              },
+              "price_cash": {
+                "value": 23000,
+                "keyName": "현금 결제 가격"
+              },
+              "discount_price": {
+                "value": 20000,
+                "keyName": "할인가"
+              },
+              "composition": {
+                "value": ["갈치", "무"],
+                "keyName": "구성 재료"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "호텔",
+      "itemName": "제주 호텔",
+      "fields": {
+        "store_name": {
+          "value": "제주 호텔",
+          "keyName": "상호명"
+        },
+        "address": {
+          "value": "제주도 어딘가",
+          "keyName": "주소"
+        },
+        "contact": {
+          "value": "010-5678-1234",
+          "keyName": "연락처"
+        },
+        "holiday": {
+          "value": "없음",
+          "keyName": "휴무"
+        }
+      },
+      "details": [
+        {
+          "key": "rooms",
+          "keyName": "객실 정보",
+          "value": [
+            {
+              "room_type": {
+                "value": "Deluxe",
+                "keyName": "객실 타입"
+              },
+              "price": {
+                "value": 150000,
+                "keyName": "가격"
+              },
+              "photos": {
+                "value": ["photo1.jpg", "photo2.jpg"],
+                "keyName": "사진"
+              },
+              "offer": {
+                "value": "10% 할인 제공",
+                "keyName": "특가 정보"
+              }
+            },
+            {
+              "room_type": {
+                "value": "Suite",
+                "keyName": "객실 타입"
+              },
+              "price": {
+                "value": 300000,
+                "keyName": "가격"
+              },
+              "photos": {
+                "value": ["photo3.jpg", "photo4.jpg"],
+                "keyName": "사진"
+              }
+            }
+          ]
+        },
+        {
+          "key": "facilities",
+          "keyName": "편의시설",
+          "value": [
+            {
+              "value": "수영장",
+              "keyName": "시설 이름"
+            },
+            {
+              "value": "스파",
+              "keyName": "시설 이름"
+            },
+            {
+              "value": "주차장",
+              "keyName": "시설 이름"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -35,6 +35,7 @@ void main() async {
     options:
         DefaultFirebaseOptions.currentPlatform, // 플랫폼에 따라 설정된 Firebase 옵션 사용
   );
+  await FirebaseFirestore.instance.clearPersistence();
 
   // 앱을 실행합니다. MyApp 위젯이 루트 위젯이 됩니다.
   runApp(const MyApp());

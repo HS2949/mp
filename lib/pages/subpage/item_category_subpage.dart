@@ -87,6 +87,7 @@ class _Item_CategoryState extends State<Item_Category> {
                           Flexible(
                             child: DropdownMenu<IconLabel>(
                               initialSelection: selectedIcon,
+                              enableFilter: true,
                               label: Text('Icon'),
                               dropdownMenuEntries: IconLabel.values
                                   .map(
@@ -108,6 +109,7 @@ class _Item_CategoryState extends State<Item_Category> {
                           Flexible(
                             child: DropdownMenu<ColorLabel>(
                               initialSelection: selectedColor,
+                              enableFilter: true,
                               label: Text('Color'),
                               dropdownMenuEntries: ColorLabel.values
                                   .map((color) => DropdownMenuEntry<ColorLabel>(
@@ -240,6 +242,7 @@ class _Item_CategoryState extends State<Item_Category> {
                         final category = categories[index];
                         final categoryData =
                             category.data() as Map<String, dynamic>;
+                            
                         selectedColor = ColorLabel.values.firstWhere(
                           (e) => e.label == categoryData['Color'],
                           orElse: () => ColorLabel.silver, // 기본값 설정
