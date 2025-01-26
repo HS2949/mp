@@ -2,7 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/providers/Item_provider.dart';
+import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
+import 'package:provider/provider.dart';
 
 class Item_page extends StatefulWidget {
   const Item_page({super.key});
@@ -14,10 +17,8 @@ class Item_page extends StatefulWidget {
 class _Item_pageState extends State<Item_page> {
   final firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
-  List<DocumentSnapshot> _filteredItem = [];
-  List<DocumentSnapshot> _items = [];
   List<Map<String, dynamic>> categories = [];
-  bool _isLoading = true;
+
   IconData? selectedIcon;
   Color? selectedColor;
   String? selectedCategory;
@@ -25,67 +26,36 @@ class _Item_pageState extends State<Item_page> {
   @override
   void initState() {
     super.initState();
-    _loadData();
-    _loadCategories();
-    _searchController.addListener(_filterData);
+    // _searchController.addListener(_filterData);
+    _searchController.addListener(() {
+      final provider = context.read<ItemProvider>();
+      provider.filterItems(_searchController.text);
+    });
+
+    _initializeData();
   }
 
-  Future<void> _loadData() async {
-    final snapshot = await firestoreService.getItemsSnapshot('Items').first;
+  Future<void> _initializeData() async {
+    final provider = context.read<ItemProvider>();
+    await provider.loadItems();
+    await provider.loadCategories();
+
     setState(() {
-      _items = snapshot.docs;
-      _filteredItem = List.from(_items);
-      _isLoading = false;
+      categories = provider.categories;
     });
   }
 
-  Future<void> _loadCategories() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('Categories').get();
-    setState(() {
-      categories = [
-        {'itemID': '0', 'Name': '전체', 'Color': 'Silver', 'Icon': 'List'},
-        ...snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'itemID': doc.id,
-            'Name': data['CategoryName'],
-            'Color': data['Color'],
-            'Icon': data['Icon'],
-          };
-        }).toList(),
-      ];
-      _isLoading = false;
-    });
-  }
+  // void _filterData() {
+  //   final query = _searchController.text.toLowerCase();
 
-void _filterData() {
-  final query = _searchController.text.toLowerCase();
-
-  setState(() {
-    // selectedCategory에 해당하는 ID를 찾음
-    final selectedCategoryID = categories.firstWhere(
-      (category) => category['Name'] == selectedCategory,
-      orElse: () => {'itemID': null},
-    )['itemID'];
-
-    _filteredItem = _items.where((item) {
-      final itemData = item.data() as Map<String, dynamic>;
-      final itemName = itemData['ItemName']?.toLowerCase() ?? '';
-      final itemCategory = itemData['CategoryID'] ?? -1; // int로 초기값 설정
-
-      // 필터 조건: 검색어와 선택된 카테고리
-      final matchesSearch = itemName.contains(query);
-      final matchesCategory = selectedCategory == '전체' ||
-          selectedCategory == null ||
-          itemCategory == int.tryParse(selectedCategoryID?.toString() ?? '');
-
-      return matchesSearch && matchesCategory;
-    }).toList();
-  });
-}
-
-
+  //   setState(() {
+  //     // selectedCategory에 해당하는 ID를 찾음
+  //     final selectedCategoryID = categories.firstWhere(
+  //       (category) => category['Name'] == selectedCategory,
+  //       orElse: () => {'itemID': null},
+  //     )['itemID'];
+  //   });
+  // }
 
   void _selectCategory(String name) {
     final matchedCategory = categories.firstWhere(
@@ -103,11 +73,20 @@ void _filterData() {
           .firstWhere((e) => e.label == matchedCategory['Icon'],
               orElse: () => IconLabel.smile)
           .icon;
-      _filterData();
+
+      // 필터링 로직 호출
+      final provider = context.read<ItemProvider>();
+      provider.filterItems(
+        _searchController.text, // 검색어와
+        selectedCategory: selectedCategory, // 선택된 카테고리를 기준으로 필터링
+      );
     });
   }
 
-  Widget _buildMenuButton(BuildContext context) {
+  Widget _CategoryButton(BuildContext context) {
+    final provider = context.watch<ItemProvider>();
+    final categories = provider.categories;
+
     return SizedBox(
       width: 80,
       height: 40,
@@ -164,17 +143,18 @@ void _filterData() {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _buildMenuButton(context),
-                const SizedBox(width: 10),
-                Expanded(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _CategoryButton(context),
+              const SizedBox(width: 10),
+              Flexible(
+                child: SizedBox(
+                  width: 350,
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -185,73 +165,169 @@ void _filterData() {
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Expanded(
-                    child: ListView.builder(
-                      itemCount: _filteredItem.length,
-                      itemBuilder: (context, index) {
-                        final item = _filteredItem[index];
-                        final itemData = item.data() as Map<String, dynamic>;
-                        final matchedCategory = categories.firstWhere(
-                          (cat) =>
-                              int.parse(cat['itemID']) ==
-                              itemData['CategoryID'],
-                          orElse: () => {'Color': 'Silver', 'Icon': 'List'},
-                        );
-
-                        final color = ColorLabel.values
-                            .firstWhere(
-                                (e) => e.label == matchedCategory['Color'],
-                                orElse: () => ColorLabel.silver)
-                            .color;
-                        final icon = IconLabel.values
-                            .firstWhere(
-                                (e) => e.label == matchedCategory['Icon'],
-                                orElse: () => IconLabel.smile)
-                            .icon;
-
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 5.0),
-                          child: ListTile(
-                            leading: Icon(icon, color: color),
-                            title: Text(
-                              itemData['ItemName'] ?? 'No Name',
-                              style: AppTheme.titleMedium,
-                            ),
-                            subtitle: Text('ID: ${item.id}',
-                                style: AppTheme.bodySmall),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () {},
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () {
-                                    FiDeleteDialog(
-                                      context: context,
-                                      collectionName: 'Items',
-                                      documentId: item.id,
-                                      firestoreService: firestoreService,
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+}
+
+class First_Item_Page extends StatelessWidget {
+  const First_Item_Page({
+    super.key,
+    required this.showNavBottomBar,
+    required this.scaffoldKey,
+    required this.showSecondList,
+  });
+
+  final bool showNavBottomBar;
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  final bool showSecondList;
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> children = [
+      //위젯 입력
+
+      if (!showSecondList) ...[
+        ItemList(filterType: 0)
+      ] else ...[
+        ItemList(filterType: 1)
+      ]
+    ];
+    List<double?> heights = List.filled(children.length, null);
+
+    // Fully traverse this list before moving on.
+    return FocusTraversalGroup(
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: showSecondList
+                ? const EdgeInsetsDirectional.only(end: smallSpacing)
+                : EdgeInsets.zero,
+            sliver: SliverList(
+              delegate: BuildSlivers(
+                heights: heights,
+                builder: (context, index) {
+                  return CacheHeight(
+                    heights: heights,
+                    index: index,
+                    child: children[index],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Second_Item_Page extends StatelessWidget {
+  const Second_Item_Page({
+    super.key,
+    required this.scaffoldKey,
+  });
+
+  final GlobalKey<ScaffoldState> scaffoldKey;
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> children = [ItemList(filterType: 2)];
+    List<double?> heights = List.filled(children.length, null);
+
+    // Fully traverse this list before moving on.
+    return FocusTraversalGroup(
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsetsDirectional.only(end: smallSpacing),
+            sliver: SliverList(
+              delegate: BuildSlivers(
+                heights: heights,
+                builder: (context, index) {
+                  return CacheHeight(
+                    heights: heights,
+                    index: index,
+                    child: children[index],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ItemList extends StatefulWidget {
+  final int filterType; // 필터 타입 인수 추가
+
+  const ItemList({super.key, required this.filterType});
+
+  @override
+  _ItemListState createState() => _ItemListState();
+}
+
+class _ItemListState extends State<ItemList> {
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<ItemProvider>();
+    final filteredItems = provider.filteredItem;
+    final categories = provider.categories;
+    final isLoading = provider.isLoading;
+
+    // 필터에 따라 표시할 아이템 리스트 계산
+    List filteredDisplayItems;
+    if (widget.filterType == 0) {
+      filteredDisplayItems = filteredItems;
+    } else if (widget.filterType == 1) {
+      filteredDisplayItems =
+          filteredItems.sublist(0, (filteredItems.length / 2).ceil());
+    } else {
+      filteredDisplayItems =
+          filteredItems.sublist((filteredItems.length / 2).ceil());
+    }
+
+    return isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
+              child: ListView.builder(
+                shrinkWrap: true, // ListView 크기를 자식 위젯에 맞춤
+                physics: const NeverScrollableScrollPhysics(), // 스크롤 비활성화
+                itemCount: filteredDisplayItems.length,
+                itemBuilder: (context, index) {
+                  final item = filteredDisplayItems[index];
+                  final itemData = item.data() as Map<String, dynamic>;
+                  final matchedCategory = categories.firstWhere(
+                    (cat) => int.parse(cat['itemID']) == itemData['CategoryID'],
+                    orElse: () => {'Color': 'Silver', 'Icon': 'List'},
+                  );
+
+                  final color = ColorLabel.values
+                      .firstWhere((e) => e.label == matchedCategory['Color'],
+                          orElse: () => ColorLabel.silver)
+                      .color;
+                  final icon = IconLabel.values
+                      .firstWhere((e) => e.label == matchedCategory['Icon'],
+                          orElse: () => IconLabel.smile)
+                      .icon;
+
+                  return Card(
+                    child: ListTile(
+                      leading: Icon(icon, color: color),
+                      title: Text(itemData['ItemName'] ?? 'No Name'),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
   }
 }

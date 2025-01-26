@@ -1,20 +1,34 @@
-
 import 'package:flutter/material.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
+
+
+
 //텍스트필드 지우기 버튼튼
 class ClearButton extends StatelessWidget {
-  const ClearButton({required this.controller});
+  const ClearButton({Key? key, required this.controller}) : super(key: key);
 
   final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-        icon: const Icon(Icons.clear, color: AppTheme.primaryColor,size: 15),
-        onPressed: () => controller.clear(),
-        focusNode: FocusNode(skipTraversal: true), // 탭 키 포커스 스킵
-      );
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        // 텍스트가 비어있지 않을 때만 아이콘을 표시
+        return value.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear,
+                    color: AppTheme.primaryColor, size: 15),
+                onPressed: () => controller.clear(),
+                focusNode: FocusNode(skipTraversal: true), // 탭 키 포커스 스킵
+              )
+            : const SizedBox.shrink(); // 빈 위젯 반환
+      },
+    );
+  }
 }
+
 //삭제 버튼 onpressd
 void FiDeleteDialog({
   required BuildContext context,
@@ -51,82 +65,4 @@ void FiDeleteDialog({
   );
 }
 
-
-class ComponentDecoration extends StatefulWidget {
-  const ComponentDecoration({
-    super.key,
-    required this.label,
-    required this.child,
-    this.tooltipMessage = '',
-  });
-
-  final String label;
-  final Widget child;
-  final String? tooltipMessage;
-
-  @override
-  State<ComponentDecoration> createState() => _ComponentDecorationState();
-}
-
-class _ComponentDecorationState extends State<ComponentDecoration> {
-  final focusNode = FocusNode();
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(widget.label,
-                    style: Theme.of(context).textTheme.titleMedium),
-                Tooltip(
-                  message: widget.tooltipMessage,
-                  child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 5.0),
-                      child: Icon(Icons.info_outline, size: 16)),
-                ),
-              ],
-            ),
-            ConstrainedBox(
-              constraints:
-                  const BoxConstraints.tightFor(width: 450),
-              // Tapping within the a component card should request focus
-              // for that component's children.
-              child: Focus(
-                focusNode: focusNode,
-                canRequestFocus: true,
-                child: GestureDetector(
-                  onTapDown: (_) {
-                    focusNode.requestFocus();
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                      borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5.0, vertical: 20.0),
-                      child: Center(
-                        child: widget.child,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 

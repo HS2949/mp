@@ -1,0 +1,321 @@
+{
+  "items": [
+    {
+      "category": "식당",
+      "itemName": "제주 해물 식당",
+      "fields": {
+        "store_name": {
+          "value": "제주 해물 식당",
+          "keyName": "상호명"
+        },
+        "address": {
+          "value": "제주도 어딘가",
+          "keyName": "주소"
+        },
+        "contact": {
+          "value": "010-1234-5678",
+          "keyName": "연락처"
+        },
+        "holiday": {
+          "value": "화요일",
+          "keyName": "휴무"
+        }
+      },
+      "details": [
+        {
+          "key": "menu",
+          "keyName": "메뉴 정보",
+          "value": [
+            {
+              "name": {
+                "value": "해물탕",
+                "keyName": "메뉴 이름"
+              },
+              "price_card": {
+                "value": 30000,
+                "keyName": "카드 결제 가격"
+              },
+              "price_cash": {
+                "value": 28000,
+                "keyName": "현금 결제 가격"
+              },
+              "discount_price": {
+                "value": 25000,
+                "keyName": "할인가"
+              },
+              "composition": {
+                "value": ["문어", "전복", "새우"],
+                "keyName": "구성 재료"
+              }
+            },
+            {
+              "name": {
+                "value": "갈치조림",
+                "keyName": "메뉴 이름"
+              },
+              "price_card": {
+                "value": 25000,
+                "keyName": "카드 결제 가격"
+              },
+              "price_cash": {
+                "value": 23000,
+                "keyName": "현금 결제 가격"
+              },
+              "discount_price": {
+                "value": 20000,
+                "keyName": "할인가"
+              },
+              "composition": {
+                "value": ["갈치", "무"],
+                "keyName": "구성 재료"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "호텔",
+      "itemName": "제주 호텔",
+      "fields": {
+        "store_name": {
+          "value": "제주 호텔",
+          "keyName": "상호명"
+        },
+        "address": {
+          "value": "제주도 어딘가",
+          "keyName": "주소"
+        },
+        "contact": {
+          "value": "010-5678-1234",
+          "keyName": "연락처"
+        },
+        "holiday": {
+          "value": "없음",
+          "keyName": "휴무"
+        }
+      },
+      "details": [
+        {
+          "key": "rooms",
+          "keyName": "객실 정보",
+          "value": [
+            {
+              "room_type": {
+                "value": "Deluxe",
+                "keyName": "객실 타입"
+              },
+              "price": {
+                "value": 150000,
+                "keyName": "가격"
+              },
+              "photos": {
+                "value": ["photo1.jpg", "photo2.jpg"],
+                "keyName": "사진"
+              },
+              "offer": {
+                "value": "10% 할인 제공",
+                "keyName": "특가 정보"
+              }
+            },
+            {
+              "room_type": {
+                "value": "Suite",
+                "keyName": "객실 타입"
+              },
+              "price": {
+                "value": 300000,
+                "keyName": "가격"
+              },
+              "photos": {
+                "value": ["photo3.jpg", "photo4.jpg"],
+                "keyName": "사진"
+              }
+            }
+          ]
+        },
+        {
+          "key": "facilities",
+          "keyName": "편의시설",
+          "value": [
+            {
+              "value": "수영장",
+              "keyName": "시설 이름"
+            },
+            {
+              "value": "스파",
+              "keyName": "시설 이름"
+            },
+            {
+              "value": "주차장",
+              "keyName": "시설 이름"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+
+
+
+플러터 프로젝트 생성 - flutter create [프로젝트명]
+
+vscode 실행 - code .
+
+@@@ android > settings.gradle
+plugins {
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+    id "com.android.application" version "8.2.1" apply false #8.2.1로 변경해줘야
+    id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+}
+
+@@@ android > app > build.gradle
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17 #17버전으로 변경
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+    }
+
+
+@@@android > app > main > kotlin > com > example> mp_db > mainactivity.kt
+package com.mp_db.miceplan # 패키지 경로 변경할것
+
+
+플러터파이어 CLI 활성화 - dart pub global activate flutterfire_cli
+플러터파이어 설정 - flutterfire configure
+
+[firebase_options.dart 파일 생셩여부 확인]
+플랫폼별 앱이 Firebase에 자동으로 등록되고 lib/firebase_options.dart 구성 파일이 생성
+[flutterfire configure --project=mice-plan-bc6ae]
+
+pubspec.yaml 파일에 
+------------------------------------------------
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase Core (필수)
+  firebase_core: ^2.24.2
+
+  # Firestore (데이터베이스)
+  cloud_firestore: ^4.12.0
+
+  # Firebase Storage (파일 저장소)
+  firebase_storage: ^11.6.2
+
+  # Firebase Hosting (호스팅 - Flutter Web 전용)
+  firebase_app_check: ^0.2.1+6 # 보안 및 무결성 확인 (옵션, 권장)
+
+  #file_picker: ^8.1.7
+------------------------------------------------
+추가 후 - flutter pub get
+
+웹 활성화 - flutter config --enable-web
+
+호스팅 초기화 -  firebase init hosting
+firebase.json에서
+ "hosting": {
+    "public": "build/web",
+
+호스팅 - 
+flutter build web
+firebase deploy --only "hosting"
+
+'
+git init
+git remote add origin https://github.com/HS2949/MP_DB.git
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git push -u origin main
+
+
+명령어	설명
+git status	현재 변경 사항 확인
+git add .	모든 변경된 파일을 스테이징
+git commit -m "message"	변경 사항을 커밋
+git push -u origin master	로컬과 원격 저장소를 연결하고 푸시
+
+git push	현재 브랜치를 원격 저장소로 푸시
+git push --all	모든 브랜치를 원격 저장소로 푸시
+git push --tags	태그를 포함하여 푸시
+git pull	원격 저장소의 최신 변경 사항 가져오기
+git remote -v	연결된 원격 저장소 URL 확인
+
+git clean -fdn 관리되지 않은 파일/폴더 삭제
+
+
+
+lib/
+├── main.dart               # 앱의 진입점 파일 (runApp() 함수 포함)
+├── core/                   # 앱의 전역적인 핵심 기능 및 설정 파일
+│   ├── constants/          # 전역 상수 값 저장
+│   │   ├── colors.dart     # 색상 관련 상수
+│   │   ├── strings.dart    # 텍스트 상수
+│   │   ├── styles.dart     # 텍스트 및 위젯 스타일
+│   │   └── api_endpoints.dart # API URL 및 엔드포인트
+│   ├── utils/              # 유틸리티 및 헬퍼 함수
+│   │   ├── validators.dart # 입력값 검증 함수
+│   │   ├── date_helper.dart # 날짜 관련 헬퍼 함수
+│   │   └── formatters.dart # 데이터 포맷터 (e.g., 금액, 날짜)
+│   ├── widgets/            # 재사용 가능한 공용 위젯
+│   │   ├── custom_button.dart # 커스텀 버튼 위젯
+│   │   ├── loading_spinner.dart # 로딩 스피너 위젯
+│   │   └── empty_state.dart  # 데이터 없을 때 표시할 위젯
+│   ├── services/           # API, Firebase 및 외부 서비스 로직
+│   │   ├── api_service.dart  # API 호출 서비스
+│   │   ├── firebase_service.dart # Firebase 연동 서비스
+│   │   └── storage_service.dart # 파일 저장 및 업로드 관리
+│   └── config/             # 앱의 전역 설정 관련 파일
+│       ├── app_theme.dart  # 테마 및 스타일 설정
+│       └── env.dart        # 환경 변수 (e.g., dev/prod 설정)
+├── features/               # 주요 기능별 모듈화
+│   ├── auth/               # 인증 관련 모듈 (로그인/회원가입)
+│   │   ├── presentation/   # 화면(UI) 관련 파일
+│   │   │   ├── login_screen.dart # 로그인 화면
+│   │   │   ├── signup_screen.dart # 회원가입 화면
+│   │   │   └── auth_widget.dart  # 인증 관련 공용 위젯
+│   │   ├── data/           # 데이터 계층 (e.g., API, 데이터베이스)
+│   │   │   ├── auth_repository.dart # 인증 API 호출 및 데이터 처리
+│   │   │   └── auth_provider.dart   # 인증 상태 관리
+│   │   └── domain/         # 비즈니스 로직 및 모델 정의
+│   │       ├── user_model.dart      # 사용자 데이터 모델
+│   │       └── auth_exceptions.dart # 인증 관련 예외 처리
+│   ├── profile/            # 프로필 관리 관련 모듈
+│   │   ├── presentation/   # 프로필 화면 및 위젯
+│   │   │   ├── profile_screen.dart # 프로필 화면
+│   │   │   ├── edit_profile_screen.dart # 프로필 수정 화면
+│   │   │   └── profile_widget.dart # 공용 프로필 위젯
+│   │   ├── data/           # 프로필 데이터 계층
+│   │   │   ├── profile_repository.dart # 프로필 API 처리
+│   │   │   └── profile_provider.dart   # 프로필 상태 관리
+│   │   └── domain/         # 프로필 비즈니스 로직 및 모델 정의
+│   │       ├── profile_model.dart    # 프로필 데이터 모델
+│   │       └── profile_exceptions.dart # 예외 처리
+│   └── ...                 # 추가 기능 모듈 (e.g., Chat, Settings 등)
+├── state/                  # 전역 상태 관리 (Provider, Riverpod 등)
+│   ├── app_state.dart      # 전체 앱 상태
+│   ├── auth_state.dart     # 인증 상태
+│   └── settings_state.dart # 설정 관련 상태
+├── l10n/                   # 다국어 지원 (Localization)
+│   ├── intl_en.arb         # 영어 번역 파일
+│   ├── intl_ko.arb         # 한국어 번역 파일
+│   └── l10n.dart           # 번역 로직 및 설정
+├── routes/                 # 앱의 라우트 설정
+│   ├── app_routes.dart     # 앱의 모든 라우트 정의
+│   └── route_guard.dart    # 인증 또는 접근 권한 체크
+├── tests/                  # 테스트 코드
+│   ├── unit/               # 유닛 테스트
+│   ├── integration/        # 통합 테스트
+│   └── widgets/            # 위젯 테스트
+└── firestore.dart          # Firestore와 관련된 공용 함수 파일
+
+
+
+
+

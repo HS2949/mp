@@ -9,6 +9,13 @@ enum IconLabel {
   list('List', Icons.list),
   bus('Bus', Icons.directions_bus_filled_outlined),
   restaurant('Restaurant', Icons.restaurant),
+  place('Place',Icons.mode_of_travel_outlined),
+  travel('Travel', Icons.attractions_outlined),
+  cafe('Cafe', Icons.local_cafe_outlined),
+  activity('Activity', Icons.rowing_outlined),
+  // travel('Travel', Icons.attractions_outlined),
+  // travel('Travel', Icons.attractions_outlined),
+
   hotel('Hotel', Icons.hotel_outlined);
 
   const IconLabel(this.label, this.icon);

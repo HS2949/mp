@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/material/constants.dart';
 import 'package:mp_db/pages/home.dart';
+import 'package:mp_db/pages/subpage/item_subpage.dart';
+import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
@@ -66,6 +68,7 @@ class MyApp extends StatelessWidget {
           create: (context) => context.read<AuthRepository>().user,
           initialData: null,
         ),
+        ChangeNotifierProvider(create: (_) => ItemProvider()),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(
             authRepository: context.read<AuthRepository>(),

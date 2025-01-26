@@ -174,60 +174,75 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.typography => const ItemScreen(),
-        ScreenSelected.setting1 => const ColorPalettesScreen(),
-        ScreenSelected.setting3 => const TypographyScreen(),
-        ScreenSelected.component => const Item_page(),
-        ScreenSelected.setting2 => const Item_Category(),
+        // ScreenSelected.component => const Item_page(),
+        ScreenSelected.component => Flexible(
+            child: Column(
+              children: [
+                Item_page(),
+                Expanded(
+                  child: OneTwoTransition(
+                    animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+                    one: First_Item_Page(
+                        showNavBottomBar:
+                            showNavBarExample, // 네비게이션 바 예제 표시 여부.
+                        scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                        showSecondList:
+                            showMediumSizeLayout || showLargeSizeLayout),
+                    two: Second_Item_Page(scaffoldKey: scaffoldKey),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ScreenSelected.color => DefaultTabController(
             length: 2, // Number of tabs
             child: Expanded(
-              child: Container(
-                // width: MediaQuery.of(context).size.width,
-                // height: MediaQuery.of(context).size.height,
-                child: Scaffold(
-                  appBar: AppBar(
-                    automaticallyImplyLeading: false,
-                    toolbarHeight: 0, //
-                    bottom: TabBar(
-                      indicatorColor: AppTheme.textColor,
-                      indicatorSize: TabBarIndicatorSize.label,
-                      indicatorWeight: 4.0,
-                      labelColor: AppTheme.textColor,
-                      unselectedLabelColor: Colors.grey,
-                      tabs: [
-                        Tab(icon: Icon(Icons.list), text: 'Categories'),
-                        Tab(icon: Icon(Icons.label), text: 'Fields'),
-                      ],
-                    ),
-                  ),
-                  body: TabBarView(
-                    children: [
-                      Item_Category(),
-                      // _buildInfoTab(),
-                      Expanded(
-                        // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
-                        child: OneTwoTransition(
-                          animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-                          one: First_Field_Page(
-                            showNavBottomBar:
-                                showNavBarExample, // 네비게이션 바 예제 표시 여부.
-                            scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                            showSecondList:
-                                showMediumSizeLayout || showLargeSizeLayout,
-                            // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-                          ), // 첫 번째 구성 요소 리스트.
-                          two: Second_Field_Page(
-                            scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                          ), // 두 번째 구성 요소 리스트.
-                        ),
-                      ),
+              child: Scaffold(
+                appBar: AppBar(
+                  automaticallyImplyLeading: false,
+                  toolbarHeight: 0, //
+                  bottom: TabBar(
+                    indicatorColor: AppTheme.textColor,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    indicatorWeight: 4.0,
+                    labelColor: AppTheme.textColor,
+                    unselectedLabelColor: Colors.grey,
+                    tabs: [
+                      Tab(icon: Icon(Icons.list), text: 'Categories'),
+                      Tab(icon: Icon(Icons.label), text: 'Fields'),
                     ],
                   ),
+                ),
+                body: TabBarView(
+                  children: [
+                    Item_Category(),
+                    // _buildInfoTab(),
+                    Expanded(
+                      // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
+                      child: OneTwoTransition(
+                        animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+                        one: First_Field_Page(
+                          showNavBottomBar:
+                              showNavBarExample, // 네비게이션 바 예제 표시 여부.
+                          scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                          showSecondList:
+                              showMediumSizeLayout || showLargeSizeLayout,
+                          // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+                        ), // 첫 번째 구성 요소 리스트.
+                        two: Second_Field_Page(
+                          scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                        ), // 두 번째 구성 요소 리스트.
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
+        ScreenSelected.typography => const ItemScreen(),
+        ScreenSelected.setting1 => const ColorPalettesScreen(),
+        ScreenSelected.setting3 => const TypographyScreen(),
+        ScreenSelected.setting2 => const Item_Category(),
         ScreenSelected.elevation => Expanded(
             // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
             child: OneTwoTransition(
