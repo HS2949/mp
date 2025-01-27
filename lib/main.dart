@@ -68,7 +68,9 @@ class MyApp extends StatelessWidget {
           create: (context) => context.read<AuthRepository>().user,
           initialData: null,
         ),
-        ChangeNotifierProvider(create: (_) => ItemProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ItemProvider()..loadSnapshot(),
+        ),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(
             authRepository: context.read<AuthRepository>(),

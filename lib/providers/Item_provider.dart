@@ -11,30 +11,34 @@ class ItemProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> get categories => _categories;
 
+  List<DocumentSnapshot> _fields = [];
+  List<DocumentSnapshot> get fields => _fields;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  Future<void> loadItems() async {
+  Future<void> loadSnapshot() async {
     _isLoading = true;
     notifyListeners();
 
-    final snapshot = await FirebaseFirestore.instance.collection('Items').get();
-    _items = snapshot.docs;
+    // 병렬로 데이터 가져오기
+    final itemsSnapshot = FirebaseFirestore.instance.collection('Items').get();
+    final categoriesSnapshot =
+        FirebaseFirestore.instance.collection('Categories').get();
+    final fieldsSnapshot =
+        FirebaseFirestore.instance.collection('Fields').get();
+
+    final results =
+        await Future.wait([itemsSnapshot, categoriesSnapshot, fieldsSnapshot]);
+
+    // Process Items
+    _items = results[0].docs;
     _filteredItem = List.from(_items);
 
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> loadCategories() async {
-    _isLoading = true;
-    notifyListeners();
-
-    final snapshot =
-        await FirebaseFirestore.instance.collection('Categories').get();
+    // Process Categories
     _categories = [
       {'itemID': '0', 'Name': '전체', 'Color': 'Silver', 'Icon': 'List'},
-      ...snapshot.docs.map((doc) {
+      ...results[1].docs.map((doc) {
         final data = doc.data();
         return {
           'itemID': doc.id,
@@ -44,6 +48,9 @@ class ItemProvider extends ChangeNotifier {
         };
       }).toList(),
     ];
+
+    // Process Fields
+    _fields = results[2].docs;
 
     _isLoading = false;
     notifyListeners();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mp_db/constants/styles.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -13,15 +14,26 @@ class ItemDetailScreen extends StatefulWidget {
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   late Future<DocumentSnapshot> _future;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _future = _fetchItemDetails();
+    _focusNode.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   Future<DocumentSnapshot> _fetchItemDetails() {
-    return FirebaseFirestore.instance.collection('Items').doc(widget.itemId).get();
+    return FirebaseFirestore.instance
+        .collection('Items')
+        .doc(widget.itemId)
+        .get();
   }
 
   void _refreshScreen() {
@@ -36,80 +48,105 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       appBar: AppBar(
         title: const Text('Item Details'),
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+      body: KeyboardListener(
+        focusNode: _focusNode,
+        onKeyEvent: (KeyEvent event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            Navigator.pop(context);
           }
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-
-          Widget buildDataItem(String title, String? value) {
-            if (value == null || value.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            final combinedText = '$title: $value';
-            return GestureDetector(
-              onLongPress: () {
-                Clipboard.setData(ClipboardData(text: combinedText));
-                showTemporaryPopup(context, combinedText);
-              },
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SelectableText(
-                    '$title: ',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Expanded(
-                    child: SelectableText(
-                      value,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: combinedText));
-                      showTemporaryPopup(context, combinedText);
-                    },
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              buildDataItem('상호명', data['ItemName']),
-              const SizedBox(height: 10),
-              buildDataItem('주소', data['Location']),
-              const SizedBox(height: 10),
-              buildDataItem('전화번호', data['PhoneNumber']),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  showEditDialog(context, widget.itemId, data);
-                },
-                child: const Text('Edit'),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  showDeleteConfirmation(context, widget.itemId);
-                },
-                child: const Text('Delete'),
-              ),
-            ],
-          );
         },
+        child: FutureBuilder<DocumentSnapshot>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+
+            Widget buildDataItem(String title, String? value) {
+              if (value == null || value.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              final combinedText = '$title: $value';
+              return GestureDetector(
+                onLongPress: () {
+                  Clipboard.setData(ClipboardData(text: combinedText));
+                  final snackBar = SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: AppTheme.primaryColor,
+                    width: 400.0,
+                    content: Text('[ $combinedText ]  복사되었습니다.'),
+                    action: SnackBarAction(
+                      label: 'Close',
+                      onPressed: () {},
+                    ),
+                  );
+
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                },
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText(
+                      '$title: ',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Expanded(
+                      child: SelectableText(
+                        value,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: combinedText));
+                        showTemporaryPopup(context, combinedText);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                buildDataItem('상호명', data['ItemName']),
+                const SizedBox(height: 10),
+                buildDataItem('주소', data['Location']),
+                const SizedBox(height: 10),
+                buildDataItem('전화번호', data['PhoneNumber']),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    showEditDialog(context, widget.itemId, data);
+                  },
+                  child: const Text('Edit'),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () {
+                    showDeleteConfirmation(context, widget.itemId);
+                  },
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  void showEditDialog(BuildContext context, String itemId, Map<String, dynamic> data) {
+  // Other methods remain unchanged
+
+  void showEditDialog(
+      BuildContext context, String itemId, Map<String, dynamic> data) {
     final TextEditingController nameController =
         TextEditingController(text: data['ItemName']);
     final TextEditingController locationController =
@@ -150,7 +187,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             ),
             TextButton(
               onPressed: () async {
-                await FirebaseFirestore.instance.collection('Items').doc(itemId).update({
+                await FirebaseFirestore.instance
+                    .collection('Items')
+                    .doc(itemId)
+                    .update({
                   'ItemName': nameController.text,
                   'Location': locationController.text,
                   'PhoneNumber': phoneController.text,
@@ -180,7 +220,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             ),
             TextButton(
               onPressed: () async {
-                await FirebaseFirestore.instance.collection('Items').doc(itemId).delete();
+                await FirebaseFirestore.instance
+                    .collection('Items')
+                    .doc(itemId)
+                    .delete();
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
