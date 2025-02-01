@@ -56,10 +56,10 @@ enum ColorImageProvider {
 }
 
 enum ScreenSelected {
-  component(0),
-  color(1),
-  typography(2),
-  elevation(3),
+  home(0),
+  item(1),
+  temp1(2),
+  temp2(3),
   setting1(4),
   setting2(5),
   setting3(6);

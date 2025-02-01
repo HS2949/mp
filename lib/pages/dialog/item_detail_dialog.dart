@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/providers/Item_provider.dart';
+import 'package:provider/provider.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -12,7 +14,8 @@ class ItemDetailScreen extends StatefulWidget {
   State<ItemDetailScreen> createState() => _ItemDetailScreenState();
 }
 
-class _ItemDetailScreenState extends State<ItemDetailScreen> {
+class _ItemDetailScreenState extends State<ItemDetailScreen>
+    with TickerProviderStateMixin {
   late Future<DocumentSnapshot> _future;
   final FocusNode _focusNode = FocusNode();
 
@@ -44,8 +47,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<ItemProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Item Details'),
       ),
       body: KeyboardListener(
@@ -53,7 +58,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         onKeyEvent: (KeyEvent event) {
           if (event is KeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.escape) {
-            Navigator.pop(context);
+            final currentIndex = provider.selectedIndex;
+
+            // 현재 탭을 닫고 0번 탭으로 이동
+            if (currentIndex > 0) {
+              provider.removeTab(currentIndex, this);
+            }
+          }
+
+          // Tab 키 입력 시 0번 탭으로 이동
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.f3) {
+            provider.selectTab(0); // 0번 탭 선택
+            provider.focusSearchField();
           }
         },
         child: FutureBuilder<DocumentSnapshot>(
@@ -115,6 +132,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             return ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
+                TextField(),
+                const SizedBox(height: 10),
                 buildDataItem('상호명', data['ItemName']),
                 const SizedBox(height: 10),
                 buildDataItem('주소', data['Location']),

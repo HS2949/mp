@@ -23,6 +23,7 @@ import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
+import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/screens/item_screen.dart';
@@ -36,32 +37,10 @@ class Home extends StatefulWidget {
   // Home 클래스의 생성자. 외부에서 전달된 값으로 상태를 초기화함.
   const Home({
     super.key, // Widget의 고유 키. Flutter에서 위젯 식별에 사용.
-    required this.useLightMode, // 라이트 모드 활성화 여부.
-    required this.useMaterial3, // Material 3 활성화 여부.
-    required this.colorSelected, // 선택된 색상.
-    required this.handleBrightnessChange, // 밝기 전환 핸들러 함수.
-    required this.handleMaterialVersionChange, // Material 버전 전환 핸들러 함수.
-    required this.handleColorSelect, // 색상 선택 핸들러 함수.
-    required this.handleImageSelect, // 이미지 선택 핸들러 함수.
-    required this.colorSelectionMethod, // 색상 선택 방식.
-    required this.imageSelected, // 선택된 이미지.
   });
 
   static const String routeName = '/home';
   // 이 위젯의 네비게이션 경로 이름을 정의. 라우팅 시 사용.
-
-  final bool useLightMode; // 라이트 모드 사용 여부를 나타내는 변수.
-  final bool useMaterial3; // Material 3 활성화 여부를 나타내는 변수.
-  final ColorSeed colorSelected; // 현재 선택된 색상을 저장.
-  final ColorImageProvider imageSelected; // 현재 선택된 이미지 정보.
-  final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식을 정의.
-
-  // 아래는 각각의 상호작용 이벤트를 처리하기 위한 함수들.
-  final void Function(bool useLightMode)
-      handleBrightnessChange; // 밝기 변경 이벤트 핸들러.
-  final void Function() handleMaterialVersionChange; // Material 버전 변경 이벤트 핸들러.
-  final void Function(int value) handleColorSelect; // 색상 선택 이벤트 핸들러.
-  final void Function(int value) handleImageSelect; // 이미지 선택 이벤트 핸들러.
 
   @override
   State<Home> createState() => _HomeState();
@@ -88,7 +67,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   bool showLargeSizeLayout = false;
   // 큰 크기 레이아웃 활성화 여부.
 
-  int screenIndex = ScreenSelected.component.value;
+  int screenIndex = ScreenSelected.home.value;
   // 현재 선택된 화면 인덱스. 기본값은 'component 화면'.
 
   @override
@@ -170,97 +149,32 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   Widget createScreenFor(
     // 선택된 화면에 따라 적절한 위젯을 생성.
     ScreenSelected screenSelected,
-    bool showNavBarExample, // 네비게이션 바 예제를 표시할지 여부.
+    bool showNavBottomBar, // 네비게이션 바 예제를 표시할지 여부.
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.component => Flexible(
-            child: Scaffold(
-              body: Column(
-                children: [
-                  Item_page(),
-                  Expanded(
-                    child: OneTwoTransition(
-                      animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-                      one: First_Item_Page(
-                          showNavBottomBar:
-                              showNavBarExample, // 네비게이션 바 예제 표시 여부.
-                          scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                          showSecondList:
-                              showMediumSizeLayout || showLargeSizeLayout),
-                      two: Second_Item_Page(scaffoldKey: scaffoldKey),
-                    ),
-                  ),
-                ],
-              ),
-              floatingActionButton: Builder(
-                builder: (context) {
-                  return FloatingActionButton(
-                    onPressed: () => showAddItem(context),
-                    child: const Icon(Icons.add),
-                  );
-                },
-              ),
-            ),
-          ),
-        ScreenSelected.color => DefaultTabController(
-            length: 2, // 탭 수
-            child: Expanded(
-              child: Scaffold(
-                appBar: AppBar(
-                  automaticallyImplyLeading: false,
-                  toolbarHeight: 0, //
-                  bottom: TabBar(
-                    indicatorColor: AppTheme.textColor,
-                    indicatorSize: TabBarIndicatorSize.label,
-                    indicatorWeight: 4.0,
-                    labelColor: AppTheme.textColor,
-                    unselectedLabelColor: Colors.grey,
-                    tabs: [
-                      Tab(icon: Icon(Icons.list), text: 'Categories'),
-                      Tab(icon: Icon(Icons.label), text: 'Fields'),
-                    ],
-                  ),
-                ),
-                body: TabBarView(
-                  children: [
-                    // 1번 탭
-                    KeepAlivePage(child: Item_Category()),
-                    // 2번 탭
-                    KeepAlivePage(
-                      child: Expanded(
-                        // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
-                        child: OneTwoTransition(
-                          animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-                          one: First_Field_Page(
-                            showNavBottomBar:
-                                showNavBarExample, // 네비게이션 바 예제 표시 여부.
-                            scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                            showSecondList:
-                                showMediumSizeLayout || showLargeSizeLayout,
-                            // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-                          ), // 첫 번째 구성 요소 리스트.
-                          two: Second_Field_Page(
-                            scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                          ), // 두 번째 구성 요소 리스트.
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ScreenSelected.typography => const ItemScreen(),
+        ScreenSelected.home => Category_Widget(
+            railAnimation: railAnimation,
+            scaffoldKey: scaffoldKey,
+            showNavBottomBar: showNavBottomBar,
+            showMediumSizeLayout: showMediumSizeLayout,
+            showLargeSizeLayout: showLargeSizeLayout),
+        ScreenSelected.item => Item_Widget(
+            railAnimation: railAnimation,
+            scaffoldKey: scaffoldKey,
+            showNavBottomBar: showNavBottomBar,
+            showMediumSizeLayout: showMediumSizeLayout,
+            showLargeSizeLayout: showLargeSizeLayout),
+        ScreenSelected.temp1 => const ItemScreen(),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),
-        ScreenSelected.elevation => Expanded(
+        ScreenSelected.temp2 => Expanded(
             // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
             child: OneTwoTransition(
               animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
               one: FirstComponentList(
-                showNavBottomBar: showNavBarExample, // 네비게이션 바 예제 표시 여부.
+                showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
                 scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
                 showSecondList: showMediumSizeLayout || showLargeSizeLayout,
                 // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
@@ -445,17 +359,6 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                   padding: const EdgeInsets.only(bottom: 20),
                   child: showLargeSizeLayout
                       ? _ExpandedTrailingActions(
-                          // 큰 화면에서는 확장된 동작 제공.
-                          useLightMode: widget.useLightMode,
-                          handleBrightnessChange: widget.handleBrightnessChange,
-                          useMaterial3: widget.useMaterial3,
-                          handleMaterialVersionChange:
-                              widget.handleMaterialVersionChange,
-                          handleImageSelect: widget.handleImageSelect,
-                          handleColorSelect: widget.handleColorSelect,
-                          colorSelectionMethod: widget.colorSelectionMethod,
-                          imageSelected: widget.imageSelected,
-                          colorSelected: widget.colorSelected,
                           scaffoldKey: scaffoldKey,
                           screenIndex: screenIndex,
                         )
@@ -485,7 +388,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
 class KeepAlivePage extends StatefulWidget {
   final Widget child;
 
-  const KeepAlivePage({required this.child});
+  const KeepAlivePage({Key? key, required this.child}) : super(key: key);
 
   @override
   _KeepAlivePageState createState() => _KeepAlivePageState();
@@ -502,6 +405,7 @@ class _KeepAlivePageState extends State<KeepAlivePage>
   @override
   bool get wantKeepAlive => true; // 상태 유지 활성화
 }
+
 
 class _ProfileButton extends StatelessWidget {
   const _ProfileButton({
@@ -601,137 +505,6 @@ class _DrawerButton extends StatelessWidget {
   }
 }
 
-class _ColorSeedButton extends StatelessWidget {
-  // 색상 선택 버튼 위젯.
-  const _ColorSeedButton({
-    required this.handleColorSelect, // 색상 선택 이벤트 핸들러 함수 참조.
-    required this.colorSelected, // 현재 선택된 색상.
-    required this.colorSelectionMethod, // 색상 선택 방식.
-  });
-
-  final void Function(int) handleColorSelect; // 색상 선택 이벤트 핸들러 함수.
-  final ColorSeed colorSelected; // 선택된 색상 데이터를 저장.
-  final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식을 정의.
-
-  @override
-  Widget build(BuildContext context) {
-    // 위젯의 UI 빌드.
-    return PopupMenuButton(
-      icon: const Icon(
-        Icons.palette_outlined, // 색상 팔레트 아이콘.
-      ),
-      tooltip: 'Select a seed color', // 툴팁 메시지.
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      // 메뉴의 모서리를 둥글게 설정.
-      itemBuilder: (context) {
-        // 메뉴 아이템을 빌드.
-        return List.generate(ColorSeed.values.length, (index) {
-          // ColorSeed 열거형의 모든 값에 대해 반복.
-          ColorSeed currentColor = ColorSeed.values[index];
-          // 현재 색상을 가져옴.
-
-          return PopupMenuItem(
-            value: index, // 현재 색상의 인덱스를 값으로 설정.
-            enabled: currentColor != colorSelected ||
-                colorSelectionMethod != ColorSelectionMethod.colorSeed,
-            // 선택된 색상이 현재 색상이 아니거나 선택 방식이 이미지가 아닐 때 활성화.
-            child: Wrap(
-              // 자식 위젯들을 가로로 나란히 배치.
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Icon(
-                    currentColor == colorSelected &&
-                            colorSelectionMethod != ColorSelectionMethod.image
-                        ? Icons.color_lens // 선택된 색상 아이콘.
-                        : Icons.color_lens_outlined, // 비활성화 색상 아이콘.
-                    color: currentColor.color, // 아이콘 색상을 현재 색상으로 설정.
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 20),
-                  child: Text(currentColor.label), // 색상 이름 표시.
-                ),
-              ],
-            ),
-          );
-        });
-      },
-      onSelected: handleColorSelect, // 색상이 선택되었을 때 이벤트 핸들러 호출.
-    );
-  }
-}
-
-// class _ColorImageButton extends StatelessWidget {
-//   // 색상 추출 이미지를 선택하는 버튼 위젯.
-//   const _ColorImageButton({
-//     required this.handleImageSelect, // 이미지 선택 이벤트 핸들러 함수.
-//     required this.imageSelected, // 현재 선택된 이미지.
-//     required this.colorSelectionMethod, // 색상 선택 방식.
-//   });
-
-//   final void Function(int) handleImageSelect; // 이미지 선택 이벤트 핸들러 함수.
-//   final ColorImageProvider imageSelected; // 선택된 이미지 정보.
-//   final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
-
-//   @override
-//   Widget build(BuildContext context) {
-//     // 위젯의 UI를 빌드.
-//     return PopupMenuButton(
-//       icon: const Icon(
-//         Icons.image_outlined, // 이미지 선택 아이콘.
-//       ),
-//       tooltip: 'Select a color extraction image', // 툴팁 메시지.
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-//       // 팝업 메뉴의 모서리를 둥글게 설정.
-//       itemBuilder: (context) {
-//         // 팝업 메뉴 항목을 생성.
-//         return List.generate(ColorImageProvider.values.length, (index) {
-//           // ColorImageProvider 열거형의 값들로 항목을 생성.
-//           final currentImageProvider = ColorImageProvider.values[index];
-//           // 현재 반복 중인 이미지 제공자.
-
-//           return PopupMenuItem(
-//             value: index, // 선택된 값의 인덱스.
-//             enabled: currentImageProvider != imageSelected ||
-//                 colorSelectionMethod != ColorSelectionMethod.image,
-//             // 현재 선택된 이미지가 아니거나 선택 방식이 이미지가 아닌 경우 활성화.
-//             child: Wrap(
-//               // 아이콘과 텍스트를 가로로 나란히 배치.
-//               crossAxisAlignment: WrapCrossAlignment.center, // 세로 중앙 정렬.
-//               children: [
-//                 Padding(
-//                   padding: const EdgeInsets.only(left: 10),
-//                   child: ConstrainedBox(
-//                     constraints: const BoxConstraints(maxWidth: 48),
-//                     // 최대 너비를 48로 제한.
-//                     child: Padding(
-//                       padding: const EdgeInsets.all(4.0),
-//                       child: ClipRRect(
-//                         borderRadius: BorderRadius.circular(8.0),
-//                         // 이미지의 모서리를 둥글게 처리.
-//                         child: Image(
-//                           image: NetworkImage(currentImageProvider.url),
-//                           // 네트워크 이미지를 가져옴.
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//                 Padding(
-//                   padding: const EdgeInsets.only(left: 20),
-//                   child: Text(currentImageProvider.label),
-//                   // 이미지 제공자의 레이블을 텍스트로 표시.
-//                 ),
-//               ],
-//             ),
-//           );
-//         });
-//       },
-//       onSelected: handleImageSelect, // 이미지가 선택되었을 때 이벤트 핸들러 호출.
-//     );
-//   }
-// }
 const List<NavigationDestination> appBarDestinations = [
   NavigationDestination(
     tooltip: '',
@@ -762,30 +535,10 @@ const List<NavigationDestination> appBarDestinations = [
 class _ExpandedTrailingActions extends StatelessWidget {
   // 확장된 추가 동작 위젯.
   const _ExpandedTrailingActions({
-    required this.useLightMode, // 라이트 모드 활성화 여부.
-    required this.handleBrightnessChange, // 밝기 변경 이벤트 핸들러.
-    required this.useMaterial3, // Material 3 활성화 여부.
-    required this.handleMaterialVersionChange, // Material 버전 변경 이벤트 핸들러.
-    required this.handleColorSelect, // 색상 선택 이벤트 핸들러.
-    required this.handleImageSelect, // 이미지 선택 이벤트 핸들러.
-    required this.imageSelected, // 선택된 이미지.
-    required this.colorSelected, // 선택된 색상.
-    required this.colorSelectionMethod, // 색상 선택 방식.
     required this.scaffoldKey,
     required this.screenIndex,
   });
 
-  final void Function(bool) handleBrightnessChange; // 밝기 전환 이벤트 핸들러.
-  final void Function() handleMaterialVersionChange; // Material 버전 전환 이벤트 핸들러.
-  final void Function(int) handleImageSelect; // 이미지 선택 이벤트 핸들러.
-  final void Function(int) handleColorSelect; // 색상 선택 이벤트 핸들러.
-
-  final bool useLightMode; // 라이트 모드 여부.
-  final bool useMaterial3; // Material 3 여부.
-
-  final ColorImageProvider imageSelected; // 현재 선택된 이미지.
-  final ColorSeed colorSelected; // 현재 선택된 색상.
-  final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
   final GlobalKey<ScaffoldState> scaffoldKey;
   final int screenIndex;
 
@@ -820,130 +573,13 @@ class _ExpandedTrailingActions extends StatelessWidget {
           SizedBox(height: 20),
           _ProfileButton(showTooltipBelow: true, showTextNext: true),
           _SignoutButton(showTooltipBelow: true, showTextNext: true),
-          if (screenIndex == 3) ...[
-            const Divider(), // 구분선.
-            _ExpandedColorSeedAction(
-              // 색상 선택 동작.
-              handleColorSelect: handleColorSelect,
-              colorSelected: colorSelected,
-              colorSelectionMethod: colorSelectionMethod,
-            ),
-            const Divider(), // 구분선.
-            _ExpandedImageColorAction(
-              // 이미지 색상 선택 동작.
-              handleImageSelect: handleImageSelect,
-              imageSelected: imageSelected,
-              colorSelectionMethod: colorSelectionMethod,
-            ),
-          ]
         ],
       ),
     );
     return screenHeight > (screenIndex == 3 ? 740 : 200) //740
         ? trailingActionsBody
-        : SingleChildScrollView(child: trailingActionsBody);
+        : trailingActionsBody; //SingleChildScrollView(child: trailingActionsBody); // 아래 정렬 또는 위 정렬렬
     // 화면 높이에 따라 스크롤 가능 여부 결정.
-  }
-}
-
-class _ExpandedColorSeedAction extends StatelessWidget {
-  // 확장된 색상 선택 동작.
-  const _ExpandedColorSeedAction({
-    required this.handleColorSelect, // 색상 선택 이벤트 핸들러.
-    required this.colorSelected, // 현재 선택된 색상.
-    required this.colorSelectionMethod, // 색상 선택 방식.
-  });
-
-  final void Function(int) handleColorSelect; // 색상 선택 이벤트 핸들러.
-  final ColorSeed colorSelected; // 선택된 색상.
-  final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
-
-  @override
-  Widget build(BuildContext context) {
-    // UI를 빌드.
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 200.0),
-      // 최대 높이를 제한.
-      child: GridView.count(
-        crossAxisCount: 3, // 3열로 구성된 그리드.
-        children: List.generate(
-          ColorSeed.values.length,
-          // ColorSeed 열거형 값에 따라 버튼 생성.
-          (i) => IconButton(
-            icon: const Icon(Icons.radio_button_unchecked),
-            color: ColorSeed.values[i].color, // 버튼 색상을 설정.
-            isSelected: colorSelected.color == ColorSeed.values[i].color &&
-                colorSelectionMethod == ColorSelectionMethod.colorSeed,
-            // 현재 색상이 선택된 색상인지 여부 확인.
-            selectedIcon: const Icon(Icons.circle), // 선택된 아이콘.
-            onPressed: () {
-              handleColorSelect(i); // 색상 선택 이벤트 호출.
-            },
-            tooltip: ColorSeed.values[i].label, // 툴팁으로 색상 이름 표시.
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ExpandedImageColorAction extends StatelessWidget {
-  // 확장된 이미지 색상 선택 동작.
-  const _ExpandedImageColorAction({
-    required this.handleImageSelect, // 이미지 선택 이벤트 핸들러.
-    required this.imageSelected, // 선택된 이미지.
-    required this.colorSelectionMethod, // 색상 선택 방식.
-  });
-
-  final void Function(int) handleImageSelect; // 이미지 선택 이벤트 핸들러.
-  final ColorImageProvider imageSelected; // 선택된 이미지.
-  final ColorSelectionMethod colorSelectionMethod; // 색상 선택 방식.
-
-  @override
-  Widget build(BuildContext context) {
-    // UI를 빌드.
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 150.0),
-      // 최대 높이를 제한.
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: GridView.count(
-          crossAxisCount: 3, // 3열로 구성된 그리드.
-          children: List.generate(
-            ColorImageProvider.values.length,
-            // ColorImageProvider 열거형 값에 따라 버튼 생성.
-            (i) => Tooltip(
-              message: ColorImageProvider.values[i].name, // 툴팁 메시지 설정.
-              child: InkWell(
-                // 클릭 가능한 위젯.
-                borderRadius: BorderRadius.circular(4.0), // 둥근 모서리.
-                onTap: () => handleImageSelect(i), // 이미지 선택 이벤트 호출.
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Material(
-                    borderRadius: BorderRadius.circular(4.0), // 둥근 모서리.
-                    elevation: imageSelected == ColorImageProvider.values[i] &&
-                            colorSelectionMethod == ColorSelectionMethod.image
-                        ? 3 // 선택된 경우 그림자 높이 증가.
-                        : 0, // 선택되지 않은 경우 그림자 없음.
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4.0), // 둥근 모서리.
-                        child: Image(
-                          image: NetworkImage(ColorImageProvider.values[i].url),
-                          // 이미지 URL을 네트워크에서 가져옴.
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

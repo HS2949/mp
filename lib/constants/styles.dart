@@ -9,7 +9,7 @@ enum IconLabel {
   list('List', Icons.list),
   bus('Bus', Icons.directions_bus_filled_outlined),
   restaurant('Restaurant', Icons.restaurant),
-  place('Place',Icons.mode_of_travel_outlined),
+  place('Place', Icons.mode_of_travel_outlined),
   travel('Travel', Icons.attractions_outlined),
   cafe('Cafe', Icons.local_cafe_outlined),
   activity('Activity', Icons.rowing_outlined),
@@ -22,7 +22,6 @@ enum IconLabel {
   final String label;
   final IconData icon;
 }
-
 
 enum ColorLabel {
   blue('Blue', Colors.blue),
@@ -46,7 +45,6 @@ enum ColorLabel {
   final String label;
   final Color color;
 }
-
 
 class AppTheme {
   // 색상 변수 정의
@@ -81,6 +79,10 @@ class AppTheme {
         surface: Colors.grey[50]!, // 표면 색상
       ),
       iconTheme: IconThemeData(color: secondaryColor), // 아이콘 색상
+
+      tabBarTheme: TabBarTheme(
+        labelPadding: EdgeInsets.symmetric(vertical: 0), // ✅ 상하 여백 조정
+      ),
 
       inputDecorationTheme: InputDecorationTheme(
           // TextField 스타일

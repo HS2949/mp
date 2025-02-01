@@ -118,24 +118,7 @@ class MyApp extends StatelessWidget {
         routes: {
           SignupPage.routeName: (context) => SignupPage(),
           SigninPage.routeName: (context) => SigninPage(),
-          Home.routeName: (context) => Home(
-              useLightMode: true,
-              useMaterial3: false,
-              colorSelected: ColorSeed.blue,
-              imageSelected: ColorImageProvider.bubbles,
-              colorSelectionMethod: ColorSelectionMethod.colorSeed,
-              handleBrightnessChange: (useLightMode) {
-                // handle brightness change
-              },
-              handleMaterialVersionChange: () {
-                // handle material version change
-              },
-              handleColorSelect: (value) {
-                // handle color selection
-              },
-              handleImageSelect: (value) {
-                // handle image selection
-              }),
+          Home.routeName: (context) => Home(),
         },
       ),
     );

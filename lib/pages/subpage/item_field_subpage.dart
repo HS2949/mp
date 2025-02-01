@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/pages/home.dart';
+import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
@@ -282,95 +284,6 @@ class _Item_FieldState extends State<Item_Field> {
             )
           ],
         ),
-      ),
-    );
-  }
-}
-
-class First_Field_Page extends StatelessWidget {
-  const First_Field_Page({
-    super.key,
-    required this.showNavBottomBar,
-    required this.scaffoldKey,
-    required this.showSecondList,
-  });
-
-  final bool showNavBottomBar;
-  final GlobalKey<ScaffoldState> scaffoldKey;
-  final bool showSecondList;
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> children = [
-      Item_Field(title: 'Default', isDefault: true),
-      if (!showSecondList) ...[
-        Item_Field(title: 'Resources', isDefault: false),
-      ]
-    ];
-    List<double?> heights = List.filled(children.length, null);
-
-    // Fully traverse this list before moving on.
-    return FocusTraversalGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: showSecondList
-                ? const EdgeInsetsDirectional.only(end: smallSpacing)
-                : EdgeInsets.zero,
-            sliver: SliverList(
-              delegate: BuildSlivers(
-                heights: heights,
-                builder: (context, index) {
-                  return CacheHeight(
-                    heights: heights,
-                    index: index,
-                    child: children[index],
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class Second_Field_Page extends StatelessWidget {
-  const Second_Field_Page({
-    super.key,
-    required this.scaffoldKey,
-  });
-
-  final GlobalKey<ScaffoldState> scaffoldKey;
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> children = [
-      Item_Field(title: 'Resources', isDefault: false),
-    ];
-    List<double?> heights = List.filled(children.length, null);
-
-    // Fully traverse this list before moving on.
-    return FocusTraversalGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsetsDirectional.only(end: smallSpacing),
-            sliver: SliverList(
-              delegate: BuildSlivers(
-                heights: heights,
-                builder: (context, index) {
-                  return CacheHeight(
-                    heights: heights,
-                    index: index,
-                    child: children[index],
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

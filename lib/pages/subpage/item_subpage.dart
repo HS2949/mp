@@ -1,22 +1,27 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:mp_db/pages/home.dart';
+import 'package:provider/provider.dart';
+
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/dialog/item_detail_dialog.dart';
 import 'package:mp_db/providers/Item_provider.dart';
-import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
-import 'package:provider/provider.dart';
 
 class Item_page extends StatefulWidget {
-  const Item_page({super.key});
-
+  final EdgeInsets padding; // padding 인수 추가
+  const Item_page({
+    super.key,
+    this.padding = const EdgeInsets.all(0), // 기본값을 EdgeInsets.all(0)으로 설정
+  });
   @override
   _Item_pageState createState() => _Item_pageState();
 }
 
-class _Item_pageState extends State<Item_page> {
+class _Item_pageState extends State<Item_page> with TickerProviderStateMixin{
   final firestoreService = FirestoreService();
-  final TextEditingController _searchController = TextEditingController();
 
   IconData? selectedIcon;
   Color? selectedColor;
@@ -24,26 +29,31 @@ class _Item_pageState extends State<Item_page> {
   late ItemProvider _provider;
 
   @override
+  @override
   void initState() {
     super.initState();
-    _provider = context.read<ItemProvider>(); // 한 번만 할당
-    // _searchController.addListener(() {
-    //   _provider.filterItems(_searchController.text);
-    // });
+    _provider = context.read<ItemProvider>();
 
-    // 검색어 또는 선택된 카테고리가 변경될 때 필터링
-    _searchController.addListener(() {
+    // 검색어 변경 감지 및 필터링 적용
+    _provider.searchController.addListener(() {
       _provider.filterItems(
-        _searchController.text,
-        selectedCategory: selectedCategory ?? '전체',
+        _provider.searchController.text,
+        selectedCategory: selectedCategory,
       );
     });
   }
 
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // 네비게이션에서 돌아올 때마다 필터 초기화
+    _provider.searchController.text = '';
+    _provider.filterItems('', selectedCategory: '전체');
+  }
+
   @override
   void dispose() {
-    _searchController.removeListener(() {}); // 리스너 제거
-    _searchController.dispose();
+    _provider.searchController.removeListener(() {});
     super.dispose();
   }
 
@@ -66,7 +76,7 @@ class _Item_pageState extends State<Item_page> {
 
       // 필터링 로직 호출
       _provider.filterItems(
-        _searchController.text, // 검색어와
+        _provider.searchController.text, // 검색어와
         selectedCategory: selectedCategory, // 선택된 카테고리를 기준으로 필터링
       );
     });
@@ -97,6 +107,7 @@ class _Item_pageState extends State<Item_page> {
                   ),
                 ),
                 onPressed: () {
+                  _provider.selectTab(0); // 카테고리 버튼 클릭 시 0번 탭 선택
                   if (controller.isOpen) {
                     controller.close();
                   } else {
@@ -141,122 +152,42 @@ class _Item_pageState extends State<Item_page> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _CategoryButton(context),
-              const SizedBox(width: 10),
-              Flexible(
-                child: SizedBox(
-                  width: 350,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      labelText: 'Search',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: ClearButton(controller: _searchController),
-                    ),
+    return Container(
+      color: Colors.grey[50],
+      child: Padding(
+        padding: widget.padding,
+        child: Row(
+          children: [
+            _CategoryButton(context),
+            const SizedBox(width: 10),
+            Flexible(
+              child: SizedBox(
+                width: 350,
+                child: TextField(
+                  controller: _provider.searchController,
+                  focusNode: _provider.searchFocusNode,
+                  decoration: InputDecoration(
+                    labelText: 'Search',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon:
+                        ClearButton(controller: _provider.searchController),
                   ),
+                  onTap: () {
+                    _provider.selectTab(0); // 포커스될 때 탭을 0번으로 변경
+                  },
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class First_Item_Page extends StatelessWidget {
-  const First_Item_Page({
-    super.key,
-    required this.showNavBottomBar,
-    required this.scaffoldKey,
-    required this.showSecondList,
-  });
-
-  final bool showNavBottomBar;
-  final GlobalKey<ScaffoldState> scaffoldKey;
-  final bool showSecondList;
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> children = [
-      //위젯 입력
-
-      if (!showSecondList) ...[
-        ItemList(filterType: 0)
-      ] else ...[
-        ItemList(filterType: 1)
-      ]
-    ];
-    List<double?> heights = List.filled(children.length, null);
-
-    // Fully traverse this list before moving on.
-    return FocusTraversalGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: showSecondList
-                ? const EdgeInsetsDirectional.only(end: smallSpacing)
-                : EdgeInsets.zero,
-            sliver: SliverList(
-              delegate: BuildSlivers(
-                heights: heights,
-                builder: (context, index) {
-                  return CacheHeight(
-                    heights: heights,
-                    index: index,
-                    child: children[index],
-                  );
-                },
-              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class Second_Item_Page extends StatelessWidget {
-  const Second_Item_Page({
-    super.key,
-    required this.scaffoldKey,
-  });
-
-  final GlobalKey<ScaffoldState> scaffoldKey;
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> children = [ItemList(filterType: 2)];
-    List<double?> heights = List.filled(children.length, null);
-
-    // Fully traverse this list before moving on.
-    return FocusTraversalGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsetsDirectional.only(end: smallSpacing),
-            sliver: SliverList(
-              delegate: BuildSlivers(
-                heights: heights,
-                builder: (context, index) {
-                  return CacheHeight(
-                    heights: heights,
-                    index: index,
-                    child: children[index],
-                  );
+            SizedBox(width: 20),
+            ElevatedButton(
+                onPressed: () {
+                  _provider.resetTabs(this); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
+                  // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
                 },
-              ),
-            ),
-          ),
-        ],
+                child: Text('Close'))
+          ],
+        ),
       ),
     );
   }
@@ -265,21 +196,20 @@ class Second_Item_Page extends StatelessWidget {
 class ItemList extends StatefulWidget {
   final int filterType; // 필터 타입 인수 추가
 
-  const ItemList({super.key, required this.filterType});
+  const ItemList({
+    Key? key,
+    required this.filterType,
+  }) : super(key: key);
 
   @override
   _ItemListState createState() => _ItemListState();
 }
 
-class _ItemListState extends State<ItemList> {
+class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ItemProvider>();
     final filteredItems = provider.filteredItem;
-    // final provider = context.watch<ItemProvider>();
-    // final filteredItems = provider.filteredItem;
-    // final categories = provider.categories;
-    // final isLoading = provider.isLoading;
 
     // 필터에 따라 표시할 아이템 리스트 계산
     List filteredDisplayItems;
@@ -324,15 +254,20 @@ class _ItemListState extends State<ItemList> {
                       leading: Icon(icon, color: color),
                       title: Text(itemData['ItemName'] ?? 'No Name'),
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ItemDetailScreen(
+                        // addTab 호출 시 this는 TickerProviderStateMixin을 구현하고 있음
+                        provider.addTab(
+                          itemData['ItemName'] ?? 'No Name',
+                          KeepAlivePage(
+                            child: ItemDetailScreen(
                               itemId: filteredDisplayItems[index].id,
-                              // itemData: itemData,
                             ),
                           ),
+                          this, // 안전하게 TickerProvider 전달
                         );
+
+                        // // 새 탭으로 자동 전환 (새 탭의 인덱스는 리스트의 마지막 인덱스)
+                        // final newIndex = provider.tabs.length - 1;
+                        // provider.selectTab(newIndex);
                       },
                     ),
                   );
