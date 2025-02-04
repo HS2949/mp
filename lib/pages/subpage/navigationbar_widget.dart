@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names, camel_case_types
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
@@ -27,50 +29,45 @@ class Category_Widget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('현재 페이지 : Home');
     return DefaultTabController(
       length: 2, // 탭 수
-      child: Expanded(
-        child: Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            toolbarHeight: 0, //
-            bottom: TabBar(
-              indicatorColor: AppTheme.textColor,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicatorWeight: 4.0,
-              labelColor: AppTheme.textColor,
-              unselectedLabelColor: Colors.grey,
-              tabs: [
-                Tab(icon: Icon(Icons.list), text: 'Categories'),
-                Tab(icon: Icon(Icons.label), text: 'Fields'),
-              ],
-            ),
-          ),
-          body: TabBarView(
-            children: [
-              // 1번 탭
-              KeepAlivePage(child: Item_Category()),
-              // 2번 탭
-              KeepAlivePage(
-                child: Expanded(
-                  // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
-                  child: OneTwoTransition(
-                    animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-                    one: First_Field_Page(
-                      showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
-                      scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                      showSecondList:
-                          showMediumSizeLayout || showLargeSizeLayout,
-                      // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-                    ), // 첫 번째 구성 요소 리스트.
-                    two: Second_Field_Page(
-                      scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                    ), // 두 번째 구성 요소 리스트.
-                  ),
-                ),
-              ),
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          toolbarHeight: 0, //
+          bottom: TabBar(
+            indicatorColor: AppTheme.textColor,
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorWeight: 4.0,
+            labelColor: AppTheme.textColor,
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(icon: Icon(Icons.list), text: 'Categories'),
+              Tab(icon: Icon(Icons.label), text: 'Fields'),
             ],
           ),
+        ),
+        body: TabBarView(
+          children: [
+            // 1번 탭
+            KeepAlivePage(child: Item_Category()),
+            // 2번 탭
+            KeepAlivePage(
+              child: OneTwoTransition(
+                animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+                one: First_Field_Page(
+                  showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
+                  scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                  showSecondList: showMediumSizeLayout || showLargeSizeLayout,
+                  // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+                ), // 첫 번째 구성 요소 리스트.
+                two: Second_Field_Page(
+                  scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                ), // 두 번째 구성 요소 리스트.
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -187,147 +184,179 @@ class Item_Widget extends StatefulWidget {
 }
 
 class _Item_WidgetState extends State<Item_Widget>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   final FocusNode _focusNode = FocusNode(); // 키보드 이벤트 감지를 위한 FocusNode 생성
+
   @override
   void initState() {
     super.initState();
-    Provider.of<ItemProvider>(context, listen: false).initTabConfiguration(
-      this,
-      'List',
-      KeepAlivePage(
-        child: Flexible(
-          child: Scaffold(
-            appBar: AppBar(
-              automaticallyImplyLeading: false,
-              toolbarHeight: 0,
-              // title: Item_page(padding: const EdgeInsets.fromLTRB(5, 5, 0, 0)),
-            ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: OneTwoTransition(
-                    animation: widget.railAnimation, // 네비게이션 레일 애니메이션을 적용.
-                    one: First_Item_Page(
-                      showNavBottomBar:
-                          widget.showNavBottomBar, // 네비게이션 바 예제 표시 여부.
-                      scaffoldKey: widget.scaffoldKey, // Scaffold 상태를 전달.
-                      showSecondList: widget.showMediumSizeLayout ||
-                          widget.showLargeSizeLayout,
-                    ),
-                    two: Second_Item_Page(scaffoldKey: widget.scaffoldKey),
-                  ),
-                ),
-              ],
-            ),
-            floatingActionButton: Builder(
-              builder: (context) {
-                return FloatingActionButton(
-                  onPressed: () => showAddItem(context),
-                  child: const Icon(Icons.add),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
+    Provider.of<ItemProvider>(context, listen: false).initController(this);
+
+    Provider.of<ItemProvider>(context, listen: false).tabTitles[0].icon = Icon(
+      Icons.list,
+      color: Colors.grey,
     );
+    Provider.of<ItemProvider>(context, listen: false).tabTitles[0].text =
+        "List";
+
+    Provider.of<ItemProvider>(context, listen: false).tabViews[0].all =
+        ItemList(filterType: 0);
+    Provider.of<ItemProvider>(context, listen: false).tabViews[0].first =
+        ItemList(filterType: 1);
+    Provider.of<ItemProvider>(context, listen: false).tabViews[0].second =
+        ItemList(filterType: 2);
+
+    Provider.of<ItemProvider>(context, listen: false).showSnackbar =
+        (context, message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    };
+  }
+
+  /// TabBar에 전달할 탭 목록 생성
+  /// 활성 탭은 실제 제목을 표시하고, 비활성 탭은 SizedBox.shrink()를 사용해 최소한의 공간만 차지
+  List<Widget> get tabs {
+    final tabProvider = Provider.of<ItemProvider>(context);
+    return List.generate(tabProvider.maxTabs, (index) {
+      if (index < tabProvider.activeTabCount) {
+        return SizedBox(
+          width: 100,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (tabProvider.tabTitles[index].icon != null) ...[
+                tabProvider.tabTitles[index].icon!,
+                SizedBox(width: 8), // 아이콘과 텍스트 간격
+              ],
+              Text(tabProvider.tabTitles[index].text),
+            ],
+          ),
+        );
+      } else {
+        return Tab(child: SizedBox.shrink());
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    print('현재 페이지 : Item');
+
     // Provider에서 관리하는 TabController와 탭 리스트를 사용합니다.
     final tabProvider = Provider.of<ItemProvider>(context);
-    return Expanded(
-      child: KeyboardListener(
-        focusNode: _focusNode,
-        onKeyEvent: (KeyEvent event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.f3) {
-            tabProvider.selectTab(0); // 0번 탭 선택
-            tabProvider.focusSearchField();
-          }
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            // toolbarHeight: 2, //
-            // toolbarHeight: tabProvider.tabs.length > 1 ? 2 :
-            // 탭이 2개 이상일 때 툴바 높이 지정 (탭이 없으면 0)
-            toolbarHeight: kToolbarHeight,
-            title: Item_page(padding: const EdgeInsets.fromLTRB(5, 5, 0, 0)),
-            bottom: PreferredSize(
-              preferredSize: Size.fromHeight(48),
-              // preferredSize:
-              //     Size.fromHeight(tabProvider.tabs.length > 1 ? 48 : 0),
-              // child: SizedBox.shrink(),
 
-              child: Container(
-                height: tabProvider.tabs.length > 1 ? 48 : 0,
-                child: TabBar(
-                  // isScrollable: tabProvider.tabs.length > 1 ? false : true,
-                  isScrollable: false,
-                  controller: tabProvider.controller,
-                  indicatorColor: tabProvider.tabs.length > 1
-                      ? AppTheme.textColor
-                      : Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorWeight: 4.0,
-                  labelColor: AppTheme.textColor,
-                  unselectedLabelColor: Colors.grey,
-                  labelStyle: TextStyle(fontSize: 15.0),
-                  tabs: List.generate(tabProvider.tabs.length, (index) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 0),
-                      // decoration: BoxDecoration(
-                      // color: tabProvider.tabs.length > 1 && index == 0
-                      //     ? const Color.fromARGB(255, 254, 248, 215)
-                      //     : Colors.transparent, // 0번 탭 배경색 변경
-                      // borderRadius: BorderRadius.circular(10), // 둥근 모서리 추가 (옵션)
-                      // ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (tabProvider.tabs.length > 1 && index == 0)
-                            Icon(Icons.list,
-                                color: Colors.grey), // 0번 탭에만 아이콘 추가
-                          if (tabProvider.tabs.length > 1 && index == 0)
-                            const SizedBox(width: 6), // 아이콘과 텍스트 간격
-                          tabProvider.tabs[index], // 기존 탭 텍스트
-                        ],
-                      ),
-                    );
-                  }),
-                  onTap: (index) {
-                    tabProvider.selectTab(index);
-                  },
-                ),
+    return KeyboardListener(
+      focusNode: _focusNode,
+      onKeyEvent: (KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.f3) {
+          tabProvider.selectTab(0); // 0번 탭 선택
+          tabProvider.focusSearchField();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          toolbarHeight: kToolbarHeight,
+          title: Item_page(padding: const EdgeInsets.fromLTRB(5, 5, 0, 0)),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(48),
+            child: SizedBox(
+              height: 40,
+              child: TabBar(
+                isScrollable: true,
+                controller: tabProvider.controller,
+                indicatorColor: tabProvider.activeTabCount > 1
+                    ? AppTheme.textColor
+                    : Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorWeight: 4.0,
+                labelColor: AppTheme.textColor,
+                unselectedLabelColor: Colors.grey,
+                labelStyle: TextStyle(fontSize: 15.0),
+                tabs: tabs,
+                onTap: (index) {
+                  tabProvider.selectTab(index);
+                },
               ),
             ),
           ),
-          body: TabBarView(
-            key: ValueKey(tabProvider.tabs.length), // 탭 개수를 Key로 사용
-            controller: tabProvider.controller,
-            children: tabProvider.tabViews, // Provider에서 동적으로 TabBarView 가져오기
-          ),
         ),
+        body: TabBarView(
+          controller: tabProvider.controller,
+          children: List.generate(tabProvider.maxTabs, (index) {
+            if (index < tabProvider.activeTabCount) {
+              return KeepAlivePage(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: OneTwoTransition(
+                        animation: widget.railAnimation, // 네비게이션 레일 애니메이션을 적용.
+                        one: First_Item_Page(
+                          showNavBottomBar:
+                              widget.showNavBottomBar, // 네비게이션 바 예제 표시 여부.
+                          scaffoldKey: widget.scaffoldKey, // Scaffold 상태를 전달.
+                          showSecondList: widget.showMediumSizeLayout ||
+                              widget.showLargeSizeLayout,
+                          widget_first: tabProvider.tabViews[index].first,
+                          widget_second: tabProvider.tabViews[index].second,
+                          widget_all: tabProvider.tabViews[index].all,
+                        ),
+                        two: Second_Item_Page(
+                            scaffoldKey: widget.scaffoldKey,
+                            widget_second: tabProvider.tabViews[index].second),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Container();
+            }
+          }),
+          // body: TabBarView(
+          //   key: ValueKey(tabProvider.tabs.length), // 탭 개수를 Key로 사용
+          //   controller: tabProvider.controller,
+          //   children: tabProvider.tabViews, // Provider에서 동적으로 TabBarView 가져오기
+          // ),
+        ),
+        floatingActionButton: tabProvider.controller == null
+            ? null // `controller`가 `null`이면 버튼 표시 안 함
+            : AnimatedBuilder(
+                animation: tabProvider.controller!,
+                builder: (context, child) {
+                  return (tabProvider.controller?.index ?? -1) ==
+                          0 // 탭 인덱스가 1일 때만 표시
+                      ? FloatingActionButton(
+                          onPressed: () => showAddItem(context),
+                          child: const Icon(Icons.add),
+                        )
+                      : SizedBox.shrink(); // 빈 공간 반환 (플로팅 버튼 숨김)
+                },
+              ),
       ),
     );
   }
 }
 
 class First_Item_Page extends StatelessWidget {
-  const First_Item_Page({
-    super.key,
-    required this.showNavBottomBar,
-    required this.scaffoldKey,
-    required this.showSecondList,
-  });
+  const First_Item_Page(
+      {super.key,
+      required this.showNavBottomBar,
+      required this.scaffoldKey,
+      required this.showSecondList,
+      required this.widget_first,
+      this.widget_second,
+      this.widget_all});
 
   final bool showNavBottomBar;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final bool showSecondList;
+  final Widget widget_first;
+  final Widget? widget_second;
+  final Widget? widget_all;
 
   @override
   Widget build(BuildContext context) {
@@ -335,9 +364,14 @@ class First_Item_Page extends StatelessWidget {
       //위젯 입력
 
       if (!showSecondList) ...[
-        ItemList(filterType: 0)
+        if (widget_all == null) ...[
+          widget_first,
+          widget_second ?? SizedBox.shrink()
+        ] else ...[
+          widget_all!
+        ]
       ] else ...[
-        ItemList(filterType: 1)
+        widget_first
       ]
     ];
     List<double?> heights = List.filled(children.length, null);
@@ -373,13 +407,15 @@ class Second_Item_Page extends StatelessWidget {
   const Second_Item_Page({
     super.key,
     required this.scaffoldKey,
+    required this.widget_second,
   });
 
   final GlobalKey<ScaffoldState> scaffoldKey;
+  final Widget? widget_second;
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> children = [ItemList(filterType: 2)];
+    List<Widget> children = [widget_second ?? SizedBox.shrink()];
     List<double?> heights = List.filled(children.length, null);
 
     // Fully traverse this list before moving on.

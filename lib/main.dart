@@ -5,11 +5,13 @@ import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/material/constants.dart';
 import 'package:mp_db/pages/home.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
+import 'package:mp_db/providers/Item_detail/Item_detail_provider.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signup/signup_provider.dart';
+import 'package:mp_db/providers/Item_detail/ItemDetail_repository.dart';
 import 'package:mp_db/repositories/auth_repository.dart';
 import 'package:mp_db/repositories/profile_repository.dart';
 
@@ -70,6 +72,11 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => ItemProvider()..loadSnapshot(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ItemDetailProvider(
+            itemdetailRepository: ItemDetailRepository(),
+          ),
         ),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/pages/home.dart';
+import 'package:mp_db/providers/Item_detail/item_detail_subpage.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mp_db/Functions/firestore.dart';
@@ -20,7 +21,7 @@ class Item_page extends StatefulWidget {
   _Item_pageState createState() => _Item_pageState();
 }
 
-class _Item_pageState extends State<Item_page> with TickerProviderStateMixin{
+class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
   final firestoreService = FirestoreService();
 
   IconData? selectedIcon;
@@ -154,38 +155,44 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin{
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[50],
+      width: 500,
       child: Padding(
         padding: widget.padding,
         child: Row(
           children: [
-            _CategoryButton(context),
+            Flexible(
+              flex: 1,
+              child: _CategoryButton(context)),
             const SizedBox(width: 10),
             Flexible(
-              child: SizedBox(
-                width: 350,
-                child: TextField(
-                  controller: _provider.searchController,
-                  focusNode: _provider.searchFocusNode,
-                  decoration: InputDecoration(
-                    labelText: 'Search',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon:
-                        ClearButton(controller: _provider.searchController),
-                  ),
-                  onTap: () {
-                    _provider.selectTab(0); // 포커스될 때 탭을 0번으로 변경
-                  },
+              fit: FlexFit.tight,
+              flex: 3,
+              child: TextField(
+                controller: _provider.searchController,
+                focusNode: _provider.searchFocusNode,
+                decoration: InputDecoration(
+                  labelText: 'Search',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon:
+                      ClearButton(controller: _provider.searchController),
                 ),
+                onTap: () {
+                  _provider.selectTab(0); // 포커스될 때 탭을 0번으로 변경
+                },
               ),
             ),
-            SizedBox(width: 20),
-            ElevatedButton(
-                onPressed: () {
-                  _provider.resetTabs(this); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
-                  // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
-                },
-                child: Text('Close'))
+            SizedBox(width: 10),
+            Flexible(
+              flex: 1,
+              fit: FlexFit.loose,
+              child: ElevatedButton(
+                  onPressed: () {
+                     _provider.removeAllTabs(); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
+                    // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
+                  },
+                  child: Text('Close')),
+            )
           ],
         ),
       ),
@@ -206,6 +213,7 @@ class ItemList extends StatefulWidget {
 }
 
 class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
+  
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ItemProvider>();
@@ -255,15 +263,25 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                       title: Text(itemData['ItemName'] ?? 'No Name'),
                       onTap: () {
                         // addTab 호출 시 this는 TickerProviderStateMixin을 구현하고 있음
-                        provider.addTab(
+                        provider.addTab(context,
                           itemData['ItemName'] ?? 'No Name',
-                          KeepAlivePage(
-                            child: ItemDetailScreen(
-                              itemId: filteredDisplayItems[index].id,
-                            ),
+                          // KeepAlivePage(
+                          //   child: ItemDetailScreen(
+                          //     itemId: filteredDisplayItems[index].id,
+                          //   ),
+                          // ),
+                          ItemDetailFirst(
+                             itemId: filteredDisplayItems[index].id,
                           ),
-                          this, // 안전하게 TickerProvider 전달
+                          // second: Text('second'),
+                          // all: Text('all')
                         );
+
+                        // provider.addTab(
+                        //   itemData['ItemName'] ?? 'No Name',
+                        //   Text(itemData['ItemName'] ?? 'No Name'),
+                        //   this, // 안전하게 TickerProvider 전달
+                        // );
 
                         // // 새 탭으로 자동 전환 (새 탭의 인덱스는 리스트의 마지막 인덱스)
                         // final newIndex = provider.tabs.length - 1;

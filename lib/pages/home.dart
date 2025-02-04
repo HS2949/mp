@@ -21,12 +21,14 @@ import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
 import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 
-import 'package:mp_db/pages/profile_page.dart';
+import 'package:mp_db/providers/auth/profile_page.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
+import 'package:mp_db/pages/subpage/test.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/screens/item_screen.dart';
+import 'package:mp_db/utils/two_line.dart';
 import 'package:provider/provider.dart';
 
 import 'subpage/item_field_subpage.dart';
@@ -153,19 +155,24 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.home => Category_Widget(
-            railAnimation: railAnimation,
-            scaffoldKey: scaffoldKey,
-            showNavBottomBar: showNavBottomBar,
-            showMediumSizeLayout: showMediumSizeLayout,
-            showLargeSizeLayout: showLargeSizeLayout),
-        ScreenSelected.item => Item_Widget(
-            railAnimation: railAnimation,
-            scaffoldKey: scaffoldKey,
-            showNavBottomBar: showNavBottomBar,
-            showMediumSizeLayout: showMediumSizeLayout,
-            showLargeSizeLayout: showLargeSizeLayout),
-        ScreenSelected.temp1 => const ItemScreen(),
+        ScreenSelected.home => Expanded(
+          child: Category_Widget(
+              railAnimation: railAnimation,
+              scaffoldKey: scaffoldKey,
+              showNavBottomBar: showNavBottomBar,
+              showMediumSizeLayout: showMediumSizeLayout,
+              showLargeSizeLayout: showLargeSizeLayout),
+        ),
+        ScreenSelected.item => Expanded(
+          child: Item_Widget(
+              railAnimation: railAnimation,
+              scaffoldKey: scaffoldKey,
+              showNavBottomBar: showNavBottomBar,
+              showMediumSizeLayout: showMediumSizeLayout,
+              showLargeSizeLayout: showLargeSizeLayout),
+        ),
+        // ScreenSelected.temp1 => const ItemScreen(),
+        ScreenSelected.temp1 =>  Expanded(child: FixedTabsUsingTabBarPage()),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),
@@ -954,62 +961,3 @@ class _BarTransition extends State<BarTransition> {
   }
 }
 
-class OneTwoTransition extends StatefulWidget {
-  // 하나에서 두 개로 전환하는 애니메이션.
-  const OneTwoTransition({
-    super.key,
-    required this.animation, // 애니메이션 컨트롤러.
-    required this.one, // 첫 번째 위젯.
-    required this.two, // 두 번째 위젯.
-  });
-
-  final Animation<double> animation; // 애니메이션의 진행률.
-  final Widget one; // 첫 번째 위젯.
-  final Widget two; // 두 번째 위젯.
-
-  @override
-  State<OneTwoTransition> createState() =>
-      _OneTwoTransitionState(); // 상태 클래스 생성.
-}
-
-class _OneTwoTransitionState extends State<OneTwoTransition> {
-  // OneTwoTransition의 상태 관리 클래스.
-  late final Animation<Offset> offsetAnimation; // 오프셋 애니메이션.
-  late final Animation<double> widthAnimation; // 너비 애니메이션.
-
-  @override
-  void initState() {
-    super.initState();
-
-    offsetAnimation = Tween<Offset>(
-      begin: const Offset(1, 0), // 초기 오프셋 값.
-      end: Offset.zero, // 최종 위치.
-    ).animate(OffsetAnimation(widget.animation));
-
-    widthAnimation = Tween<double>(
-      begin: 0, // 초기 너비 값.
-      end: mediumWidthBreakpoint, // 너비 기준점.
-    ).animate(SizeAnimation(widget.animation));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Flexible(
-          flex: mediumWidthBreakpoint.toInt(), // 첫 번째 위젯 너비 설정.
-          child: widget.one, // 첫 번째 위젯.
-        ),
-        if (widthAnimation.value.toInt() > 0) ...[
-          Flexible(
-            flex: widthAnimation.value.toInt(), // 두 번째 위젯 너비 설정.
-            child: FractionalTranslation(
-              translation: offsetAnimation.value, // 이동 애니메이션 적용.
-              child: widget.two, // 두 번째 위젯.
-            ),
-          )
-        ],
-      ],
-    );
-  }
-}

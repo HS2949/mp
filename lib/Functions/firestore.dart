@@ -123,34 +123,76 @@ class FirestoreService {
     }
   }
 
+// Firestore 컬렉션에서 특정 문서 ID를 가져옴
+// Stream<DocumentSnapshot<Map<String, dynamic>>> stream =
+  //     getDocSnapshot('Items', 'EGA9krhnxChp3EcXHBG9');
 
+  // stream.listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
+  //   if (snapshot.exists) {
+  //     print('문서 ID: ${snapshot.id}, 데이터: ${snapshot.data()}');
+  //   } else {
+  //     print('문서를 찾을 수 없음');
+  //   }
+  // }, onError: (error) {
+  //   print('스트림 오류 발생: $error');
+  // });
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getDocSnapshot(
+      String collectionName, String documentId) {
+    try {
+      final Stream<DocumentSnapshot<Map<String, dynamic>>> stream =
+          FirebaseFirestore.instance
+              .collection(collectionName)
+              .doc(documentId)
+              .snapshots();
 
+      print('문서 ID [$documentId] 실시간 데이터 구독 성공');
+      return stream;
+    } catch (e) {
+      print('실시간 데이터 구독 오류: $e');
+      rethrow;
+    }
+  }
+
+// Firestore에서 특정 조건을 만족하는 문서들의 실시간 변경 사항을 스트림으로 반환합니다.
 // getItemsSnapshot('your_collection_name', {
-//   'IsDefault': true,
+//   'IsDefault': true,   <--- 조건들들
 //   'Category': 'Books',
 // });
-Stream<QuerySnapshot<Map<String, dynamic>>> getConditionSnapshot(
-    String collectionName, Map<String, dynamic> conditions) {
-  try {
-    // Firestore 컬렉션에 접근
-    Query<Map<String, dynamic>> query = _firestore.collection(collectionName);
+  // Stream<QuerySnapshot<Map<String, dynamic>>> stream =
+  //     getConditionSnapshot('users', {'city': 'New York'});
+  // stream.listen((snapshot) {
+  //   for (var doc in snapshot.docs) {
+  //     print('사용자: ${doc.data()}');
+  //   }
 
-    // 조건을 동적으로 추가
-    conditions.forEach((field, value) {
-      query = query.where(field, isEqualTo: value);
-    });
+  Stream<QuerySnapshot<Map<String, dynamic>>> getConditionSnapshot(
+      String collectionName, Map<String, dynamic> conditions) {
+    try {
+      // Firestore 컬렉션에 접근
+      Query<Map<String, dynamic>> query = _firestore.collection(collectionName);
 
-    // 스트림 반환
-    final Stream<QuerySnapshot<Map<String, dynamic>>> stream = query.snapshots();
+      // 조건을 동적으로 추가
+      conditions.forEach((field, value) {
+        query = query.where(field, isEqualTo: value);
+      });
 
-    print('조건에 맞는 실시간 데이터 구독 성공');
-    return stream;
-  } catch (e) {
-    print('실시간 데이터 구독 오류: $e');
-    rethrow;
+      // 스트림 반환
+      final Stream<QuerySnapshot<Map<String, dynamic>>> stream =
+          query.snapshots();
+
+      print('조건에 맞는 실시간 데이터 구독 성공');
+      return stream;
+    } catch (e) {
+      print('실시간 데이터 구독 오류: $e');
+      rethrow;
+    }
   }
-}
 
+  // Firestore에서 특정 문서를 documentId를 이용하여 한 번만 조회하는 함수입니다.
+  // 컬렉션 이름 과 Doc ID만 이용하여 데이터
+  //   DocumentSnapshot<Map<String, dynamic>> snapshot =
+  //     await getItemById(collectionName: 'users', documentId: 'user1');
+  //     print('단일 사용자 정보: ${snapshot.data()}');
   Future<DocumentSnapshot<Map<String, dynamic>>> getItemById(
       {required String collectionName, required String documentId}) async {
     try {

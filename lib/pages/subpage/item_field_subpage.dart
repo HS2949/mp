@@ -2,9 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/home.dart';
-import 'package:mp_db/pages/subpage/item_category_subpage.dart';
-import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 class Item_Field extends StatefulWidget {

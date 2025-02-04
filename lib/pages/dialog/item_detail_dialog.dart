@@ -45,118 +45,133 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     });
   }
 
+  ///  ESC 키와 모바일 뒤로가기 버튼 클릭 시 동일한 동작 수행
+  void _handleCloseTab() {
+    final provider = Provider.of<ItemProvider>(context, listen: false);
+    final currentIndex = provider.selectedIndex;
+
+    // 현재 탭을 닫고 0번 탭으로 이동
+    if (currentIndex > 0) {
+      // provider.removeTab(currentIndex, this);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ItemProvider>(context, listen: false);
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Item Details'),
-      ),
-      body: KeyboardListener(
-        focusNode: _focusNode,
-        onKeyEvent: (KeyEvent event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.escape) {
-            final currentIndex = provider.selectedIndex;
-
-            // 현재 탭을 닫고 0번 탭으로 이동
-            if (currentIndex > 0) {
-              provider.removeTab(currentIndex, this);
-            }
-          }
-
-          // Tab 키 입력 시 0번 탭으로 이동
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.f3) {
-            provider.selectTab(0); // 0번 탭 선택
-            provider.focusSearchField();
-          }
-        },
-        child: FutureBuilder<DocumentSnapshot>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final data = snapshot.data!.data() as Map<String, dynamic>;
-
-            Widget buildDataItem(String title, String? value) {
-              if (value == null || value.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              final combinedText = '$title: $value';
-              return GestureDetector(
-                onLongPress: () {
-                  Clipboard.setData(ClipboardData(text: combinedText));
-                  final snackBar = SnackBar(
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppTheme.primaryColor,
-                    width: 400.0,
-                    content: Text('[ $combinedText ]  복사되었습니다.'),
-                    action: SnackBarAction(
-                      label: 'Close',
-                      onPressed: () {},
-                    ),
-                  );
-
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                },
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SelectableText(
-                      '$title: ',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    Expanded(
-                      child: SelectableText(
-                        value,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: combinedText));
-                        showTemporaryPopup(context, combinedText);
-                      },
-                    ),
-                  ],
-                ),
-              );
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          _handleCloseTab(); //  ESC 키와 동일한 동작 수행
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('Item Details'),
+        ),
+        body: KeyboardListener(
+          focusNode: _focusNode,
+          onKeyEvent: (KeyEvent event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              _handleCloseTab(); // ESC 키 동작 실행
             }
 
-            return ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
-                TextField(),
-                const SizedBox(height: 10),
-                buildDataItem('상호명', data['ItemName']),
-                const SizedBox(height: 10),
-                buildDataItem('주소', data['Location']),
-                const SizedBox(height: 10),
-                buildDataItem('전화번호', data['PhoneNumber']),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    showEditDialog(context, widget.itemId, data);
-                  },
-                  child: const Text('Edit'),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () {
-                    showDeleteConfirmation(context, widget.itemId);
-                  },
-                  child: const Text('Delete'),
-                ),
-              ],
-            );
+            // Tab 키 입력 시 0번 탭으로 이동
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.f3) {
+              provider.selectTab(0); // 0번 탭 선택
+              provider.focusSearchField();
+            }
           },
+          child: FutureBuilder<DocumentSnapshot>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+
+              Widget buildDataItem(String title, String? value) {
+                if (value == null || value.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                final combinedText = '$title: $value';
+                return GestureDetector(
+                  onLongPress: () {
+                    Clipboard.setData(ClipboardData(text: combinedText));
+                    final snackBar = SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: AppTheme.primaryColor,
+                      width: 400.0,
+                      content: Text('[ $combinedText ]  복사되었습니다.'),
+                      action: SnackBarAction(
+                        label: 'Close',
+                        onPressed: () {},
+                      ),
+                    );
+
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                  },
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SelectableText(
+                        '$title: ',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Expanded(
+                        child: SelectableText(
+                          value,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: combinedText));
+                          showTemporaryPopup(context, combinedText);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView(
+                padding: const EdgeInsets.all(16.0),
+                children: [
+                  TextField(),
+                  const SizedBox(height: 10),
+                  buildDataItem('상호명', data['ItemName']),
+                  const SizedBox(height: 10),
+                  buildDataItem('주소', data['Location']),
+                  const SizedBox(height: 10),
+                  buildDataItem('전화번호', data['PhoneNumber']),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      showEditDialog(context, widget.itemId, data);
+                    },
+                    child: const Text('Edit'),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    onPressed: () {
+                      showDeleteConfirmation(context, widget.itemId);
+                    },
+                    child: const Text('Delete'),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
