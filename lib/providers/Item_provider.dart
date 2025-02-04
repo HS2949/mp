@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ItemProvider extends ChangeNotifier {
+
   List<DocumentSnapshot> _items = [];
   List<DocumentSnapshot> get items => _items;
 
@@ -121,39 +122,38 @@ class ItemProvider extends ChangeNotifier {
 
   // 🔹 Snackbar를 띄우기 위한 콜백 (외부에서 설정 가능)
   void Function(BuildContext, String)? showSnackbar;
-void addTab(BuildContext context, String title, Widget first,
-    {Widget? all, Widget? second}) {
-  // 1️ 이미 동일한 제목의 탭이 존재하는지 확인
-  final existingIndex = _tabTitles.indexWhere((tab) => tab.text == title);
+  void addTab(BuildContext context, String title, Widget first,
+      {Widget? all, Widget? second}) {
+    // 1️ 이미 동일한 제목의 탭이 존재하는지 확인
+    final existingIndex = _tabTitles.indexWhere((tab) => tab.text == title);
 
-  if (existingIndex != -1) {
-    // 2️ 존재하면 해당 탭으로 이동
-    _controller?.animateTo(existingIndex);
-    _selectedIndex = existingIndex;
-    notifyListeners();
-    return;
-  }
-
-  // 3️ 탭 최대 개수 초과 방지
-  if (_activeTabCount >= _maxTabs) {
-    if (showSnackbar != null) {
-      showSnackbar!(context, '최대 탭 수 ($_maxTabs개)에 도달했습니다.');
+    if (existingIndex != -1) {
+      // 2️ 존재하면 해당 탭으로 이동
+      _controller?.animateTo(existingIndex);
+      _selectedIndex = existingIndex;
+      notifyListeners();
+      return;
     }
-    return;
+
+    // 3️ 탭 최대 개수 초과 방지
+    if (_activeTabCount >= _maxTabs) {
+      if (showSnackbar != null) {
+        showSnackbar!(context, '최대 탭 수 ($_maxTabs개)에 도달했습니다.');
+      }
+      return;
+    }
+
+    // 4️ 새 탭 추가
+    _tabTitles[_activeTabCount] = tabTitleSet(text: title);
+    _tabViews[_activeTabCount] =
+        tabViewSet(first: first, all: all, second: second);
+    _activeTabCount++;
+
+    // 5️ 새로 추가한 탭으로 이동
+    _controller?.animateTo(_activeTabCount - 1);
+    _selectedIndex = _activeTabCount - 1;
+    notifyListeners();
   }
-
-  // 4️ 새 탭 추가
-  _tabTitles[_activeTabCount] = tabTitleSet(text: title);
-  _tabViews[_activeTabCount] =
-      tabViewSet(first: first, all: all, second: second);
-  _activeTabCount++;
-
-  // 5️ 새로 추가한 탭으로 이동
-  _controller?.animateTo(_activeTabCount - 1);
-  _selectedIndex = _activeTabCount - 1;
-  notifyListeners();
-}
-
 
   void removeTab(int index) {
     if (index < 0 || index >= _activeTabCount) return;

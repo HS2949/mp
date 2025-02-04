@@ -28,6 +28,7 @@ import 'package:mp_db/pages/splash_page.dart';
 
 // Firebase 초기화 옵션이 정의된 파일 임포트
 import 'firebase_options.dart';
+import 'models/item_model.dart';
 
 // main 함수는 Flutter 앱의 진입점입니다.
 void main() async {
@@ -73,11 +74,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => ItemProvider()..loadSnapshot(),
         ),
-        ChangeNotifierProvider(
-          create: (context) => ItemDetailProvider(
-            itemdetailRepository: ItemDetailRepository(),
-          ),
-        ),
+        // ChangeNotifierProvider(
+        //   create: (context) => ItemDetailProvider(
+        //     itemdetailRepository: ItemdetailRepository(),
+        //   ),
+        // ),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(
             authRepository: context.read<AuthRepository>(),
@@ -109,6 +110,12 @@ class MyApp extends StatelessWidget {
             }
             return authProvider!;
           },
+        ),
+
+        ChangeNotifierProvider(
+          create: (_) => ItemDetailProvider(
+            itemDetailRepository: ItemDetailRepository(),
+          ),
         ),
       ],
       child: MaterialApp(

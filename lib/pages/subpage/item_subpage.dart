@@ -11,6 +11,8 @@ import 'package:mp_db/pages/dialog/item_detail_dialog.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
+import '../../providers/Item_detail/ItemDetail_repository.dart';
+
 class Item_page extends StatefulWidget {
   final EdgeInsets padding; // padding 인수 추가
   const Item_page({
@@ -160,9 +162,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
         padding: widget.padding,
         child: Row(
           children: [
-            Flexible(
-              flex: 1,
-              child: _CategoryButton(context)),
+            Flexible(flex: 1, child: _CategoryButton(context)),
             const SizedBox(width: 10),
             Flexible(
               fit: FlexFit.tight,
@@ -188,7 +188,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
               fit: FlexFit.loose,
               child: ElevatedButton(
                   onPressed: () {
-                     _provider.removeAllTabs(); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
+                    _provider.removeAllTabs(); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
                     // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
                   },
                   child: Text('Close')),
@@ -213,11 +213,11 @@ class ItemList extends StatefulWidget {
 }
 
 class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
-  
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ItemProvider>();
     final filteredItems = provider.filteredItem;
+    final ItemDetailRepository repository = ItemDetailRepository();
 
     // 필터에 따라 표시할 아이템 리스트 계산
     List filteredDisplayItems;
@@ -263,29 +263,24 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                       title: Text(itemData['ItemName'] ?? 'No Name'),
                       onTap: () {
                         // addTab 호출 시 this는 TickerProviderStateMixin을 구현하고 있음
-                        provider.addTab(context,
+                        provider.addTab(
+                          context,
                           itemData['ItemName'] ?? 'No Name',
-                          // KeepAlivePage(
-                          //   child: ItemDetailScreen(
-                          //     itemId: filteredDisplayItems[index].id,
-                          //   ),
-                          // ),
                           ItemDetailFirst(
-                             itemId: filteredDisplayItems[index].id,
+                            itemId: filteredDisplayItems[index].id,
                           ),
                           // second: Text('second'),
                           // all: Text('all')
                         );
 
-                        // provider.addTab(
-                        //   itemData['ItemName'] ?? 'No Name',
-                        //   Text(itemData['ItemName'] ?? 'No Name'),
-                        //   this, // 안전하게 TickerProvider 전달
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => ItemDetailFirst(
+                        //     itemId: filteredDisplayItems[index].id,
+                        //   ),
+                        //   ),
                         // );
-
-                        // // 새 탭으로 자동 전환 (새 탭의 인덱스는 리스트의 마지막 인덱스)
-                        // final newIndex = provider.tabs.length - 1;
-                        // provider.selectTab(newIndex);
                       },
                     ),
                   );

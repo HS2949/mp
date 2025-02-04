@@ -21,19 +21,16 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
   void initState() {
     super.initState();
     provider = Provider.of<ItemProvider>(context, listen: false);
-    _loadItemDetail(); // 🔹 initState에서 호출
-  }
-
-  /// 🔹 Firestore에서 데이터 가져오기
-  void _loadItemDetail() {
     Future.microtask(() {
       Provider.of<ItemDetailProvider>(context, listen: false)
-          .getItemDetail(itemId: widget.itemId);
+          .listenToItemDetail(itemId: widget.itemId);
     });
   }
 
   @override
   void dispose() {
+    Provider.of<ItemDetailProvider>(context, listen: false)
+        .cancelSubscriptions();
     _focusNode.dispose();
     super.dispose();
   }
@@ -41,8 +38,8 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
   /// ESC 키와 모바일 뒤로가기 버튼 클릭 시 동일한 동작 수행
   void _handleCloseTab() {
     // 현재 탭을 닫고 0번 탭으로 이동
-    if ( provider.selectedIndex > 0) {
-      provider.removeTab( provider.selectedIndex);
+    if (provider.selectedIndex > 0) {
+      provider.removeTab(provider.selectedIndex);
     }
   }
 
@@ -65,6 +62,9 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<ItemDetailProvider>();
+    final itemData = provider.itemData;
+
     return KeyboardListener(
       focusNode: _focusNode,
       onKeyEvent: _onKeyEvent,
@@ -87,8 +87,29 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
               return Column(
                 children: [
                   TextField(),
-                  Text('아이템 정보: ${state.itemData?['ItemName'] ?? '정보 없음'}'),
-                  Text('설명: ${state.itemData?['Location'] ?? '설명 없음'}'),
+                  itemData == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('이름: ${itemData.itemName}'),
+                            Text('카테고리: ${itemData.categoryID}'),
+                            for (var entry in itemData.fields.entries)
+                              Text('  • ${entry.key}: ${entry.value}'),
+                            const SizedBox(height: 20),
+                            const Text('🔹 하위 아이템 목록',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            for (var subItem in itemData.subItems)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('🔹아이템: ${subItem.id}'),
+                                  for (var entry in subItem.fields.entries)
+                                    Text('  • ${entry.key}: ${entry.value}'),
+                                ],
+                              ),
+                          ],
+                        ),
                 ],
               );
             }

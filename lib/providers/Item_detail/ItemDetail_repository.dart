@@ -1,36 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mp_db/Functions/firestore.dart';
-import 'package:mp_db/models/custom_error.dart';
+import '../../models/item_model.dart'; // Item, SubItem 모델 import
+
 
 class ItemDetailRepository {
-  final FirestoreService firestoreService = FirestoreService();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  Future<Map<String, dynamic>?> getItem({
+  /// 🔹 특정 아이템 문서의 실시간 데이터 감지 (하위 컬렉션 포함)
+  Stream<Item?> streamItemWithSubItems({
     required String collectionName,
-    required String id,
-  }) async {
+    required String subcollectionName,
+    required String itemId,
+  }) {
     try {
-      // FirestoreService의 getDocSnapshot을 사용하여 특정 문서 ID 스트림 가져오기
-      Stream<DocumentSnapshot<Map<String, dynamic>>> stream =
-          firestoreService.getDocSnapshot(collectionName, id);
+      // 🔹 아이템 데이터 실시간 감지
+      Stream<DocumentSnapshot<Map<String, dynamic>>> itemStream =
+          firestore.collection(collectionName).doc(itemId).snapshots();
 
-      // 🔹 첫 번째 데이터 스냅샷만 가져오기 (Stream → Future 변환)
-      DocumentSnapshot<Map<String, dynamic>> snapshot = await stream.first;
+      // 🔹 하위 컬렉션(`Sub_items`) 실시간 감지
+      Stream<QuerySnapshot<Map<String, dynamic>>> subItemsStream =
+          firestore.collection(collectionName).doc(itemId).collection(subcollectionName).snapshots();
 
-      if (snapshot.exists) {
-        print('문서 ID: ${snapshot.id}, 데이터: ${snapshot.data()}');
-        return snapshot.data();
-      } else {
-        print('문서를 찾을 수 없음');
-        return null;
-      }
+      return itemStream.asyncMap((itemSnapshot) async {
+        if (!itemSnapshot.exists) return null;
+
+        Map<String, dynamic> itemData = itemSnapshot.data() ?? {};
+
+        // 🔹 하위 컬렉션 데이터 가져오기
+        QuerySnapshot<Map<String, dynamic>> subItemsSnapshot = await subItemsStream.first;
+
+        List<SubItem> subItems = subItemsSnapshot.docs
+            .map((doc) => SubItem.fromFirestore(doc.id, doc.data()))
+            .toList();
+
+        // 🔹 `Item` 객체 변환
+        return Item.fromFirestore(itemId, itemData, subItems);
+      });
     } catch (e) {
-      print('아이템 조회 오류: $e');
-      throw CustomError(
-        code: 'Exception',
-        message: e.toString(),
-        plugin: 'flutter_error/server_error',
-      );
+      print('🔥 Firestore 실시간 데이터 감지 오류: $e');
+      return const Stream.empty();
     }
   }
 }
