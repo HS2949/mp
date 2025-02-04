@@ -7,33 +7,32 @@ import '../../repositories/Item_detail_repository.dart';
 import 'Item_detail_state.dart';
 
 class ItemDetailProvider with ChangeNotifier {
-  ItemDetailState _state = ItemDetailState.initial();
-  ItemDetailState get state => _state;
-
   final ItemDetailRepository itemDetailRepository;
-  StreamSubscription<Item?>? _itemSubscription;
-
-  Item? _itemData; // 🔹 Firestore에서 가져온 데이터 저장 (전역)
-  Item? get itemData => _itemData; // 🔹 getter
-
-  String? _currentItemId; // 현재 구독 중인 itemId
+  final Map<String, StreamSubscription<Item?>> _subscriptions = {}; // 🔹 itemId별 Stream 관리
+  final Map<String, Item?> _items = {}; // 🔹 itemId별 데이터 저장
+  final Map<String, ItemDetailState> _states = {}; // 🔹 itemId별 상태 관리
 
   ItemDetailProvider({required this.itemDetailRepository});
 
-  /// 🔹 Firestore 실시간 데이터 감지 (한 번만 실행)
-  void listenToItemDetail({required String itemId}) {
-    // 🔹 동일한 ID로 요청하면 불필요한 Firestore 호출 방지
-    if (_currentItemId == itemId) return;
+  /// 🔹 특정 itemId의 상태 가져오기
+  ItemDetailState getState(String itemId) {
+    return _states[itemId] ?? ItemDetailState.initial();
+  }
 
-    _currentItemId = itemId;
-    _state = _state.copyWith(itemDetailStatus: ItemDetailStatus.loading);
+  /// 🔹 특정 itemId의 데이터 가져오기
+  Item? getItemData(String itemId) {
+    return _items[itemId];
+  }
+
+  /// 🔹 Firestore 실시간 데이터 감지 (탭마다 고유한 Stream 유지)
+  void listenToItemDetail({required String itemId}) {
+    if (_subscriptions.containsKey(itemId)) return; // 이미 구독 중이면 재구독 방지
+
+    _states[itemId] = ItemDetailState.initial().copyWith(itemDetailStatus: ItemDetailStatus.loading);
     notifyListeners();
 
     try {
-      // 🔹 기존 스트림 해제 (ID가 변경될 경우)
-      _itemSubscription?.cancel();
-
-      _itemSubscription = itemDetailRepository
+      _subscriptions[itemId] = itemDetailRepository
           .streamItemWithSubItems(
             collectionName: 'Items',
             subcollectionName: 'Sub_Items',
@@ -41,10 +40,10 @@ class ItemDetailProvider with ChangeNotifier {
           )
           .listen((Item? item) {
         if (item != null) {
-          _itemData = item;
-          _state = _state.copyWith(itemDetailStatus: ItemDetailStatus.loaded);
+          _items[itemId] = item;
+          _states[itemId] = _states[itemId]!.copyWith(itemDetailStatus: ItemDetailStatus.loaded);
         } else {
-          _state = _state.copyWith(
+          _states[itemId] = _states[itemId]!.copyWith(
             itemDetailStatus: ItemDetailStatus.error,
             error: CustomError(
               code: 'NotFound',
@@ -55,7 +54,7 @@ class ItemDetailProvider with ChangeNotifier {
         }
         notifyListeners();
       }, onError: (error) {
-        _state = _state.copyWith(
+        _states[itemId] = _states[itemId]!.copyWith(
           itemDetailStatus: ItemDetailStatus.error,
           error: CustomError(
             code: 'StreamError',
@@ -66,7 +65,7 @@ class ItemDetailProvider with ChangeNotifier {
         notifyListeners();
       });
     } catch (e) {
-      _state = _state.copyWith(
+      _states[itemId] = _states[itemId]!.copyWith(
         itemDetailStatus: ItemDetailStatus.error,
         error: CustomError(
           code: 'Exception',
@@ -78,8 +77,23 @@ class ItemDetailProvider with ChangeNotifier {
     }
   }
 
-  /// 🔹 Firestore 스트림 해제 (필요할 때 호출)
-  void cancelSubscriptions() {
-    _itemSubscription?.cancel();
+  /// 🔹 특정 itemId의 Stream 해제 (탭이 닫힐 때)
+  void cancelSubscription(String itemId) {
+    _subscriptions[itemId]?.cancel();
+    _subscriptions.remove(itemId);
+    _items.remove(itemId);
+    _states.remove(itemId);
+    notifyListeners();
+  }
+
+  /// 🔹 모든 구독 해제 (전체 탭 닫을 때)
+  void cancelAllSubscriptions() {
+    for (var sub in _subscriptions.values) {
+      sub.cancel();
+    }
+    _subscriptions.clear();
+    _items.clear();
+    _states.clear();
+    notifyListeners();
   }
 }

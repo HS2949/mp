@@ -8,7 +8,9 @@ import '../../providers/Item_detail/Item_detail_state.dart';
 import '../../models/item_model.dart';
 
 class ItemDetailFirst extends StatefulWidget {
-  const ItemDetailFirst({Key? key, required this.itemId, required this.isFirstView}) : super(key: key);
+  const ItemDetailFirst(
+      {Key? key, required this.itemId, required this.isFirstView})
+      : super(key: key);
 
   final String itemId;
   final bool isFirstView; // 🔹 true: fields 표시 / false: sub_items 표시
@@ -35,7 +37,8 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
 
   @override
   void dispose() {
-    Provider.of<ItemDetailProvider>(context, listen: false).cancelSubscriptions();
+    Provider.of<ItemDetailProvider>(context, listen: false)
+        .cancelSubscription(widget.itemId);
     _focusNode.dispose();
     super.dispose();
   }
@@ -57,15 +60,26 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
 
   /// ESC 키 감지
   void _onKeyEvent(KeyEvent event) {
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
       _handleCloseTab(); // ESC 키가 눌리면 탭 닫기
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final itemDetailProvider = context.watch<ItemDetailProvider>();
-    final state = itemDetailProvider.state;
+    final provider = context.watch<ItemDetailProvider>();
+    final state = provider.getState(widget.itemId);
+    final itemData = provider.getItemData(widget.itemId);
+
+    if (state.itemDetailStatus == ItemDetailStatus.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.itemDetailStatus == ItemDetailStatus.error) {
+      return Text('에러 발생: ${state.error.message}',
+          style: const TextStyle(color: Colors.red));
+    }
 
     return KeyboardListener(
       focusNode: _focusNode,
@@ -74,27 +88,14 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
         canPop: false,
         onPopInvoked: (didPop) {
           if (!didPop) {
-            Navigator.of(context).pop();
+            _handleCloseTab(); //  ESC 키와 동일한 동작 수행
           }
         },
-        child: Consumer<ItemDetailProvider>(
-          builder: (context, provider, child) {
-            if (state.itemDetailStatus == ItemDetailStatus.loading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state.itemDetailStatus == ItemDetailStatus.error) {
-              return Text('에러 발생: ${state.error.message}', style: const TextStyle(color: Colors.red));
-            }
-
-            final itemData = provider.itemData;
-            if (itemData == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            return widget.isFirstView ? _buildFirstView(itemData) : _buildSecondView(itemData);
-          },
-        ),
+        child: itemData == null
+            ? const Center(child: CircularProgressIndicator())
+            : widget.isFirstView
+                ? _buildFirstView(itemData)
+                : _buildSecondView(itemData),
       ),
     );
   }
@@ -104,7 +105,8 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('📌 기본 정보', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text('📌 기본 정보',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         Text('이름: ${item.itemName}'),
         Text('카테고리: ${item.categoryID}'),
@@ -119,7 +121,8 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('🔹 하위 아이템 목록', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('🔹 하위 아이템 목록',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         for (var subItem in item.subItems)
           Column(

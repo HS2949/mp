@@ -13,8 +13,6 @@ class Item_Category extends StatefulWidget {
 
 class _Item_CategoryState extends State<Item_Category> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _iconController = TextEditingController();
-  final TextEditingController _colorController = TextEditingController();
   final firestoreService = FirestoreService();
 
   final TextEditingController colorController = TextEditingController();

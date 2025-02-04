@@ -275,15 +275,6 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                             isFirstView: false,
                           ),
                         );
-
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => ItemDetailFirst(
-                        //     itemId: filteredDisplayItems[index].id,
-                        //   ),
-                        //   ),
-                        // );
                       },
                     ),
                   );
