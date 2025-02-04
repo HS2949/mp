@@ -21,7 +21,7 @@ import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
 import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 
-import 'package:mp_db/providers/auth/profile_page.dart';
+import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
 import 'package:mp_db/pages/subpage/test.dart';

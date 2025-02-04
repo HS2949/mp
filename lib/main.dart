@@ -11,7 +11,7 @@ import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signup/signup_provider.dart';
-import 'package:mp_db/providers/Item_detail/ItemDetail_repository.dart';
+import 'package:mp_db/repositories/Item_detail_repository.dart';
 import 'package:mp_db/repositories/auth_repository.dart';
 import 'package:mp_db/repositories/profile_repository.dart';
 

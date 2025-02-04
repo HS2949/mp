@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/pages/home.dart';
-import 'package:mp_db/providers/Item_detail/item_detail_subpage.dart';
+import 'package:mp_db/pages/subpage/item_detail_subpage.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mp_db/Functions/firestore.dart';
@@ -11,7 +11,7 @@ import 'package:mp_db/pages/dialog/item_detail_dialog.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
-import '../../providers/Item_detail/ItemDetail_repository.dart';
+import '../../repositories/Item_detail_repository.dart';
 
 class Item_page extends StatefulWidget {
   final EdgeInsets padding; // padding 인수 추가
@@ -268,9 +268,12 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                           itemData['ItemName'] ?? 'No Name',
                           ItemDetailFirst(
                             itemId: filteredDisplayItems[index].id,
+                            isFirstView: true,
                           ),
-                          // second: Text('second'),
-                          // all: Text('all')
+                          second: ItemDetailFirst(
+                            itemId: filteredDisplayItems[index].id,
+                            isFirstView: false,
+                          ),
                         );
 
                         // Navigator.push(

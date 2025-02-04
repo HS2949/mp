@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../models/item_model.dart'; // Item, SubItem 모델 import
+import '../models/item_model.dart'; // Item, SubItem 모델 import
 
 
 class ItemDetailRepository {

@@ -10,7 +10,7 @@ enum ItemDetailStatus {
 
 class ItemDetailState extends Equatable {
   final ItemDetailStatus itemDetailStatus;
-  final Map<String, dynamic>? itemData; // 🔹 Firestore에서 가져온 데이터를 저장할 필드 추가
+  late final Map<String, dynamic>? itemData; // 🔹 Firestore에서 가져온 데이터를 저장할 필드 추가
   final CustomError error;
 
   ItemDetailState({
