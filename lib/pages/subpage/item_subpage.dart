@@ -1,17 +1,12 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
+// ignore_for_file: public_member_api_docs, sort_constructors_first, library_private_types_in_public_api, use_super_parameters, non_constant_identifier_names, camel_case_types
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:mp_db/pages/home.dart';
 import 'package:mp_db/pages/subpage/item_detail_subpage.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/item_detail_dialog.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
-
-import '../../repositories/Item_detail_repository.dart';
 
 class Item_page extends StatefulWidget {
   final EdgeInsets padding; // padding 인수 추가
@@ -153,6 +148,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
     );
   }
 
+  String labelText = 'Search';
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -171,12 +167,18 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                 controller: _provider.searchController,
                 focusNode: _provider.searchFocusNode,
                 decoration: InputDecoration(
-                  labelText: 'Search',
+                  labelText: labelText,
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon:
                       ClearButton(controller: _provider.searchController),
                 ),
+                onChanged: (text) {
+                  setState(() {
+                    // 검색어가 #으로 시작하면 라벨 변경
+                    labelText = text.startsWith('#') ? 'Tag' : 'Search';
+                  });
+                },
                 onTap: () {
                   _provider.selectTab(0); // 포커스될 때 탭을 0번으로 변경
                 },
@@ -217,7 +219,6 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final provider = context.watch<ItemProvider>();
     final filteredItems = provider.filteredItem;
-    final ItemDetailRepository repository = ItemDetailRepository();
 
     // 필터에 따라 표시할 아이템 리스트 계산
     List filteredDisplayItems;
@@ -260,7 +261,23 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                   return Card(
                     child: ListTile(
                       leading: Icon(icon, color: color),
-                      title: Text(itemData['ItemName'] ?? 'No Name'),
+                      title: Text(
+                        itemData['ItemName'] ?? 'No Name',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: provider.searchController.text.startsWith('#')
+                              ? Colors.grey[400] // #으로 시작하면 회색
+                              : Colors.black, // 기본 색상 (원하는 색으로 변경 가능)
+                        ),
+                      ),
+                      subtitle: Text(
+                        itemData['keyword'].replaceAll(' ', '  ') ?? 'No Tag',
+                        style: AppTheme.labelMedium.copyWith(
+                          color: provider.searchController.text.startsWith('#')
+                              ? AppTheme.textColor // #으로 시작하면
+                              : Colors.grey[400], // 기본 색상 (원하는 색으로 변경 가능)
+                        ),
+                      ),
                       onTap: () {
                         // addTab 호출 시 this는 TickerProviderStateMixin을 구현하고 있음
                         provider.addTab(

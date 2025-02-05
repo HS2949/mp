@@ -43,7 +43,7 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
     super.dispose();
   }
 
-  /// ESC 키와 모바일 뒤로가기 버튼 클릭 시 동일한 동작 수행
+  /// ESC 키와 모바일 뒤로가기 버튼 클릭 시 동일한 동작 수행bool _isClosing = false; // 중복 호출 방지 플래그
   void _handleCloseTab() {
     if (provider.selectedIndex > 0) {
       provider.removeTab(provider.selectedIndex);
@@ -58,46 +58,60 @@ class _ItemDetailFirstState extends State<ItemDetailFirst> {
     }
   }
 
-  /// ESC 키 감지
-  void _onKeyEvent(KeyEvent event) {
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.escape) {
-      _handleCloseTab(); // ESC 키가 눌리면 탭 닫기
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ItemDetailProvider>();
-    final state = provider.getState(widget.itemId);
-    final itemData = provider.getItemData(widget.itemId);
+    final state = context.watch<ItemDetailProvider>().getState(widget.itemId);
+    final itemData = context.watch<ItemDetailProvider>().getItemData(widget.itemId);
 
     if (state.itemDetailStatus == ItemDetailStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return widget.isFirstView
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 4.0,
+                  ),
+                ),
+              ),
+            )
+          : SizedBox.shrink();
     }
 
     if (state.itemDetailStatus == ItemDetailStatus.error) {
-      return Text('에러 발생: ${state.error.message}',
-          style: const TextStyle(color: Colors.red));
+      return widget.isFirstView
+          ? Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Text('에러 발생: ${state.error.message}',
+                  style: const TextStyle(color: Colors.red)),
+            )
+          : SizedBox.shrink();
     }
 
-    return KeyboardListener(
-      focusNode: _focusNode,
-      onKeyEvent: _onKeyEvent,
-      child: PopScope(
-        canPop: false,
-        onPopInvoked: (didPop) {
-          if (!didPop) {
-            _handleCloseTab(); //  ESC 키와 동일한 동작 수행
-          }
-        },
-        child: itemData == null
-            ? const Center(child: CircularProgressIndicator())
-            : widget.isFirstView
-                ? _buildFirstView(itemData)
-                : _buildSecondView(itemData),
-      ),
-    );
+    return itemData == null
+        ? const Center(child: CircularProgressIndicator())
+        : widget.isFirstView
+            ? KeyboardListener(
+                focusNode: _focusNode,
+                onKeyEvent: (KeyEvent event) {
+                  if (event is KeyDownEvent &&
+                      event.logicalKey == LogicalKeyboardKey.escape) {
+                    _handleCloseTab(); // ESC 키 동작 실행
+                  }
+                },
+                child: PopScope(
+                    canPop: false,
+                    onPopInvoked: (didPop) {
+                      if (!didPop) {
+                        // _handleCloseTab();
+                        provider.selectTab(0);
+                      }
+                    },
+                    child: _buildFirstView(itemData)),
+              )
+            : _buildSecondView(itemData);
   }
 
   /// 🔹 `first` UI - fields 표시

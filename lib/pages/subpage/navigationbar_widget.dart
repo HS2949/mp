@@ -39,6 +39,7 @@ class Category_Widget extends StatelessWidget {
           bottom: TabBar(
             indicatorColor: AppTheme.textColor,
             indicatorSize: TabBarIndicatorSize.label,
+            dividerColor: Colors.grey[300],
             indicatorWeight: 4.0,
             labelColor: AppTheme.textColor,
             unselectedLabelColor: Colors.grey,
@@ -268,6 +269,7 @@ class _Item_WidgetState extends State<Item_Widget>
               child: TabBar(
                 isScrollable: true,
                 controller: tabProvider.controller,
+                dividerColor: Colors.grey[300],
                 indicatorColor: tabProvider.activeTabCount > 1
                     ? AppTheme.textColor
                     : Colors.transparent,
@@ -316,11 +318,6 @@ class _Item_WidgetState extends State<Item_Widget>
               return Container();
             }
           }),
-          // body: TabBarView(
-          //   key: ValueKey(tabProvider.tabs.length), // 탭 개수를 Key로 사용
-          //   controller: tabProvider.controller,
-          //   children: tabProvider.tabViews, // Provider에서 동적으로 TabBarView 가져오기
-          // ),
         ),
         floatingActionButton: tabProvider.controller == null
             ? null // `controller`가 `null`이면 버튼 표시 안 함

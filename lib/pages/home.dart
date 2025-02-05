@@ -172,7 +172,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
               showLargeSizeLayout: showLargeSizeLayout),
         ),
         // ScreenSelected.temp1 => const ItemScreen(),
-        ScreenSelected.temp1 =>  Expanded(child: FixedTabsUsingTabBarPage()),
+        ScreenSelected.temp1 => const Item_Category(),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),

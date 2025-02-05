@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ItemProvider extends ChangeNotifier {
-
   List<DocumentSnapshot> _items = [];
   List<DocumentSnapshot> get items => _items;
 
@@ -75,7 +74,10 @@ class ItemProvider extends ChangeNotifier {
   }
 
   void filterItems(String query, {String? selectedCategory}) {
+    // 검색어를 소문자로 변환
     query = query.toLowerCase();
+
+    // 선택된 카테고리에 해당하는 itemID 가져오기
     final selectedCategoryID = _categories.firstWhere(
       (category) => category['Name'] == selectedCategory,
       orElse: () => {'itemID': null},
@@ -83,16 +85,28 @@ class ItemProvider extends ChangeNotifier {
 
     _filteredItem = _items.where((item) {
       final itemData = item.data() as Map<String, dynamic>;
-      final itemName = itemData['ItemName']?.toLowerCase() ?? '';
       final itemCategory = itemData['CategoryID'] ?? -1;
 
-      final matchesSearch = itemName.contains(query);
+      bool matchesSearch;
+      // 검색어의 첫 글자가 '#'이면 keyword 필드로 검색
+      if (query.startsWith('#')) {
+        final searchQuery = query.substring(1); // '#'를 제외한 검색어
+        final itemKeyword = (itemData['keyword']?.toLowerCase() ?? '');
+        matchesSearch = itemKeyword.contains(searchQuery);
+      } else {
+        // 그렇지 않으면 ItemName 필드로 검색
+        final itemName = itemData['ItemName']?.toLowerCase() ?? '';
+        matchesSearch = itemName.contains(query);
+      }
+
+      // 카테고리 일치 여부 확인
       final matchesCategory = selectedCategory == null ||
           selectedCategory == '전체' ||
           itemCategory == int.tryParse(selectedCategoryID?.toString() ?? '');
 
       return matchesSearch && matchesCategory;
     }).toList();
+
     notifyListeners();
   }
 
