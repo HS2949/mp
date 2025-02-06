@@ -47,8 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       padding: const EdgeInsets.all(50.0),
                       child: Text(
                         'No profile image available',
-                        style:
-                            AppTheme.subtitleTextStyle.copyWith(color: Colors.grey),
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ),
                   Padding(
@@ -56,16 +55,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('- id: ${user.id}', style: AppTheme.subtitleTextStyle),
+                        Text('- id: ${user.id}'),
                         SizedBox(height: 10.0),
-                        Text('- name: ${user.name}',
-                            style: AppTheme.subtitleTextStyle),
+                        Text('- name: ${user.name}'),
                         SizedBox(height: 10.0),
-                        Text('- position: ${user.position}',
-                            style: AppTheme.subtitleTextStyle),
+                        Text('- position: ${user.position}'),
                         SizedBox(height: 10.0),
-                        Text('- email: ${user.email}',
-                            style: AppTheme.subtitleTextStyle),
+                        Text('- email: ${user.email}'),
                       ],
                     ),
                   )

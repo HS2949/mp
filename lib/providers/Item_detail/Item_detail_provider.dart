@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mp_db/models/custom_error.dart';
 import 'package:mp_db/models/item_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../repositories/Item_detail_repository.dart';
 import 'Item_detail_state.dart';
 

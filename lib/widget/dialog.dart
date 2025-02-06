@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../constants/styles.dart';
 
-
 void showDynamicCupertinoDialog({
   required BuildContext context,
   required String title,
@@ -20,10 +19,7 @@ void showDynamicCupertinoDialog({
     context: context,
     builder: (context) {
       return CupertinoAlertDialog(
-        title: Text(
-          title,
-          style: AppTheme.subtitleTextStyle,
-        ), // 다이얼로그 제목
+        title: Text(title), // 다이얼로그 제목
         content: Column(
           children: [
             for (int i = 0; i < fields.length; i++)
@@ -37,12 +33,10 @@ void showDynamicCupertinoDialog({
                         alignment: Alignment.center,
                         child: Text(
                           fields[i].keys.first, // prefix로 key 설정
-                          style: AppTheme.keyTextStyle,
                         ),
                       ),
                     ),
                     placeholder: 'Enter value', // 기본 placeholder
-                    style: AppTheme.valueTextStyle,
                   ),
                   if (i != fields.length - 1)
                     const SizedBox(height: 10), // 간격 추가
@@ -69,40 +63,42 @@ void showDynamicCupertinoDialog({
 
 //material dialog 버전전
 void showTransparentDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withAlpha((0.3 * 255).toInt()),// Background transparency
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.white.withAlpha((0.8 * 255).toInt()), // Dialog transparency
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
+  showDialog(
+    context: context,
+    barrierColor:
+        Colors.black.withAlpha((0.3 * 255).toInt()), // Background transparency
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor:
+            Colors.white.withAlpha((0.8 * 255).toInt()), // Dialog transparency
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Transparent Dialog",
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16.0),
+              Text(
+                "This dialog has a transparent background!",
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16.0),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text("Close"),
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Transparent Dialog",
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  "This dialog has a transparent background!",
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16.0),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("Close"),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}

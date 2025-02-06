@@ -148,6 +148,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
     );
   }
 
+  bool isHovered = false; // 마우스 오버 상태 변수
   String labelText = 'Search';
   @override
   Widget build(BuildContext context) {
@@ -188,12 +189,26 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
             Flexible(
               flex: 1,
               fit: FlexFit.loose,
-              child: ElevatedButton(
-                  onPressed: () {
-                    _provider.removeAllTabs(); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
-                    // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
-                  },
-                  child: Text('Close')),
+              child: Tooltip(
+                message: '탭 모두 닫기기',
+                child: MouseRegion(
+                  onEnter: (_) => setState(() => isHovered = true), // 마우스 진입 시
+                  onExit: (_) => setState(() => isHovered = false), // 마우스 나갈 시
+                  child: ElevatedButton(
+                      onPressed: () {
+                        _provider
+                            .removeAllTabs(); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
+                        // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isHovered
+                            ? AppTheme.buttonbackgroundColor
+                            :AppTheme.buttonlightbackgroundColor, // 마우스 오버 시 색상 변경
+                        foregroundColor: Colors.white, // 글자 색상 유지
+                      ),
+                      child: Text('Close')),
+                ),
+              ),
             )
           ],
         ),
@@ -233,7 +248,18 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
     }
 
     return provider.isLoading
-        ? const Center(child: CircularProgressIndicator())
+        ? const Center(
+            child: Padding(
+              padding: EdgeInsets.all(50.0),
+              child: SizedBox(
+                width: 100,
+                height: 100,
+                child: CircularProgressIndicator(
+                  strokeWidth: 4.0,
+                ),
+              ),
+            ),
+          )
         : Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
@@ -264,18 +290,28 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                       title: Text(
                         itemData['ItemName'] ?? 'No Name',
                         style: TextStyle(
-                          fontSize: 16,
                           color: provider.searchController.text.startsWith('#')
-                              ? Colors.grey[400] // #으로 시작하면 회색
+                              ? AppTheme.textHintColor // #으로 시작하면 회색
                               : Colors.black, // 기본 색상 (원하는 색으로 변경 가능)
+                          fontSize:
+                              provider.searchController.text.startsWith('#')
+                                  ? 15
+                                  : 16, // 기본 색상 (원하는 색으로 변경 가능)
                         ),
                       ),
                       subtitle: Text(
-                        itemData['keyword'].replaceAll(' ', '  ') ?? 'No Tag',
-                        style: AppTheme.labelMedium.copyWith(
+                        itemData['keyword'].replaceAll(' ', '   ') ?? 'No Tag',
+                        maxLines: 2,
+                        softWrap: true,
+                        overflow: TextOverflow.ellipsis, // 2줄 이상이면 "..." 표시
+                        style: TextStyle(
                           color: provider.searchController.text.startsWith('#')
-                              ? AppTheme.textColor // #으로 시작하면
-                              : Colors.grey[400], // 기본 색상 (원하는 색으로 변경 가능)
+                              ? AppTheme.text6Color // #으로 시작하면
+                              : AppTheme.textHintColor, // 기본 색상 (원하는 색으로 변경 가능)
+                          fontSize:
+                              provider.searchController.text.startsWith('#')
+                                  ? 16
+                                  : 11, // 기본 색상 (원하는 색으로 변경 가능)
                         ),
                       ),
                       onTap: () {
@@ -283,11 +319,11 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                         provider.addTab(
                           context,
                           itemData['ItemName'] ?? 'No Name',
-                          ItemDetailFirst(
+                          ItemDetailSubpage(
                             itemId: filteredDisplayItems[index].id,
                             isFirstView: true,
                           ),
-                          second: ItemDetailFirst(
+                          second: ItemDetailSubpage(
                             itemId: filteredDisplayItems[index].id,
                             isFirstView: false,
                           ),

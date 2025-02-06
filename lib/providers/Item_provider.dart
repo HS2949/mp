@@ -169,6 +169,15 @@ class ItemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+
+  int hoverIndex = -1; // 현재 마우스가 올라간 X 버튼의 인덱스
+
+  void setHoverIndex(int index) {
+    hoverIndex = index;
+    notifyListeners(); // UI 업데이트
+  }
+
+
   void removeTab(int index) {
     if (index < 0 || index >= _activeTabCount) return;
 

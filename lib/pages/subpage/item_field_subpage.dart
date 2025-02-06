@@ -37,7 +37,10 @@ class _Item_FieldState extends State<Item_Field> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(document == null ? 'Add Field' : 'Edit Field'),
+          title: Text(
+            document == null ? 'Add Field' : 'Edit Field',
+            style: AppTheme.appbarTitleTextStyle,
+          ),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return SizedBox(
@@ -49,7 +52,11 @@ class _Item_FieldState extends State<Item_Field> {
                     FilterChip(
                       checkmarkColor: AppTheme.secondaryColor,
                       selectedColor: Colors.yellow[100],
-                      backgroundColor: Colors.white,
+                      backgroundColor: Colors.blue[50],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8), // 둥근 모서리 설정
+                        side: BorderSide.none, // 테두리 없애기
+                      ),
                       label: Text(isDefault ? 'Default Field' : 'Resources'),
                       selected: isDefault,
                       onSelected: (selected) {
@@ -137,23 +144,23 @@ class _Item_FieldState extends State<Item_Field> {
                 children: [
                   SizedBox(width: 10),
                   Text('Fields  -  ',
-                      style: AppTheme.titleLarge
-                          .copyWith(color: AppTheme.buttonbackgroundColor)),
-                  Text(widget.title, style: AppTheme.headlineSmall),
+                      style: AppTheme.textCGreyStyle.copyWith(fontSize: 22)),
+                  Text(widget.title, style: AppTheme.bodyMediumTextStyle),
                   if (widget.isDefault == true) ...[
                     Spacer(),
                     SizedBox(
                       width: 100,
                       height: 40,
                       child: FloatingActionButton.extended(
-                        onPressed: () => _showDialog(),
-                        tooltip: '필드명 추가',
-                        icon:
-                            const Icon(Icons.add, color: AppTheme.primaryColor),
-                        label: const Text('Add',
-                            style: TextStyle(color: AppTheme.primaryColor)),
-                        backgroundColor: Colors.grey[300],
-                      ),
+                          onPressed: () => _showDialog(),
+                          tooltip: '필드명 추가',
+                          icon: const Icon(Icons.add,
+                              color: AppTheme.primaryColor),
+                          label: const Text(
+                            'Add',
+                            style: TextStyle(color: AppTheme.primaryColor),
+                          ),
+                          backgroundColor: AppTheme.buttonlightbackgroundColor),
                     ),
                   ]
                 ],
@@ -207,13 +214,13 @@ class _Item_FieldState extends State<Item_Field> {
                                       width: 100,
                                       child: Text(
                                         categoryData['FieldName'] ?? 'No Name',
-                                        style: AppTheme.titleMedium,
+                                        style: AppTheme.bodyMediumTextStyle,
                                       ),
                                     ),
                                     SizedBox(width: 30),
                                     Text(
                                       categoryData['FieldKey'] ?? ' - ',
-                                      style: AppTheme.titleMedium,
+                                      style: AppTheme.textLabelStyle,
                                     ),
                                   ] else ...[
                                     Column(
@@ -225,13 +232,13 @@ class _Item_FieldState extends State<Item_Field> {
                                           child: Text(
                                             categoryData['FieldName'] ??
                                                 'No Name',
-                                            style: AppTheme.titleMedium,
+                                            style: AppTheme.bodyMediumTextStyle,
                                           ),
                                         ),
                                         SizedBox(height: 5),
                                         Text(
                                           categoryData['FieldKey'] ?? ' - ',
-                                          style: AppTheme.titleMedium,
+                                          style: AppTheme.textLabelStyle,
                                         ),
                                       ],
                                     ),
@@ -264,8 +271,7 @@ class _Item_FieldState extends State<Item_Field> {
                                   Flexible(
                                     child: Text(
                                       'ID: ${category.id}',
-                                      style: AppTheme.bodySmall
-                                          .copyWith(color: Colors.grey),
+                                      style:AppTheme.tagTextStyle.copyWith(fontSize: 13),
                                     ),
                                   ),
                                 ],

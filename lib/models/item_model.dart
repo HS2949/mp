@@ -1,7 +1,9 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 class Item {
   final String id;
   final String categoryID;
   final String itemName;
+  final String itemTag;
   final Map<String, dynamic> fields;
   final List<SubItem> subItems;
 
@@ -9,6 +11,7 @@ class Item {
     required this.id,
     required this.categoryID,
     required this.itemName,
+    required this.itemTag,
     required this.fields,
     required this.subItems,
   });
@@ -19,8 +22,9 @@ class Item {
       id: docId,
       categoryID: data['CategoryID']?.toString() ?? '', // 🔹 변환 추가
       itemName: data['ItemName']?.toString() ?? '', // 🔹 변환 추가
+      itemTag: data['keyword']?.toString() ?? '', // 🔹 변환 추가
       fields: Map<String, dynamic>.from(data)
-        ..removeWhere((key, _) => key == 'CategoryID' || key == 'ItemName'),
+        ..removeWhere((key, _) => key == 'CategoryID' || key == 'ItemName'|| key == 'keyword'),
       subItems: subItems,
     );
   }

@@ -19,12 +19,12 @@ import 'package:mp_db/material/elevation_screen.dart';
 
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
+import 'package:mp_db/pages/dialog/item_detail_dialog.dart';
 import 'package:mp_db/pages/subpage/item_category_subpage.dart';
 
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
-import 'package:mp_db/pages/subpage/test.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/screens/item_screen.dart';
@@ -156,23 +156,24 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
         ScreenSelected.home => Expanded(
-          child: Category_Widget(
-              railAnimation: railAnimation,
-              scaffoldKey: scaffoldKey,
-              showNavBottomBar: showNavBottomBar,
-              showMediumSizeLayout: showMediumSizeLayout,
-              showLargeSizeLayout: showLargeSizeLayout),
-        ),
+            child: Category_Widget(
+                railAnimation: railAnimation,
+                scaffoldKey: scaffoldKey,
+                showNavBottomBar: showNavBottomBar,
+                showMediumSizeLayout: showMediumSizeLayout,
+                showLargeSizeLayout: showLargeSizeLayout),
+          ),
         ScreenSelected.item => Expanded(
-          child: Item_Widget(
-              railAnimation: railAnimation,
-              scaffoldKey: scaffoldKey,
-              showNavBottomBar: showNavBottomBar,
-              showMediumSizeLayout: showMediumSizeLayout,
-              showLargeSizeLayout: showLargeSizeLayout),
-        ),
+            child: Item_Widget(
+                railAnimation: railAnimation,
+                scaffoldKey: scaffoldKey,
+                showNavBottomBar: showNavBottomBar,
+                showMediumSizeLayout: showMediumSizeLayout,
+                showLargeSizeLayout: showLargeSizeLayout),
+          ),
         // ScreenSelected.temp1 => const ItemScreen(),
-        ScreenSelected.temp1 => const Item_Category(),
+        // ScreenSelected.temp1 => Expanded(child: const ItemDetailScreen(itemId: 'EGA9krhnxChp3EcXHBG9')),
+        ScreenSelected.temp1 => Expanded(child: const  ItemScreen()),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),
@@ -263,11 +264,11 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
               children: [
                 Text(
                   'Hello :)',
-                  style: AppTheme.textfieldStyle,
+                  style: AppTheme.textCGreyStyle,
                 ),
                 Text(
                   '${user.name}  ${user.position}님',
-                  style: AppTheme.textfieldStyle,
+                  style: AppTheme.textCGreyStyle,
                 ),
               ],
             ),
@@ -413,7 +414,6 @@ class _KeepAlivePageState extends State<KeepAlivePage>
   bool get wantKeepAlive => true; // 상태 유지 활성화
 }
 
-
 class _ProfileButton extends StatelessWidget {
   const _ProfileButton({
     this.showTooltipBelow = true, // 툴팁을 아래쪽에 표시할지 여부. 기본값은 true.
@@ -442,9 +442,7 @@ class _ProfileButton extends StatelessWidget {
           ? TextButton.icon(
               onPressed: () => _onPressed(context), // 함수 호출로 중복 제거
               icon: Icon(Icons.account_circle, size: 25),
-              label: Text('  Profile',
-                  style: AppTheme.bodyMedium
-                      .copyWith(color: AppTheme.primaryColor)),
+              label: Text('  Profile'),
             )
           : IconButton(
               onPressed: () => _onPressed(context), // 함수 호출로 중복 제거
@@ -478,9 +476,7 @@ class _SignoutButton extends StatelessWidget {
           ? TextButton.icon(
               onPressed: () => _onPressed(context), // 함수 호출로 중복 제거
               icon: Icon(Icons.exit_to_app, size: 25),
-              label: Text('  Sign Out',
-                  style: AppTheme.bodyMedium
-                      .copyWith(color: AppTheme.primaryColor)),
+              label: Text('  Sign Out'),
             )
           : IconButton(
               onPressed: () => _onPressed(context), // 함수 호출로 중복 제거
@@ -960,4 +956,3 @@ class _BarTransition extends State<BarTransition> {
     );
   }
 }
-

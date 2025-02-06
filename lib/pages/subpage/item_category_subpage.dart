@@ -57,10 +57,7 @@ class _Item_CategoryState extends State<Item_Category> {
                     children: [
                       Text(
                         'Select Options',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTheme.appbarTitleTextStyle,
                       ),
                       SizedBox(height: 20),
                       TextField(
@@ -201,8 +198,7 @@ class _Item_CategoryState extends State<Item_Category> {
               child: Row(
                 children: [
                   Text('Categories',
-                      style: AppTheme.titleLarge
-                          .copyWith(color: AppTheme.buttonbackgroundColor)),
+                      style: AppTheme.textCGreyStyle.copyWith(fontSize: 22)),
                   Spacer(),
                   SizedBox(
                     width: 100,
@@ -213,7 +209,7 @@ class _Item_CategoryState extends State<Item_Category> {
                       icon: const Icon(Icons.add, color: AppTheme.primaryColor),
                       label: const Text('Add',
                           style: TextStyle(color: AppTheme.primaryColor)),
-                      backgroundColor: Colors.grey[300],
+                      backgroundColor: AppTheme.buttonlightbackgroundColor,
                     ),
                   ),
                 ],
@@ -240,7 +236,7 @@ class _Item_CategoryState extends State<Item_Category> {
                         final category = categories[index];
                         final categoryData =
                             category.data() as Map<String, dynamic>;
-                            
+
                         selectedColor = ColorLabel.values.firstWhere(
                           (e) => e.label == categoryData['Color'],
                           orElse: () => ColorLabel.silver, // 기본값 설정
@@ -264,11 +260,14 @@ class _Item_CategoryState extends State<Item_Category> {
                                   children: [
                                     Icon(selectedIcon?.icon,
                                         color: selectedColor?.color, size: 50),
-                                    SizedBox(width: 50),
+                                    SizedBox(width: 40),
                                     Text(
                                       categoryData['CategoryName'] ?? 'No Name',
-                                      style: AppTheme.titleMedium.copyWith(
-                                          color: hexToColor(category['Color'])),
+                                      style:
+                                          AppTheme.bodyLargeTextStyle.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        // color: selectedColor?.color,
+                                      ),
                                     ),
                                     Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
                                     IconButton(
@@ -298,21 +297,21 @@ class _Item_CategoryState extends State<Item_Category> {
                                     Flexible(
                                       child: Text(
                                         'ID: ${category.id}',
-                                        style: AppTheme.bodySmall,
+                                        style: AppTheme.textHintTextStyle,
                                       ),
                                     ),
                                     SizedBox(width: 20),
                                     Flexible(
                                       child: Text(
                                         'Icon: ${categoryData['Icon'] ?? '-'}',
-                                        style: AppTheme.bodySmall,
+                                        style: AppTheme.textHintTextStyle,
                                       ),
                                     ),
                                     SizedBox(width: 20),
                                     Flexible(
                                       child: Text(
                                         'Color: ${categoryData['Color'] ?? '-'}',
-                                        style: AppTheme.bodySmall,
+                                        style: AppTheme.textHintTextStyle,
                                       ),
                                     ),
                                   ],
@@ -333,5 +332,3 @@ class _Item_CategoryState extends State<Item_Category> {
     );
   }
 }
-
-

@@ -37,11 +37,11 @@ class Category_Widget extends StatelessWidget {
           automaticallyImplyLeading: false,
           toolbarHeight: 0, //
           bottom: TabBar(
-            indicatorColor: AppTheme.textColor,
+            indicatorColor: AppTheme.text2Color,
             indicatorSize: TabBarIndicatorSize.label,
             dividerColor: Colors.grey[300],
             indicatorWeight: 4.0,
-            labelColor: AppTheme.textColor,
+            labelColor: AppTheme.text2Color,
             unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(icon: Icon(Icons.list), text: 'Categories'),
@@ -217,29 +217,58 @@ class _Item_WidgetState extends State<Item_Widget>
 
   /// TabBar에 전달할 탭 목록 생성
   /// 활성 탭은 실제 제목을 표시하고, 비활성 탭은 SizedBox.shrink()를 사용해 최소한의 공간만 차지
-  List<Widget> get tabs {
-    final tabProvider = Provider.of<ItemProvider>(context);
-    return List.generate(tabProvider.maxTabs, (index) {
-      if (index < tabProvider.activeTabCount) {
-        return SizedBox(
-          width: 100,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (tabProvider.tabTitles[index].icon != null) ...[
-                tabProvider.tabTitles[index].icon!,
-                SizedBox(width: 8), // 아이콘과 텍스트 간격
-              ],
-              Text(tabProvider.tabTitles[index].text),
+ List<Widget> get tabs {
+  final tabProvider = Provider.of<ItemProvider>(context, listen: false);
+
+  return List.generate(tabProvider.maxTabs, (index) {
+    if (index < tabProvider.activeTabCount) {
+      return SizedBox(
+        width: 100,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (tabProvider.tabTitles[index].icon != null) ...[
+              tabProvider.tabTitles[index].icon!,
+              SizedBox(width: 8), // 아이콘과 텍스트 간격
             ],
-          ),
-        );
-      } else {
-        return Tab(child: SizedBox.shrink());
-      }
-    });
-  }
+            Text(tabProvider.tabTitles[index].text),
+            if (index != 0) ...[ // 0번 탭이 아닐 때 X 버튼 추가
+              SizedBox(width: 5),
+              _buildCloseButton(index, tabProvider),
+            ],
+          ],
+        ),
+      );
+    } else {
+      return Tab(child: SizedBox.shrink());
+    }
+  });
+}
+
+// X 버튼에 마우스 오버 효과 추가
+Widget _buildCloseButton(int index, ItemProvider tabProvider) {
+  return MouseRegion(
+    onEnter: (_) => tabProvider.setHoverIndex(index), // 마우스 올릴 때
+    onExit: (_) => tabProvider.setHoverIndex(-1), // 마우스 벗어날 때
+    child: GestureDetector(
+      onTap: () {
+        tabProvider.removeTab(index); // 탭 닫기
+      },
+      child: Consumer<ItemProvider>(
+        builder: (context, provider, child) {
+          return Icon(
+            Icons.close,
+            size: 16,
+            color: provider.hoverIndex == index ? AppTheme.errorColor : Colors.grey[300], // 마우스 오버 시 빨간색
+          );
+        },
+      ),
+    ),
+  );
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -271,11 +300,11 @@ class _Item_WidgetState extends State<Item_Widget>
                 controller: tabProvider.controller,
                 dividerColor: Colors.grey[300],
                 indicatorColor: tabProvider.activeTabCount > 1
-                    ? AppTheme.textColor
+                    ? AppTheme.text2Color
                     : Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicatorWeight: 4.0,
-                labelColor: AppTheme.textColor,
+                labelColor: AppTheme.text2Color,
                 unselectedLabelColor: Colors.grey,
                 labelStyle: TextStyle(fontSize: 15.0),
                 tabs: tabs,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/signup_page.dart';
 import 'package:mp_db/providers/signin/signin_provider.dart';
 import 'package:mp_db/providers/signin/signin_state.dart';
@@ -24,7 +25,6 @@ class _SigninPageState extends State<SigninPage> {
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
 
   @override
   void initState() {
@@ -91,7 +91,7 @@ class _SigninPageState extends State<SigninPage> {
         child: Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
-            title: Text('Sign In'),
+            title: Text('Sign In', style: AppTheme.appbarTitleTextStyle),
             centerTitle: true,
           ),
           body: Center(
@@ -124,6 +124,7 @@ class _SigninPageState extends State<SigninPage> {
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
+                          filled: true,
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.email_outlined),
                           suffixIcon: ClearButton(controller: _emailController),
@@ -151,7 +152,8 @@ class _SigninPageState extends State<SigninPage> {
                           filled: true,
                           labelText: 'Password',
                           prefixIcon: Icon(Icons.lock),
-                          suffixIcon: ClearButton(controller: _passwordController),
+                          suffixIcon:
+                              ClearButton(controller: _passwordController),
                         ),
                         validator: (String? value) {
                           if (value == null || value.trim().isEmpty) {
@@ -199,7 +201,8 @@ class _SigninPageState extends State<SigninPage> {
                             decoration: TextDecoration.underline,
                           ),
                         ),
-                        child: Text('Not a member? Sign up!'),
+                        child: Text('Not a member? Sign up!',
+                            style: AppTheme.textLabelStyle),
                       ),
                       SizedBox(height: 10)
                     ].reversed.toList(),

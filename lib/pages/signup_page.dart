@@ -35,6 +35,7 @@ class _SignupPageState extends State<SignupPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('saved_email', email);
   }
+
   void _submit() async {
     setState(() {
       _autovalidateMode = AutovalidateMode.always;
@@ -47,9 +48,11 @@ class _SignupPageState extends State<SignupPage> {
 
     print('name: $_name, email: $_email, password: $_password');
     try {
-      await context
-          .read<SignupProvider>()
-          .signup(name: _name!, position: _position!, email: _email!, password: _password!);
+      await context.read<SignupProvider>().signup(
+          name: _name!,
+          position: _position!,
+          email: _email!,
+          password: _password!);
       if (mounted) {
         // 로그인 성공 시 이메일 저장
         await _saveEmail(_email!);
@@ -96,7 +99,7 @@ class _SignupPageState extends State<SignupPage> {
                       },
                     ),
                     SizedBox(height: 10.0),
-                    Center(child: Text('사용자 등록',style: AppTheme.titleLarge,)),
+                    Center(child: Text('사용자 등록', style: AppTheme.titleMediumTextStyle,)),
                     SizedBox(height: 50.0),
                     TextFormField(
                       controller: _emailController,
@@ -132,7 +135,7 @@ class _SignupPageState extends State<SignupPage> {
                         suffixIcon: ClearButton(controller: _nameController),
                       ),
                       validator: (String? value) {
-                        if (value == null|| value.trim().isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return '성함을 입력하세요.';
                         }
                         return null;
@@ -187,7 +190,6 @@ class _SignupPageState extends State<SignupPage> {
                       onSaved: (String? value) {
                         _password = value;
                       },
-
                     ),
                     SizedBox(height: 20.0),
                     TextFormField(
@@ -233,7 +235,8 @@ class _SignupPageState extends State<SignupPage> {
                           decoration: TextDecoration.underline,
                         ),
                       ),
-                      child: Text('Already a member? Sign in!'),
+                      child: Text('Already a member? Sign in!',
+                          style: AppTheme.textLabelStyle),
                     ),
                     SizedBox(height: 10)
                   ].reversed.toList(),

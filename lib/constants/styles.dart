@@ -50,72 +50,91 @@ class AppTheme {
   // 색상 변수 정의
   static const Color primaryColor = Color(0xFF414141); //
   static const Color secondaryColor = Color(0xa9a9a9a9); //
+  static const Color backgroundColor = Color(0xFFF5F5F5); //grey[100]
+  static const Color appbarbackgroundColor = Color(0xFFFAFAFA); // grey[50]
+  static const Color textLabelColor =
+      Color(0xFF8E8E93); // CupertinoColors.systemGrey
+  static const Color textHintColor = Color(0xFFBDBDBD); //grey[400]
   static const Color errorColor = Color(0xFF8B0000); // 빨간색
-  static const Color backgroundColor = Color(0xFFF5F5F5);
   static const Color buttonbackgroundColor = Colors.grey; // 연한 회색
+  static const Color buttonlightbackgroundColor =
+      Color(0xFFE0E0E0); // grey[300]
+
   static const Color thirdColor = Color(0xFF665f4f); // 연한 회색
-  static const Color textColor = Color(0xFF024E50); //
+  static const Color text2Color = Color(0xFF024E50); //
+  static const Color textStrongColor = CupertinoColors.systemYellow; //
+  static const Color text3Color = CupertinoColors.systemPurple; //
+  static const Color text4Color = Color(0xFF002060); //
+  static const Color text5Color = Color(0xFF7030A0); //
+  static const Color text6Color = Color(0xFFFF6699); //
+  static const Color text7Color = Color(0xFF007635); //
+  static const Color text8Color = Color(0xFF30859C); //
+  static const Color text9Color = Color(0xFF35AFAF); //
   static const double textfieldRadious = 10.0;
 
 // 전역 테마 설정
   static ThemeData get mpTheme {
     return ThemeData(
+      //  fontFamily: '맑은글꼴',
+      //fontFamily: 'NotoSans', // 원하는 글꼴 설정
       primaryColor: primaryColor, // 주요 색상
-      scaffoldBackgroundColor: Colors.grey[100], // 화면 배경색
+      scaffoldBackgroundColor: backgroundColor, // 화면 배경색
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.grey[50], // 앱 바 배경색
+        backgroundColor: appbarbackgroundColor, // 앱 바 배경색
         foregroundColor: secondaryColor, // 앱 바 아이콘과 텍스트 색상
-        titleTextStyle: subtitleTextStyle,
-      ),
-      textTheme: TextTheme(
-        bodyLarge:
-            TextStyle(color: primaryColor, fontSize: 16), // bodyLarge 텍스트 스타일
-        bodyMedium:
-            TextStyle(color: primaryColor, fontSize: 14), // bodyMedium 텍스트 스타일
+        titleTextStyle: appbarTitleTextStyle,
       ),
       colorScheme: ColorScheme.light(
-        primary: Colors.grey, // 주요 색상
-        secondary: Colors.grey[600]!, // 보조 색상
-        surface: Colors.grey[50]!, // 표면 색상
+        primary: primaryColor, // 주요 색상
+        secondary: secondaryColor, // 보조 색상
+        surface: appbarbackgroundColor, // 표면 색상 // 카드와 네비게이션레일 색색
       ),
       iconTheme: IconThemeData(color: secondaryColor), // 아이콘 색상
-
+      textSelectionTheme: TextSelectionThemeData(
+        selectionColor: textStrongColor.withOpacity(0.1), // 선택된 텍스트의 배경색
+        cursorColor: text4Color, // 커서 색상
+        selectionHandleColor: text9Color, // 선택 핸들의 색상
+      ),
       tabBarTheme: TabBarTheme(
-        labelPadding: EdgeInsets.symmetric(vertical: 0), // ✅ 상하 여백 조정
+        labelPadding: EdgeInsets.symmetric(vertical: 0), // 상하 여백 조정
       ),
 
       inputDecorationTheme: InputDecorationTheme(
-          // TextField 스타일
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(textfieldRadious),
-            borderSide: BorderSide(
-              color: secondaryColor,
-              width: 1.0,
-            ),
+        // TextField 스타일
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(textfieldRadious),
+          borderSide: BorderSide(
+            color: secondaryColor,
+            width: 1.0,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(textfieldRadious),
-            borderSide: BorderSide(color: secondaryColor, width: 1.5),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(textfieldRadious),
-            borderSide: BorderSide(color: secondaryColor, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(textfieldRadious),
-            borderSide: BorderSide(color: secondaryColor, width: 1.0),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(textfieldRadious),
-            borderSide: BorderSide(color: secondaryColor, width: 1.5),
-          ),
-          isDense: true, // 높이를 줄이는 옵션
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          errorStyle: errorTextStyle, // 에러 메시지 스타일 적용
-          prefixIconColor: secondaryColor,
-          labelStyle: textfieldStyle,
-          hintStyle: bodyMedium.copyWith(color: Colors.grey[400])),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(textfieldRadious),
+          borderSide: BorderSide(color: secondaryColor, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(textfieldRadious),
+          borderSide: BorderSide(color: secondaryColor, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(textfieldRadious),
+          borderSide: BorderSide(color: secondaryColor, width: 1.0),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(textfieldRadious),
+          borderSide: BorderSide(color: secondaryColor, width: 1.5),
+        ),
+        isDense: true, // 높이를 줄이는 옵션
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        prefixIconColor: secondaryColor,
+
+        labelStyle: textLabelStyle, // 라벨 메시지 스타일 적용
+        hintStyle: textHintTextStyle, // 힌트 메시지 스타일 적용
+        errorStyle: textErrorTextStyle, // 에러 메시지 스타일 적용
+
+        filled: true,
+        fillColor: appbarbackgroundColor,
+      ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -125,172 +144,226 @@ class AppTheme {
             borderRadius: BorderRadius.circular(textfieldRadious), // 테두리 반경
           ),
           foregroundColor: Colors.white, // 텍스트 색상 설정
-          textStyle: TextStyle(fontSize: 17.0),
+          textStyle: buttonTextTextStyle,
         ),
       ),
     );
   }
 
+// Theme.of(context).textTheme.titleMedium;
+
   // 텍스트 스타일
 
-  static const TextStyle keyTextStyle = TextStyle(
-    fontSize: 13, // 글자 크기
-    fontWeight: FontWeight.w200, // 글자 두께
-    color: Color.fromARGB(255, 0, 0, 0), // 글자 색상
-    fontFamily: '맑은글꼴', // 글꼴
+  static const TextStyle appbarTitleTextStyle = TextStyle(
+      fontSize: 17.0, // regular
+      // height: 1.5, // regular
+      fontWeight: FontWeight.w500, // regular
+      // letterSpacing: 0.25,
+      color: primaryColor);
+
+  static const TextStyle bodyLargeTextStyle =
+      TextStyle(fontSize: 18.0, color: primaryColor);
+
+  static const TextStyle bodyMediumTextStyle =
+      TextStyle(fontSize: 16.0, color: primaryColor);
+
+  static const TextStyle bodySmallTextStyle =
+      TextStyle(fontSize: 14.0, color: primaryColor);
+
+  static const TextStyle titleLargeTextStyle =
+      TextStyle(fontSize: 22.0, color: primaryColor);
+
+  static const TextStyle titleMediumTextStyle = TextStyle(
+      fontSize: 16.0, fontWeight: FontWeight.bold, color: primaryColor);
+
+  static const TextStyle titleSmallTextStyle = TextStyle(
+      fontSize: 14.0, fontWeight: FontWeight.bold, color: primaryColor);
+
+  static const TextStyle textLabelStyle = TextStyle(
+    fontSize: 14,
+    color: textLabelColor,
   );
 
-  static const TextStyle valueTextStyle = TextStyle(
-    fontSize: 13, // 글자 크기
-    fontWeight: FontWeight.w200, // 글자 두께
-    color: Color.fromARGB(255, 19, 117, 202), // 글자 색상
-    fontFamily: '맑은글꼴', // 글꼴
-  );
+  static TextStyle textHintTextStyle =
+      TextStyle(fontSize: 14.0, color: textHintColor);
 
-  static const TextStyle titleTextStyle = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-    color: CupertinoColors.black, // 기본 텍스트 색상
-  );
-
-  static const TextStyle subtitleTextStyle = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    color: primaryColor, // 서브 텍스트 색상
-  );
-
-  static const TextStyle errorTextStyle = TextStyle(
+  static const TextStyle textErrorTextStyle = TextStyle(
     fontSize: 13,
+    color: errorColor, // 서브 텍스트 색상
+  );
+  static const TextStyle buttonTextTextStyle =
+      TextStyle(fontSize: 16, color: Colors.white);
+
+  static const TextStyle textCGreyStyle = TextStyle(
+    fontSize: 16,
+    color: CupertinoColors.systemGrey,
+  );
+
+  static TextStyle fieldTextStyle = TextStyle(
+    fontSize: 16, // 라벨 텍스트 크기 조정
+    fontWeight: FontWeight.bold, // 라벨 텍스트 굵기
+    color: AppTheme.text2Color, // 라벨 텍스트 색상
+  );
+
+  static TextStyle tagTextStyle = TextStyle(
+    fontSize: 16,
     fontWeight: FontWeight.w400,
-    color: Color.fromARGB(255, 150, 20, 63), // 서브 텍스트 색상
+    color: textHintColor, // 서브 텍스트 색상
   );
+  //=========================
+// fontWeight: FontWeight.bold,
+  // static const TextStyle keyTextStyle = TextStyle(
+  //   fontSize: 13, // 글자 크기
+  //   fontWeight: FontWeight.w200, // 글자 두께
+  //   color: Color.fromARGB(255, 0, 0, 0), // 글자 색상
+  // );
 
-  // 팝업 스타일
-  static const TextStyle popupTitleStyle = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.bold,
-    color: CupertinoColors.activeBlue, // 팝업 제목 색상
-  );
+  // static const TextStyle valueTextStyle = TextStyle(
+  //   fontSize: 13, // 글자 크기
+  //   fontWeight: FontWeight.w200, // 글자 두께
+  //   color: Color.fromARGB(255, 19, 117, 202), // 글자 색상
+  // );
 
-  static const TextStyle popupMessageStyle = TextStyle(
-    fontSize: 16,
-    color: CupertinoColors.systemGrey,
-  );
+  // static const TextStyle titleTextStyle = TextStyle(
+  //   fontSize: 20,
+  //   fontWeight: FontWeight.bold,
+  //   color: CupertinoColors.black, // 기본 텍스트 색상
+  // );
 
-  static const TextStyle textfieldStyle = TextStyle(
-    fontSize: 16,
-    color: CupertinoColors.systemGrey,
-  );
+  // static const TextStyle subtitleTextStyle = TextStyle(
+  //   fontSize: 16,
+  //   fontWeight: FontWeight.w400,
+  //   color: primaryColor, // 서브 텍스트 색상
+  // );
 
-  // Display styles
-  static const TextStyle displayLarge = TextStyle(
-    fontSize: 57.0,
-    height: 64.0 / 57.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: -0.25,
-  );
+  // // 팝업 스타일
+  // static const TextStyle popupTitleStyle = TextStyle(
+  //   fontSize: 18,
+  //   fontWeight: FontWeight.bold,
+  //   color: CupertinoColors.activeBlue, // 팝업 제목 색상
+  // );
 
-  static const TextStyle displayMedium = TextStyle(
-    fontSize: 45.0,
-    height: 52.0 / 45.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.0,
-  );
+  // static const TextStyle popupMessageStyle = TextStyle(
+  //   fontSize: 16,
+  //   color: CupertinoColors.systemGrey,
+  // );
 
-  static const TextStyle displaySmall = TextStyle(
-    fontSize: 36.0,
-    height: 44.0 / 36.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.0,
-  );
+  // static const TextStyle bodyMedium = TextStyle(
+  //     fontSize: 14.0,
+  //     height: 20.0 / 14.0,
+  //     fontWeight: FontWeight.w400, // regular
+  //     letterSpacing: 0.25,
+  //     color: primaryColor);
 
-  // Headline styles
-  static const TextStyle headlineLarge = TextStyle(
-    fontSize: 32.0,
-    height: 40.0 / 32.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.0,
-  );
+  // // Display styles
+  // static const TextStyle displayLarge = TextStyle(
+  //   fontSize: 57.0,
+  //   height: 64.0 / 57.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: -0.25,
+  // );
 
-  static const TextStyle headlineMedium = TextStyle(
-    fontSize: 28.0,
-    height: 36.0 / 28.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.0,
-  );
+  // static const TextStyle displayMedium = TextStyle(
+  //   fontSize: 45.0,
+  //   height: 52.0 / 45.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.0,
+  // );
 
-  static const TextStyle headlineSmall = TextStyle(
-    fontSize: 24.0,
-    height: 32.0 / 24.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.0,
-  );
+  // static const TextStyle displaySmall = TextStyle(
+  //   fontSize: 36.0,
+  //   height: 44.0 / 36.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.0,
+  // );
 
-  // Title styles
-  static const TextStyle titleLarge = TextStyle(
-    fontSize: 22.0,
-    height: 28.0 / 22.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.0,
-  );
+  // // Headline styles
+  // static const TextStyle headlineLarge = TextStyle(
+  //   fontSize: 32.0,
+  //   height: 40.0 / 32.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.0,
+  // );
 
-  static const TextStyle titleMedium = TextStyle(
-    fontSize: 16.0,
-    height: 24.0 / 16.0,
-    fontWeight: FontWeight.w500, // medium
-    letterSpacing: 0.15,
-  );
+  // static const TextStyle headlineMedium = TextStyle(
+  //   fontSize: 28.0,
+  //   height: 36.0 / 28.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.0,
+  // );
 
-  static const TextStyle titleSmall = TextStyle(
-    fontSize: 14.0,
-    height: 20.0 / 14.0,
-    fontWeight: FontWeight.w500, // medium
-    letterSpacing: 0.1,
-  );
+  // static const TextStyle headlineSmall = TextStyle(
+  //   fontSize: 24.0,
+  //   height: 32.0 / 24.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.0,
+  // );
 
-  // Body styles
-  static const TextStyle bodyLarge = TextStyle(
-    fontSize: 16.0,
-    height: 24.0 / 16.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.5,
-  );
+  // // Title styles
+  // static const TextStyle titleLarge = TextStyle(
+  //   fontSize: 22.0,
+  //   height: 28.0 / 22.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.0,
+  // );
 
-  static const TextStyle bodyMedium = TextStyle(
-    fontSize: 14.0,
-    height: 20.0 / 14.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.25,
-  );
+  // static const TextStyle titleMedium = TextStyle(
+  //   fontSize: 16.0,
+  //   height: 24.0 / 16.0,
+  //   fontWeight: FontWeight.w500, // medium
+  //   letterSpacing: 0.15,
+  // );
 
-  static const TextStyle bodySmall = TextStyle(
-    fontSize: 12.0,
-    height: 16.0 / 12.0,
-    fontWeight: FontWeight.w400, // regular
-    letterSpacing: 0.4,
-  );
+  // static const TextStyle titleSmall = TextStyle(
+  //   fontSize: 14.0,
+  //   height: 20.0 / 14.0,
+  //   fontWeight: FontWeight.w500, // medium
+  //   letterSpacing: 0.1,
+  // );
 
-  // Label styles
-  static const TextStyle labelLarge = TextStyle(
-    fontSize: 14.0,
-    height: 20.0 / 14.0,
-    fontWeight: FontWeight.w500, // medium
-    letterSpacing: 0.1,
-  );
+  // // Body styles
+  // static const TextStyle bodyLarge = TextStyle(
+  //   fontSize: 16.0,
+  //   height: 24.0 / 16.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.5,
+  // );
 
-  static const TextStyle labelMedium = TextStyle(
-    fontSize: 12.0,
-    height: 16.0 / 12.0,
-    fontWeight: FontWeight.w500, // medium
-    letterSpacing: 0.5,
-  );
+  // static const TextStyle bodyMedium = TextStyle(
+  //   fontSize: 14.0,
+  //   height: 20.0 / 14.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.25,
+  // );
 
-  static const TextStyle labelSmall = TextStyle(
-    fontSize: 11.0,
-    height: 16.0 / 11.0,
-    fontWeight: FontWeight.w500, // medium
-    letterSpacing: 0.5,
-  );
+  // static const TextStyle bodySmall = TextStyle(
+  //   fontSize: 12.0,
+  //   height: 16.0 / 12.0,
+  //   fontWeight: FontWeight.w400, // regular
+  //   letterSpacing: 0.4,
+  // );
+
+  // // Label styles
+  // static const TextStyle labelLarge = TextStyle(
+  //   fontSize: 14.0,
+  //   height: 20.0 / 14.0,
+  //   fontWeight: FontWeight.w500, // medium
+  //   letterSpacing: 0.1,
+  // );
+
+  // static const TextStyle labelMedium = TextStyle(
+  //   fontSize: 12.0,
+  //   height: 16.0 / 12.0,
+  //   fontWeight: FontWeight.w500, // medium
+  //   letterSpacing: 0.5,
+  // );
+
+  // static const TextStyle labelSmall = TextStyle(
+  //   fontSize: 11.0,
+  //   height: 16.0 / 11.0,
+  //   fontWeight: FontWeight.w500, // medium
+  //   letterSpacing: 0.5,
+  // );
 
   static const EdgeInsets popupPadding = EdgeInsets.all(16); // 팝업 기본 패딩
 }
