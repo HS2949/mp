@@ -112,8 +112,8 @@ class _Item_FieldState extends State<Item_Field> {
                     collectionName: 'Fields',
                     documentId: document.id,
                     updatedData: {
-                      'FieldName': _nameController.text,
-                      'FieldKey': _fieldController.text,
+                      'FieldName': _nameController.text.trim(),
+                      'FieldKey': _fieldController.text.trim(),
                       'IsDefault': isDefault, // Save the state
                     },
                   );
@@ -212,13 +212,13 @@ class _Item_FieldState extends State<Item_Field> {
                                   if (screenWidth > 500) ...[
                                     SizedBox(
                                       width: 100,
-                                      child: Text(
+                                      child: SelectableText(
                                         categoryData['FieldName'] ?? 'No Name',
                                         style: AppTheme.bodyMediumTextStyle,
                                       ),
                                     ),
                                     SizedBox(width: 30),
-                                    Text(
+                                    SelectableText(
                                       categoryData['FieldKey'] ?? ' - ',
                                       style: AppTheme.textLabelStyle,
                                     ),
@@ -229,7 +229,7 @@ class _Item_FieldState extends State<Item_Field> {
                                       children: [
                                         SizedBox(
                                           width: 100,
-                                          child: Text(
+                                          child: SelectableText(
                                             categoryData['FieldName'] ??
                                                 'No Name',
                                             style: AppTheme.bodyMediumTextStyle,
@@ -269,7 +269,7 @@ class _Item_FieldState extends State<Item_Field> {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
                                   Flexible(
-                                    child: Text(
+                                    child: SelectableText(
                                       'ID: ${category.id}',
                                       style:AppTheme.tagTextStyle.copyWith(fontSize: 13),
                                     ),

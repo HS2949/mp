@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/item_model.dart'; // Item, SubItem 모델 import
 
-
 class ItemDetailRepository {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
@@ -10,6 +9,7 @@ class ItemDetailRepository {
     required String collectionName,
     required String subcollectionName,
     required String itemId,
+    // required Map<String, String> fieldMappings, // 📌 추가: 영어→한글 매핑 데이터
   }) {
     try {
       // 🔹 아이템 데이터 실시간 감지
@@ -17,8 +17,11 @@ class ItemDetailRepository {
           firestore.collection(collectionName).doc(itemId).snapshots();
 
       // 🔹 하위 컬렉션(`Sub_items`) 실시간 감지
-      Stream<QuerySnapshot<Map<String, dynamic>>> subItemsStream =
-          firestore.collection(collectionName).doc(itemId).collection(subcollectionName).snapshots();
+      Stream<QuerySnapshot<Map<String, dynamic>>> subItemsStream = firestore
+          .collection(collectionName)
+          .doc(itemId)
+          .collection(subcollectionName)
+          .snapshots();
 
       return itemStream.asyncMap((itemSnapshot) async {
         if (!itemSnapshot.exists) return null;
@@ -26,7 +29,8 @@ class ItemDetailRepository {
         Map<String, dynamic> itemData = itemSnapshot.data() ?? {};
 
         // 🔹 하위 컬렉션 데이터 가져오기
-        QuerySnapshot<Map<String, dynamic>> subItemsSnapshot = await subItemsStream.first;
+        QuerySnapshot<Map<String, dynamic>> subItemsSnapshot =
+            await subItemsStream.first;
 
         List<SubItem> subItems = subItemsSnapshot.docs
             .map((doc) => SubItem.fromFirestore(doc.id, doc.data()))

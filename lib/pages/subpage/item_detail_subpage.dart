@@ -194,12 +194,20 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       for (var entry in item.fields.entries)
                         LayoutBuilder(
                           builder: (context, constraints) {
+                            // 🔹 영어 Key → 한글 Key 변환
+                            final String label = context
+                                    .read<ItemProvider>()
+                                    .fieldMappings[entry.key] ??
+                                entry.key;
+                            // 값에 ";"이 포함되어 있으면 줄바꿈 처리
+                            final String formattedValue = entry.value
+                                .split(';')
+                                .map((e) => e.trim())
+                                .join('\n');
+
                             // 텍스트 길이에 따라 카드의 너비를 동적으로 설정
-                            final dynamicWidth = (entry.value.length * 11.0)
-                                .clamp(
-                                    150.0,
-                                    constraints.maxWidth *
-                                        0.8); // 최소 150, 최대 화면의 80%
+                            final dynamicWidth = (formattedValue.length * 10.0)
+                                .clamp(150.0, constraints.maxWidth * 0.8);
 
                             return Card(
                               elevation: 3, // 그림자 효과 추가
@@ -214,15 +222,16 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start, // 라벨 정렬
                                   children: [
-                                    Text(entry.key, // 라벨 표시
+                                    Text(label, // 🔹 한글 Key로 변환된 라벨 표시
                                         style: AppTheme.fieldTextStyle),
                                     SizedBox(height: 5), // 라벨과 입력 필드 사이 간격
                                     TextField(
                                       controller: TextEditingController(
-                                        text: entry
-                                            .value, // entry.value를 초기값으로 설정
+                                        text:
+                                            formattedValue, // ";"을 "\n"으로 변경하여 여러 줄 표시
                                       ),
                                       readOnly: true, // 값 수정 불가
+                                      maxLines: null, // 여러 줄 표시 가능하게 설정
                                       decoration: InputDecoration(
                                         border: InputBorder.none, // 테두리 제거
                                         enabledBorder: InputBorder

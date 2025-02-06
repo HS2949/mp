@@ -148,9 +148,9 @@ class _Item_CategoryState extends State<Item_Category> {
                                   collectionName: 'Categories',
                                   documentId: document.id,
                                   updatedData: {
-                                    'CategoryName': _nameController.text,
-                                    'Icon': selectedIcon?.label,
-                                    'Color': selectedColor?.label
+                                    'CategoryName': _nameController.text.trim(),
+                                    'Icon': selectedIcon?.label.trim(),
+                                    'Color': selectedColor?.label.trim()
                                   },
                                 );
                               }
@@ -261,7 +261,7 @@ class _Item_CategoryState extends State<Item_Category> {
                                     Icon(selectedIcon?.icon,
                                         color: selectedColor?.color, size: 50),
                                     SizedBox(width: 40),
-                                    Text(
+                                    SelectableText(
                                       categoryData['CategoryName'] ?? 'No Name',
                                       style:
                                           AppTheme.bodyLargeTextStyle.copyWith(
@@ -295,21 +295,21 @@ class _Item_CategoryState extends State<Item_Category> {
                                 Row(
                                   children: [
                                     Flexible(
-                                      child: Text(
+                                      child: SelectableText(
                                         'ID: ${category.id}',
                                         style: AppTheme.textHintTextStyle,
                                       ),
                                     ),
                                     SizedBox(width: 20),
                                     Flexible(
-                                      child: Text(
+                                      child: SelectableText(
                                         'Icon: ${categoryData['Icon'] ?? '-'}',
                                         style: AppTheme.textHintTextStyle,
                                       ),
                                     ),
                                     SizedBox(width: 20),
                                     Flexible(
-                                      child: Text(
+                                      child: SelectableText(
                                         'Color: ${categoryData['Color'] ?? '-'}',
                                         style: AppTheme.textHintTextStyle,
                                       ),

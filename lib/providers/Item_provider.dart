@@ -18,6 +18,9 @@ class ItemProvider extends ChangeNotifier {
   List<DocumentSnapshot> _fields = [];
   List<DocumentSnapshot> get fields => _fields;
 
+  Map<String, String> _fieldMappings = {}; // 🔹 영어 → 한글 매핑 저장
+  Map<String, String> get fieldMappings => _fieldMappings; // Getter 추가
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -66,11 +69,27 @@ class ItemProvider extends ChangeNotifier {
         .snapshots()
         .listen((snapshot) {
       _fields = snapshot.docs;
+
+      // 🔹 영어 → 한글 매핑 생성
+      _fieldMappings = {
+        for (var doc in snapshot.docs)
+          (doc.data() as Map<String, dynamic>)['FieldKey']:
+              (doc.data() as Map<String, dynamic>)['FieldName']
+      };
+
       notifyListeners();
     });
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// 🔹 Key 변환 메서드 추가
+  Map<String, dynamic> convertKeysToKorean(Map<String, dynamic> data) {
+    return data.map((key, value) {
+      String newKey = _fieldMappings[key] ?? key; // 🔹 한글 Key 매칭
+      return MapEntry(newKey, value);
+    });
   }
 
   void filterItems(String query, {String? selectedCategory}) {
@@ -169,14 +188,12 @@ class ItemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   int hoverIndex = -1; // 현재 마우스가 올라간 X 버튼의 인덱스
 
   void setHoverIndex(int index) {
     hoverIndex = index;
     notifyListeners(); // UI 업데이트
   }
-
 
   void removeTab(int index) {
     if (index < 0 || index >= _activeTabCount) return;

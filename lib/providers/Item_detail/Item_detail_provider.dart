@@ -36,6 +36,7 @@ class ItemDetailProvider with ChangeNotifier {
             collectionName: 'Items',
             subcollectionName: 'Sub_Items',
             itemId: itemId,
+            // fieldMappings: provider.feal``
           )
           .listen((Item? item) {
         if (item != null) {
