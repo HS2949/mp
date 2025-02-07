@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,7 @@ class ItemDetailSubpage extends StatefulWidget {
 class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   final FocusNode _focusNode = FocusNode();
   late final ItemProvider provider;
+  final firestoreService = FirestoreService(); // Firestore 클래스 인스턴스 생성
 
   @override
   void initState() {
@@ -194,53 +196,64 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       for (var entry in item.fields.entries)
                         LayoutBuilder(
                           builder: (context, constraints) {
+                            final itemProvider = context.read<ItemProvider>();
+
                             // 🔹 영어 Key → 한글 Key 변환
-                            final String label = context
-                                    .read<ItemProvider>()
-                                    .fieldMappings[entry.key] ??
-                                entry.key;
-                            // 값에 ";"이 포함되어 있으면 줄바꿈 처리
+                            final String label =
+                                itemProvider.fieldMappings[entry.key] ??
+                                    entry.key;
                             final String formattedValue = entry.value
                                 .split(';')
                                 .map((e) => e.trim())
                                 .join('\n');
 
-                            // 텍스트 길이에 따라 카드의 너비를 동적으로 설정
-                            final dynamicWidth = (formattedValue.length * 10.0)
+                            final dynamicWidth = (formattedValue.length * 11.0)
                                 .clamp(150.0, constraints.maxWidth * 0.8);
 
                             return Card(
-                              elevation: 3, // 그림자 효과 추가
+                              elevation: 3,
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(12.0), // 모서리 둥글게
+                                borderRadius: BorderRadius.circular(12.0),
                               ),
                               child: Container(
-                                width: dynamicWidth, // 동적으로 계산된 카드 너비 적용
-                                padding: EdgeInsets.all(10), // 내부 패딩 추가
+                                width: dynamicWidth,
+                                padding: EdgeInsets.all(10),
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start, // 라벨 정렬
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(label, // 🔹 한글 Key로 변환된 라벨 표시
-                                        style: AppTheme.fieldTextStyle),
-                                    SizedBox(height: 5), // 라벨과 입력 필드 사이 간격
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(label,
+                                            style: AppTheme.fieldTextStyle),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.edit,
+                                            size: 14,
+                                          ),
+                                          onPressed: () {
+                                            _showEditDialog(
+                                                context,
+                                                entry.key,
+                                                entry.value,
+                                                item.id);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 5),
                                     TextField(
                                       controller: TextEditingController(
-                                        text:
-                                            formattedValue, // ";"을 "\n"으로 변경하여 여러 줄 표시
-                                      ),
-                                      readOnly: true, // 값 수정 불가
-                                      maxLines: null, // 여러 줄 표시 가능하게 설정
+                                          text: formattedValue),
+                                      readOnly: true,
+                                      maxLines: null,
                                       decoration: InputDecoration(
-                                        border: InputBorder.none, // 테두리 제거
-                                        enabledBorder: InputBorder
-                                            .none, // 활성화 상태에서도 테두리 없음
-                                        focusedBorder: InputBorder
-                                            .none, // 포커스 상태에서도 테두리 없음
-                                        contentPadding:
-                                            EdgeInsets.zero, // 내부 패딩 제거
-                                        isDense: true, // 추가 패딩 제거
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        contentPadding: EdgeInsets.zero,
+                                        isDense: true,
                                       ),
                                     ),
                                   ],
@@ -291,4 +304,52 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       ),
     );
   }
+
+  void _showEditDialog(BuildContext context, String key, String value, String itemId) {
+  TextEditingController textController = TextEditingController(text: value);
+  final firestoreService = FirestoreService(); // Firestore 클래스 인스턴스 생성
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text("값 수정"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: textController,
+              decoration: InputDecoration(
+                labelText: "새로운 값 입력",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              // 🔹 FirestoreService를 사용하여 값 삭제
+              await firestoreService.deleteKeywordValue(itemId, key);
+              Navigator.pop(context);
+            },
+            child: Text("삭제", style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("취소"),
+          ),
+          TextButton(
+            onPressed: () async {
+              // 🔹 FirestoreService를 사용하여 값 업데이트
+              await firestoreService.updateKeywordValue(itemId, key, textController.text);
+              Navigator.pop(context);
+            },
+            child: Text("저장"),
+          ),
+        ],
+      );
+    },
+  );
+}
 }

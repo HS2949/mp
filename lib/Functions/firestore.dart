@@ -285,4 +285,27 @@ class FirestoreService {
       return null;
     }
   }
+
+  // 🔹 특정 필드 값 업데이트 함수 (기존에 있는 함수)
+  Future<void> updateKeywordValue(
+      String itemId, String key, String newValue) async {
+    try {
+      await _firestore.collection('Items').doc(itemId).update({
+        key: newValue,
+      });
+    } catch (e) {
+      print("🔥 Firestore 업데이트 오류: $e");
+    }
+  }
+
+  // 🔹 특정 필드 삭제 함수 (기존에 있는 함수)
+  Future<void> deleteKeywordValue(String itemId, String key) async {
+    try {
+      await _firestore.collection('Items').doc(itemId).update({
+        key: FieldValue.delete(),
+      });
+    } catch (e) {
+      print("🔥 Firestore 삭제 오류: $e");
+    }
+  }
 }
