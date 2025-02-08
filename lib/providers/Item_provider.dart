@@ -75,11 +75,10 @@ class ItemProvider extends ChangeNotifier {
       // 🔹 영어 → 한글 매핑 생성
       _fieldMappings = {
         for (var doc in snapshot.docs)
-          (doc.data() as Map<String, dynamic>)['FieldKey']: {
-            'FieldName': (doc.data() as Map<String, dynamic>)['FieldName'],
-            'FieldOrder': (doc.data() as Map<String, dynamic>)['FieldOrder'],
-            'IsDefault': (doc.data() as Map<String, dynamic>)['IsDefault'] ??
-                false, // 기본값 추가
+          (doc.data())['FieldKey']: {
+            'FieldName': (doc.data())['FieldName'],
+            'FieldOrder': (doc.data())['FieldOrder'],
+            'IsDefault': (doc.data())['IsDefault'] ?? false // 기본값 추가
           }
       };
 
@@ -99,6 +98,7 @@ class ItemProvider extends ChangeNotifier {
       return MapEntry(newKey, value);
     });
   }
+
 
   void filterItems(String query, {String? selectedCategory}) {
     // 검색어를 소문자로 변환

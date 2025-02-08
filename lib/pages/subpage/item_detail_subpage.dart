@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
 import 'package:provider/provider.dart';
@@ -160,7 +162,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           MenuItemButton(
               leadingIcon: const Icon(Icons.edit_note_outlined),
               child: const Text('Edit', style: AppTheme.textLabelStyle),
-              onPressed: () async {}),
+              onPressed: () async {
+                showAddItem(context, widget.itemId);
+              }),
           MenuItemButton(
             leadingIcon: const Icon(Icons.delete_forever_outlined),
             child: const Text('Delete', style: AppTheme.textLabelStyle),
@@ -507,9 +511,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                             TextButton(
                               onPressed: () async {
                                 // 🔹 FirestoreService를 사용하여 값 업데이트
-                                await firestoreService.updateKeywordValue(
-                                    itemId, key, textController.text);
+                                await firestoreService.addKeywordValue(
+                                    itemId, key, textController.text, true);
                                 Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('수정하였습니다.')));
                               },
                               child: Text("저장"),
                             ),
@@ -530,19 +536,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   Future<void> _showAddDialog(
       BuildContext context, ItemProvider itemProvider, String itemId) async {
     String? selectedKey; // 선택한 키
+    String? selectedID;
     String inputValue = ""; // 입력한 값
-    Map<String, dynamic> existingFields = {}; // Firestore에서 기존 필드 가져오기
 
-    // 🔹 Firestore에서 기존 필드 가져오기
-    try {
-      final doc = await firestoreService.getItemById(
-          collectionName: 'Items', documentId: itemId);
-      if (doc.exists) {
-        existingFields = doc.data() ?? {};
-      }
-    } catch (e) {
-      print("🔥 Firestore 데이터 가져오기 오류: $e");
-    }
+    final item = context.read<ItemDetailProvider>().getItemData(widget.itemId);
 
     bool isDefault = true; // Local state for the dialog
 
@@ -607,6 +604,54 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                         spacing: 10, // 위젯 간 간격
                         runSpacing: 10, // 줄 바뀔 때 간격
                         children: [
+                          isDefault
+                              ? SizedBox.shrink()
+                              : DropdownMenu<String>(
+                                  // initialSelection:
+                                  //     (item?.subItems.isNotEmpty ?? false)
+                                  //         ? item!.subItems.first
+                                  //             .id // 첫 번째 subItem의 ID 사용
+                                  //         : '신규', // 리스트가 비어 있으면 '신규' 사용
+                                  enableFilter: true,
+                                  requestFocusOnTap: true,
+                                  expandedInsets: EdgeInsets.all(15),
+                                  label: const Text('Select SubItem'),
+                                  dropdownMenuEntries: [
+                                    // 🔹 첫 번째 리스트 값이 있으면 추가하지 않음
+                                    DropdownMenuEntry<String>(
+                                      labelWidget: Text('신규',
+                                          style: AppTheme.textLabelStyle),
+                                      value: '신규',
+                                      label: '신규',
+                                    ),
+                                    // 🔹 Sub_Items 리스트 추가
+                                    ...(item?.subItems ?? []).map(
+                                      (subItem) => DropdownMenuEntry<String>(
+                                        labelWidget: Text(
+                                          subItem.fields.containsKey(
+                                                  'SubName') // 🔹 "SubName" 키 존재 여부 확인
+                                              ? subItem.fields['SubName']
+                                                  .toString() // 🔹 존재하면 SubName 표시
+                                              : subItem.id, // 🔹 없으면 id 표시
+                                          style: AppTheme.textLabelStyle,
+                                        ),
+                                        value: subItem
+                                            .id, // 🔹 선택 시 subItem의 id 값 저장
+                                        label: subItem.fields
+                                                .containsKey('SubName')
+                                            ? subItem.fields['SubName']
+                                                .toString()
+                                            : subItem.id, // 🔹 필드명이 없으면 id 사용
+                                      ),
+                                    ),
+                                  ],
+                                  onSelected: (String? newValue) {
+                                    setState(() {
+                                      selectedID = newValue;
+                                    });
+                                  },
+                                ),
+
                           DropdownMenu<String>(
                             initialSelection: selectedKey,
                             enableFilter: true,
@@ -640,8 +685,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                               });
                             },
                           ),
-
-                          // SizedBox(width: 10),
 
                           // 🔹 값 입력 필드
                           Flexible(
@@ -689,32 +732,71 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           // 🔹 추가 버튼
                           ElevatedButton(
                             onPressed: () async {
-                              if (selectedKey != null &&
-                                  inputValue.isNotEmpty) {
-                                // 🔹 키가 이미 존재하는지 확인
-                                if (existingFields.containsKey(selectedKey)) {
+                              // 🔹 1. `selectedID`와 `selectedKey`가 `null`이면 실행 중단
+                              if (!isDefault && selectedID == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("항목을 선택해주세요.")),
+                                );
+                                return;
+                              }
+                              if (selectedKey == null || inputValue.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("값을 입력해주세요.")),
+                                );
+                                return;
+                              }
+
+                              // 🔹 2. Firestore 경로 결정 (isDefault 여부에 따라 다름)
+                              String collectionPath;
+                              String documentId;
+
+                              if (isDefault) {
+                                // 🔹 isDefault == true → 기존대로 Items 컬렉션 사용
+                                collectionPath = 'Items';
+                                documentId = itemId;
+                              } else {
+                                // 🔹 isDefault == false → Sub_Items 컬렉션 사용
+                                collectionPath = 'Items/$itemId/Sub_Items';
+
+                                if (selectedID == '신규') {
+                                  // 신규 ID 생성 (UUID 또는 Firestore 자동 ID 사용 가능)
+                                  documentId = FirebaseFirestore.instance
+                                      .collection(collectionPath)
+                                      .doc()
+                                      .id;
+                                } else {
+                                  documentId = selectedID!;
+                                }
+                              }
+
+                              // 🔹 3. 해당 컬렉션에서 `selectedKey`의 존재 여부 확인
+                              final docRef = FirebaseFirestore.instance
+                                  .collection(collectionPath)
+                                  .doc(documentId);
+                              final docSnapshot = await docRef.get();
+
+                              if (docSnapshot.exists) {
+                                final existingData = docSnapshot.data() ?? {};
+                                if (existingData.containsKey(selectedKey)) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(
-                                        "'${itemProvider.fieldMappings[selectedKey]?['FieldName'] ?? selectedKey}'  항목이 이미 존재하고 있습니다",
-                                      ),
-                                    ),
+                                        content: Text(
+                                            "'${selectedKey}' 항목이 이미 존재합니다.")),
                                   );
                                   return;
                                 }
-
-                                // 🔹 새로운 키워드 추가
-                                await firestoreService.addKeywordValue(
-                                    itemId, selectedKey!, inputValue);
-                                Navigator.of(context).pop();
-                              } else {
-                                // 입력 값이 없거나 키가 선택되지 않음
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("값을 입력해주세요."),
-                                  ),
-                                );
                               }
+
+                              // 🔹 4. Firestore에 키-값 추가
+                              await docRef.set({
+                                selectedKey!: inputValue, // 선택된 키-값 추가
+                              }, SetOptions(merge: true)); // 기존 데이터와 병합
+
+                              // 🔹 완료 후 UI 업데이트 및 닫기
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('항목을 추가하였습니다.')),
+                              );
                             },
                             child: const Text("Add"),
                           ),

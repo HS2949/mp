@@ -269,6 +269,15 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                 physics: const NeverScrollableScrollPhysics(), // 스크롤 비활성화
                 itemCount: filteredDisplayItems.length,
                 itemBuilder: (context, index) {
+                  // 한글 자음 순서대로 정렬
+                  filteredDisplayItems.sort((a, b) {
+                    final aName =
+                        (a.data() as Map<String, dynamic>)['ItemName'] ?? '';
+                    final bName =
+                        (b.data() as Map<String, dynamic>)['ItemName'] ?? '';
+                    return koreanCompare(aName, bName);
+                  });
+
                   final item = filteredDisplayItems[index];
                   final itemData = item.data() as Map<String, dynamic>;
                   final matchedCategory = provider.categories.firstWhere(
@@ -343,7 +352,15 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
   }
 }
 
-void showAddItem(BuildContext context) {
+///한글 정렬을 위한 koreanCompare 함수
+int koreanCompare(String a, String b) {
+  final String aFirst = a.isNotEmpty ? a[0] : '';
+  final String bFirst = b.isNotEmpty ? b[0] : '';
+
+  return aFirst.compareTo(bFirst); // 기본적으로 한글 자음 순서대로 정렬
+}
+
+void showAddItem(BuildContext context, String? itemId) async {
   final TextEditingController nameController = TextEditingController();
   IconLabel selectedIcon = IconLabel.smile;
   ColorLabel selectedColor = ColorLabel.grey;
@@ -351,6 +368,24 @@ void showAddItem(BuildContext context) {
   final categories =
       context.read<ItemProvider>().categories.skip(1).toList(); // '전체' 제외
   Map<String, dynamic>? selectedCategory; // 선택되지 않았을 경우 null 가능
+
+  // 🔹 편집 모드일 경우 기존 데이터 불러오기
+  if (itemId != null && itemId.isNotEmpty) {
+    final itemData = await firestoreService.getItemById(
+        collectionName: 'Items', documentId: itemId);
+    nameController.text = itemData['ItemName'] ?? '';
+    selectedCategory = categories.firstWhere(
+        (category) => category['itemID'] == itemData['CategoryID'],
+        orElse: () => {});
+    if (selectedCategory.isNotEmpty) {
+      selectedIcon = IconLabel.values.firstWhere(
+          (e) => e.label == selectedCategory!['Icon'],
+          orElse: () => IconLabel.smile);
+      selectedColor = ColorLabel.values.firstWhere(
+          (e) => e.label == selectedCategory!['Color'],
+          orElse: () => ColorLabel.silver);
+    }
+  }
 
   showModalBottomSheet(
     context: context,
@@ -401,6 +436,8 @@ void showAddItem(BuildContext context) {
                         requestFocusOnTap: false,
                         expandedInsets: EdgeInsets.all(0),
                         label: Text('카테고리 선택'),
+                        initialSelection:
+                            selectedCategory?['Name'], // 🔹 초기 선택값 설정
                         dropdownMenuEntries: categories
                             .map(
                               (category) => DropdownMenuEntry<String>(
@@ -456,10 +493,8 @@ void showAddItem(BuildContext context) {
                     child: const Text("Cancel"),
                   ),
                   SizedBox(width: 10),
-                  // 🔹 추가 버튼
                   ElevatedButton(
                     onPressed: () async {
-                      // 🔹 유효성 검사 추가
                       if (nameController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('상호명을 입력해주세요!')),
@@ -473,18 +508,42 @@ void showAddItem(BuildContext context) {
                         return;
                       }
 
-                      // Firestore에 데이터 저장
-                      await firestoreService.addItem(
-                        collectionName: 'Items',
-                        data: {
-                          'ItemName': nameController.text.trim(),
-                          'CategoryID': selectedCategory!['itemID']
-                        },
-                      );
+                      // 🔹 편집 모드일 경우 기존 문서 업데이트
+                      if (itemId != null && itemId.isNotEmpty) {
+                        await firestoreService.updateItem(
+                          collectionName: 'Items',
+                          documentId: itemId,
+                          updatedData: {
+                            'ItemName': nameController.text.trim(),
+                            'CategoryID': selectedCategory!['itemID'],
+                            'keyword': ''
+                          },
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text('${nameController.text}을 수정하였습니다.')),
+                        );
+                      } else {
+                        // 🔹 추가 모드일 경우 새 문서 생성
+                        await firestoreService.addItem(
+                          collectionName: 'Items',
+                          data: {
+                            'ItemName': nameController.text.trim(),
+                            'CategoryID': selectedCategory!['itemID']
+                          },
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text('${nameController.text}을 추가하였습니다.')),
+                        );
+                      }
 
                       Navigator.of(context).pop();
                     },
-                    child: const Text("Add"),
+                    child:
+                        Text(itemId == null || itemId.isEmpty ? "Add" : "Edit"),
                   ),
                 ],
               ),

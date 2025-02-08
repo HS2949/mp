@@ -287,26 +287,32 @@ class FirestoreService {
   }
 
 // 🔹 특정 필드 추가 함수
-  Future<void> addKeywordValue(String itemId, String key, String value) async {
+  Future<void> addKeywordValue(
+      String itemId, String key, String value, bool isDefault) async {
     try {
-      await _firestore.collection('Items').doc(itemId).update({
-        key: value, // 선택한 키에 값을 추가
-      });
-      print("✅ Firestore 업데이트 성공: $key -> $value");
-    } catch (e) {
-      print("🔥 Firestore 추가 오류: $e");
-    }
-  }
+      if (isDefault) {
+        //  기본 아이템 필드 업데이트
+        await _firestore.collection('Items').doc(itemId).set(
+          {key: value},
+          SetOptions(merge: true),
+        );
+        print(" Firestore 업데이트 성공 (기본 필드): $key -> $value");
+      } else {
+        //  하위 컬렉션 Sub_Items에 키-값 추가 (없으면 생성)
+        DocumentReference subItemRef = _firestore
+            .collection('Items')
+            .doc(itemId)
+            .collection('Sub_Items')
+            .doc(); // 자동 생성된 문서 ID 사용
 
-  // 🔹 특정 필드 값 업데이트 함수 (기존에 있는 함수)
-  Future<void> updateKeywordValue(
-      String itemId, String key, String newValue) async {
-    try {
-      await _firestore.collection('Items').doc(itemId).update({
-        key: newValue,
-      });
+        await subItemRef.set({
+          key: value,
+        }, SetOptions(merge: true));
+
+        print(" Firestore 업데이트 성공 (Sub_Items): $key -> $value");
+      }
     } catch (e) {
-      print("🔥 Firestore 업데이트 오류: $e");
+      print(" Firestore 추가 오류: $e");
     }
   }
 
@@ -317,7 +323,7 @@ class FirestoreService {
         key: FieldValue.delete(),
       });
     } catch (e) {
-      print("🔥 Firestore 삭제 오류: $e");
+      print(" Firestore 삭제 오류: $e");
     }
   }
 }

@@ -358,7 +358,7 @@ class _Item_WidgetState extends State<Item_Widget>
                   return (tabProvider.controller?.index ?? -1) ==
                           0 // 탭 인덱스가 1일 때만 표시
                       ? FloatingActionButton(
-                          onPressed: () => showAddItem(context),
+                          onPressed: () => showAddItem(context, ''),
                           child: const Icon(Icons.add),
                         )
                       : SizedBox.shrink(); // 빈 공간 반환 (플로팅 버튼 숨김)

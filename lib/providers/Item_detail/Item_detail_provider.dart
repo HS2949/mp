@@ -7,6 +7,7 @@ import 'Item_detail_state.dart';
 
 class ItemDetailProvider with ChangeNotifier {
   final ItemDetailRepository itemDetailRepository;
+  
   final Map<String, StreamSubscription<Item?>> _subscriptions = {}; // 🔹 itemId별 Stream 관리
   final Map<String, Item?> _items = {}; // 🔹 itemId별 데이터 저장
   final Map<String, ItemDetailState> _states = {}; // 🔹 itemId별 상태 관리
@@ -31,12 +32,12 @@ class ItemDetailProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // 🔹 Firestore 아이템 + subItems 함께 구독
       _subscriptions[itemId] = itemDetailRepository
           .streamItemWithSubItems(
             collectionName: 'Items',
             subcollectionName: 'Sub_Items',
             itemId: itemId,
-            // fieldMappings: provider.feal``
           )
           .listen((Item? item) {
         if (item != null) {

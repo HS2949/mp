@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rxdart/rxdart.dart'; // 🔹 RxDart 패키지 추가
 import '../models/item_model.dart'; // Item, SubItem 모델 import
 
 class ItemDetailRepository {
@@ -9,7 +10,6 @@ class ItemDetailRepository {
     required String collectionName,
     required String subcollectionName,
     required String itemId,
-    // required Map<String, String> fieldMappings, // 📌 추가: 영어→한글 매핑 데이터
   }) {
     try {
       // 🔹 아이템 데이터 실시간 감지
@@ -23,22 +23,25 @@ class ItemDetailRepository {
           .collection(subcollectionName)
           .snapshots();
 
-      return itemStream.asyncMap((itemSnapshot) async {
-        if (!itemSnapshot.exists) return null;
+      // 🔹 두 개의 스트림을 결합하여 하나의 Stream<Item>으로 변환
+      return Rx.combineLatest2(
+        itemStream,
+        subItemsStream,
+        (DocumentSnapshot<Map<String, dynamic>> itemSnapshot,
+            QuerySnapshot<Map<String, dynamic>> subItemsSnapshot) {
+          if (!itemSnapshot.exists) return null;
 
-        Map<String, dynamic> itemData = itemSnapshot.data() ?? {};
+          Map<String, dynamic> itemData = itemSnapshot.data() ?? {};
 
-        // 🔹 하위 컬렉션 데이터 가져오기
-        QuerySnapshot<Map<String, dynamic>> subItemsSnapshot =
-            await subItemsStream.first;
+          // 🔹 하위 컬렉션 데이터를 리스트로 변환
+          List<SubItem> subItems = subItemsSnapshot.docs
+              .map((doc) => SubItem.fromFirestore(doc.id, doc.data()))
+              .toList();
 
-        List<SubItem> subItems = subItemsSnapshot.docs
-            .map((doc) => SubItem.fromFirestore(doc.id, doc.data()))
-            .toList();
-
-        // 🔹 `Item` 객체 변환
-        return Item.fromFirestore(itemId, itemData, subItems);
-      });
+          // 🔹 `Item` 객체 생성 및 반환
+          return Item.fromFirestore(itemId, itemData, subItems);
+        },
+      );
     } catch (e) {
       print('🔥 Firestore 실시간 데이터 감지 오류: $e');
       return const Stream.empty();

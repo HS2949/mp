@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 
-
-
 //텍스트필드 지우기 버튼튼
 class ClearButton extends StatelessWidget {
   const ClearButton({Key? key, required this.controller}) : super(key: key);
@@ -38,7 +36,8 @@ void FiDeleteDialog({
 }) {
   showDialog(
     context: context,
-    builder: (BuildContext dialogContext) { // 다이얼로그 내부 컨텍스트
+    builder: (BuildContext dialogContext) {
+      // 다이얼로그 내부 컨텍스트
       return AlertDialog(
         title: Text('삭제 확인'),
         content: Text('정말로 이 항목을 삭제하시겠습니까?'),
@@ -54,7 +53,7 @@ void FiDeleteDialog({
               await deleteFunction(); // 삭제 함수 실행
 
               Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
-              
+
               if (shouldCloseScreen) {
                 Navigator.of(context).pop(); // 이전 화면도 닫기
               }
@@ -66,4 +65,3 @@ void FiDeleteDialog({
     },
   );
 }
-
