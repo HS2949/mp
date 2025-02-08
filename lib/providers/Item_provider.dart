@@ -18,8 +18,10 @@ class ItemProvider extends ChangeNotifier {
   List<DocumentSnapshot> _fields = [];
   List<DocumentSnapshot> get fields => _fields;
 
-  Map<String, String> _fieldMappings = {}; // 🔹 영어 → 한글 매핑 저장
-  Map<String, String> get fieldMappings => _fieldMappings; // Getter 추가
+  Map<String, Map<String, dynamic>> _fieldMappings =
+      {}; // 🔹 영어 → {한글, IsDefault} 매핑 저장
+  Map<String, Map<String, dynamic>> get fieldMappings =>
+      _fieldMappings; // Getter 추가
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -73,8 +75,12 @@ class ItemProvider extends ChangeNotifier {
       // 🔹 영어 → 한글 매핑 생성
       _fieldMappings = {
         for (var doc in snapshot.docs)
-          (doc.data() as Map<String, dynamic>)['FieldKey']:
-              (doc.data() as Map<String, dynamic>)['FieldName']
+          (doc.data() as Map<String, dynamic>)['FieldKey']: {
+            'FieldName': (doc.data() as Map<String, dynamic>)['FieldName'],
+            'FieldOrder': (doc.data() as Map<String, dynamic>)['FieldOrder'],
+            'IsDefault': (doc.data() as Map<String, dynamic>)['IsDefault'] ??
+                false, // 기본값 추가
+          }
       };
 
       notifyListeners();
@@ -84,10 +90,12 @@ class ItemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔹 Key 변환 메서드 추가
+  /// 🔹 Key 변환 메서드 (한글 Key 매칭)
   Map<String, dynamic> convertKeysToKorean(Map<String, dynamic> data) {
     return data.map((key, value) {
-      String newKey = _fieldMappings[key] ?? key; // 🔹 한글 Key 매칭
+      // 🔹 한글 Key 매칭 (isDefault 값은 사용하지 않음)
+      String newKey = _fieldMappings[key]?['FieldName'] ?? key;
+
       return MapEntry(newKey, value);
     });
   }

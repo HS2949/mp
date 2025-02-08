@@ -32,30 +32,31 @@ class ClearButton extends StatelessWidget {
 //삭제 버튼 onpressd
 void FiDeleteDialog({
   required BuildContext context,
-  required String collectionName,
-  required String documentId,
-  required FirestoreService firestoreService, // FirestoreService 인수 추가
+  required Future<void> Function() deleteFunction,
+  bool shouldCloseScreen = false, // 창을 닫을지 여부 선택 가능
 }) {
   showDialog(
     context: context,
-    builder: (BuildContext context) {
+    builder: (BuildContext dialogContext) { // 다이얼로그 내부 컨텍스트
       return AlertDialog(
         title: Text('삭제 확인'),
         content: Text('정말로 이 항목을 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // 대화상자 닫기
+              Navigator.of(dialogContext).pop(); // 다이얼로그만 닫기
             },
             child: Text('취소'),
           ),
           TextButton(
-            onPressed: () {
-              firestoreService.deleteItem(
-                collectionName: collectionName,
-                documentId: documentId,
-              );
-              Navigator.of(context).pop(); // 대화상자 닫기
+            onPressed: () async {
+              await deleteFunction(); // 삭제 함수 실행
+
+              Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
+              
+              if (shouldCloseScreen) {
+                Navigator.of(context).pop(); // 이전 화면도 닫기
+              }
             },
             child: Text('삭제'),
           ),

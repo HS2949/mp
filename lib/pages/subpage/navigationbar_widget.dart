@@ -217,58 +217,59 @@ class _Item_WidgetState extends State<Item_Widget>
 
   /// TabBar에 전달할 탭 목록 생성
   /// 활성 탭은 실제 제목을 표시하고, 비활성 탭은 SizedBox.shrink()를 사용해 최소한의 공간만 차지
- List<Widget> get tabs {
-  final tabProvider = Provider.of<ItemProvider>(context, listen: false);
+  List<Widget> get tabs {
+    final tabProvider = Provider.of<ItemProvider>(context, listen: false);
 
-  return List.generate(tabProvider.maxTabs, (index) {
-    if (index < tabProvider.activeTabCount) {
-      return SizedBox(
-        width: 100,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (tabProvider.tabTitles[index].icon != null) ...[
-              tabProvider.tabTitles[index].icon!,
-              SizedBox(width: 8), // 아이콘과 텍스트 간격
+    return List.generate(tabProvider.maxTabs, (index) {
+      if (index < tabProvider.activeTabCount) {
+        return SizedBox(
+          width: 100,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (tabProvider.tabTitles[index].icon != null) ...[
+                tabProvider.tabTitles[index].icon!,
+                SizedBox(width: 8), // 아이콘과 텍스트 간격
+              ],
+              Text(tabProvider.tabTitles[index].text),
+              if (index != 0) ...[
+                // 0번 탭이 아닐 때 X 버튼 추가
+                SizedBox(width: 5),
+                _buildCloseButton(index, tabProvider),
+              ],
             ],
-            Text(tabProvider.tabTitles[index].text),
-            if (index != 0) ...[ // 0번 탭이 아닐 때 X 버튼 추가
-              SizedBox(width: 5),
-              _buildCloseButton(index, tabProvider),
-            ],
-          ],
-        ),
-      );
-    } else {
-      return Tab(child: SizedBox.shrink());
-    }
-  });
-}
+          ),
+        );
+      } else {
+        return Tab(child: SizedBox.shrink());
+      }
+    });
+  }
 
 // X 버튼에 마우스 오버 효과 추가
-Widget _buildCloseButton(int index, ItemProvider tabProvider) {
-  return MouseRegion(
-    onEnter: (_) => tabProvider.setHoverIndex(index), // 마우스 올릴 때
-    onExit: (_) => tabProvider.setHoverIndex(-1), // 마우스 벗어날 때
-    child: GestureDetector(
-      onTap: () {
-        tabProvider.removeTab(index); // 탭 닫기
-      },
-      child: Consumer<ItemProvider>(
-        builder: (context, provider, child) {
-          return Icon(
-            Icons.close,
-            size: 16,
-            color: provider.hoverIndex == index ? AppTheme.errorColor : Colors.grey[300], // 마우스 오버 시 빨간색
-          );
+  Widget _buildCloseButton(int index, ItemProvider tabProvider) {
+    return MouseRegion(
+      onEnter: (_) => tabProvider.setHoverIndex(index), // 마우스 올릴 때
+      onExit: (_) => tabProvider.setHoverIndex(-1), // 마우스 벗어날 때
+      child: GestureDetector(
+        onTap: () {
+          tabProvider.removeTab(index); // 탭 닫기
         },
+        child: Consumer<ItemProvider>(
+          builder: (context, provider, child) {
+            return Icon(
+              Icons.close,
+              size: 16,
+              color: provider.hoverIndex == index
+                  ? AppTheme.errorColor
+                  : Colors.grey[300], // 마우스 오버 시 빨간색
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
-
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +330,7 @@ Widget _buildCloseButton(int index, ItemProvider tabProvider) {
                           showNavBottomBar:
                               widget.showNavBottomBar, // 네비게이션 바 예제 표시 여부.
                           scaffoldKey: widget.scaffoldKey, // Scaffold 상태를 전달.
+                          useScroll: index == 0 ? true : false,
                           showSecondList: widget.showMediumSizeLayout ||
                               widget.showLargeSizeLayout,
                           widget_first: tabProvider.tabViews[index].first,
@@ -373,12 +375,14 @@ class First_Item_Page extends StatelessWidget {
       required this.showNavBottomBar,
       required this.scaffoldKey,
       required this.showSecondList,
+      required this.useScroll,
       required this.widget_first,
       this.widget_second,
       this.widget_all});
 
   final bool showNavBottomBar;
   final GlobalKey<ScaffoldState> scaffoldKey;
+  final bool useScroll;
   final bool showSecondList;
   final Widget widget_first;
   final Widget? widget_second;
@@ -394,7 +398,7 @@ class First_Item_Page extends StatelessWidget {
           widget_first,
           widget_second ?? SizedBox.shrink()
         ] else ...[
-          widget_all!
+          widget_all ?? SizedBox.shrink()
         ]
       ] else ...[
         widget_first
@@ -402,30 +406,49 @@ class First_Item_Page extends StatelessWidget {
     ];
     List<double?> heights = List.filled(children.length, null);
 
-    // Fully traverse this list before moving on.
-    return FocusTraversalGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: showSecondList
-                ? const EdgeInsetsDirectional.only(end: smallSpacing)
-                : EdgeInsets.zero,
-            sliver: SliverList(
-              delegate: BuildSlivers(
+    // CustomScrollView 제거 후 Column으로 변경
+    if (!useScroll) {
+      // 스크롤 없이 사용
+      return FocusTraversalGroup(
+        child: Column(
+          children: List.generate(children.length, (index) {
+            return Expanded(
+              child: CacheHeight(
                 heights: heights,
-                builder: (context, index) {
-                  return CacheHeight(
-                    heights: heights,
-                    index: index,
-                    child: children[index],
-                  );
-                },
+                index: index,
+                child: children[index],
+              ),
+            );
+          }),
+        ),
+      );
+    } else {
+      // 커스톰스크롤 사용시 ===== index = 0  리스트 탭일 땐 아래래
+      // Fully traverse this list before moving on.
+      return FocusTraversalGroup(
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: showSecondList
+                  ? const EdgeInsetsDirectional.only(end: smallSpacing)
+                  : EdgeInsets.zero,
+              sliver: SliverList(
+                delegate: BuildSlivers(
+                  heights: heights,
+                  builder: (context, index) {
+                    return CacheHeight(
+                      heights: heights,
+                      index: index,
+                      child: children[index],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    }
   }
 }
 

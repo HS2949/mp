@@ -286,6 +286,18 @@ class FirestoreService {
     }
   }
 
+// 🔹 특정 필드 추가 함수
+  Future<void> addKeywordValue(String itemId, String key, String value) async {
+    try {
+      await _firestore.collection('Items').doc(itemId).update({
+        key: value, // 선택한 키에 값을 추가
+      });
+      print("✅ Firestore 업데이트 성공: $key -> $value");
+    } catch (e) {
+      print("🔥 Firestore 추가 오류: $e");
+    }
+  }
+
   // 🔹 특정 필드 값 업데이트 함수 (기존에 있는 함수)
   Future<void> updateKeywordValue(
       String itemId, String key, String newValue) async {

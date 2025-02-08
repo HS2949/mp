@@ -1,6 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+const double narrowScreenWidthThreshold = 450;
+
+const double mediumWidthBreakpoint = 1000 * 0.8;
+const double largeWidthBreakpoint = 1500 * 0.8;
+
+const double transitionLength = 500;
+
 enum IconLabel {
   smile('Smile', Icons.sentiment_satisfied_outlined),
   cloud('Cloud', Icons.cloud_outlined),
@@ -70,6 +77,8 @@ class AppTheme {
   static const Color text7Color = Color(0xFF007635); //
   static const Color text8Color = Color(0xFF30859C); //
   static const Color text9Color = Color(0xFF35AFAF); //
+  static final Color toolColor = CupertinoColors.systemYellow
+      .withOpacity(0.3); //Color.fromARGB(255, 240, 237, 107);
   static const double textfieldRadious = 10.0;
 
 // 전역 테마 설정
@@ -135,7 +144,23 @@ class AppTheme {
         filled: true,
         fillColor: appbarbackgroundColor,
       ),
-
+      cardTheme: CardTheme(
+        // ========================================================  카드 테마
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero, // 라운드 제거
+        ),
+      ),
+      // ========================================================  SnackBar 테마
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: primaryColor.withOpacity(0.8), // 🔹 배경 색상
+        contentTextStyle: textLabelStyle.copyWith(color: backgroundColor), // 🔹 텍스트 색상
+        actionTextColor: buttonbackgroundColor, // 🔹 액션 버튼 텍스트 색상
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8), // 🔹 둥근 모서리
+        ),
+        behavior: SnackBarBehavior.floating, // 🔹 떠 있는 스낵바 스타일
+      ),
+      // ========================================================  ElevatedButton 테마
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: buttonbackgroundColor, // 버튼 배경색
@@ -199,10 +224,10 @@ class AppTheme {
     color: CupertinoColors.systemGrey,
   );
 
-  static TextStyle fieldTextStyle = TextStyle(
-    fontSize: 16, // 라벨 텍스트 크기 조정
+  static TextStyle fieldLabelTextStyle = TextStyle(
+    fontSize: 14, // 라벨 텍스트 크기 조정
     fontWeight: FontWeight.bold, // 라벨 텍스트 굵기
-    color: AppTheme.text2Color, // 라벨 텍스트 색상
+    color: AppTheme.text4Color, // 라벨 텍스트 색상
   );
 
   static TextStyle tagTextStyle = TextStyle(

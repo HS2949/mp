@@ -203,7 +203,8 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isHovered
                             ? AppTheme.buttonbackgroundColor
-                            :AppTheme.buttonlightbackgroundColor, // 마우스 오버 시 색상 변경
+                            : AppTheme
+                                .buttonlightbackgroundColor, // 마우스 오버 시 색상 변경
                         foregroundColor: Colors.white, // 글자 색상 유지
                       ),
                       child: Text('Close')),
@@ -311,7 +312,7 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                           fontSize:
                               provider.searchController.text.startsWith('#')
                                   ? 16
-                                  : 11, // 기본 색상 (원하는 색으로 변경 가능)
+                                  : 13, // 기본 색상 (원하는 색으로 변경 가능)
                         ),
                       ),
                       onTap: () {
@@ -321,11 +322,15 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                           itemData['ItemName'] ?? 'No Name',
                           ItemDetailSubpage(
                             itemId: filteredDisplayItems[index].id,
-                            isFirstView: true,
+                            viewSelect: 1,
                           ),
                           second: ItemDetailSubpage(
                             itemId: filteredDisplayItems[index].id,
-                            isFirstView: false,
+                            viewSelect: 2,
+                          ),
+                          all: ItemDetailSubpage(
+                            itemId: filteredDisplayItems[index].id,
+                            viewSelect: 0,
                           ),
                         );
                       },

@@ -20,15 +20,18 @@ class Item_Field extends StatefulWidget {
 class _Item_FieldState extends State<Item_Field> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _fieldController = TextEditingController();
+  final TextEditingController _orderController = TextEditingController();
   final firestoreService = FirestoreService();
 
   void _showDialog({DocumentSnapshot? document}) {
     if (document != null) {
       _nameController.text = document['FieldName'];
       _fieldController.text = document['FieldKey'];
+      _orderController.text = document['FieldOrder'];
     } else {
       _nameController.clear();
       _fieldController.clear();
+      _orderController.clear();
     }
 
     bool isDefault = widget.isDefault; // Local state for the dialog
@@ -79,10 +82,19 @@ class _Item_FieldState extends State<Item_Field> {
                     TextField(
                         controller: _fieldController,
                         decoration: InputDecoration(
-                          suffixIcon: ClearButton(controller: _nameController),
+                          suffixIcon: ClearButton(controller: _fieldController),
                           labelText: 'Field Key',
                           hintText:
                               '예) Address, PhonNumber, Holiday, Notes ... ',
+                          filled: true,
+                        )),
+                    SizedBox(height: 10),
+                    TextField(
+                        controller: _orderController,
+                        decoration: InputDecoration(
+                          suffixIcon: ClearButton(controller: _orderController),
+                          labelText: 'Order',
+                          hintText: '예) 1, 2, 3, 4.. ',
                           filled: true,
                         )),
                   ],
@@ -101,8 +113,9 @@ class _Item_FieldState extends State<Item_Field> {
                   firestoreService.addItem(
                     collectionName: 'Fields',
                     data: {
-                      'FieldName': _nameController.text,
-                      'FieldKey': _fieldController.text,
+                      'FieldName': _nameController.text.trim(),
+                      'FieldKey': _fieldController.text.trim(),
+                      'FieldOrder': _orderController.text.trim(),
                       'IsDefault': isDefault, // Save the state
                     },
                     autoGenerateId: true,
@@ -114,6 +127,7 @@ class _Item_FieldState extends State<Item_Field> {
                     updatedData: {
                       'FieldName': _nameController.text.trim(),
                       'FieldKey': _fieldController.text.trim(),
+                      'FieldOrder': _orderController.text.trim(),
                       'IsDefault': isDefault, // Save the state
                     },
                   );
@@ -176,7 +190,22 @@ class _Item_FieldState extends State<Item_Field> {
                   return Center(child: CircularProgressIndicator());
                 }
 
-                final categories = snapshot.data!.docs;
+                // final categories = snapshot.data!.docs;
+
+                final categories = snapshot.data!.docs.toList();
+                categories.sort((a, b) {
+                  final String orderStrA =
+                      (a.data() as Map<String, dynamic>)['FieldOrder'] ??
+                          '9999';
+                  final String orderStrB =
+                      (b.data() as Map<String, dynamic>)['FieldOrder'] ??
+                          '9999';
+
+                  final int orderA = int.tryParse(orderStrA) ?? 9999;
+                  final int orderB = int.tryParse(orderStrB) ?? 9999;
+
+                  return orderA.compareTo(orderB);
+                });
 
                 return SizedBox(
                   width: 500,
@@ -256,9 +285,11 @@ class _Item_FieldState extends State<Item_Field> {
                                     onPressed: () {
                                       FiDeleteDialog(
                                         context: context,
-                                        collectionName: 'Fields',
-                                        documentId: category.id,
-                                        firestoreService: firestoreService,
+                                        deleteFunction: () async =>
+                                            firestoreService.deleteItem(
+                                          collectionName: 'Fields',
+                                          documentId: category.id,
+                                        ),
                                       );
                                     },
                                   ),
@@ -270,8 +301,9 @@ class _Item_FieldState extends State<Item_Field> {
                                 children: [
                                   Flexible(
                                     child: SelectableText(
-                                      'ID: ${category.id}',
-                                      style:AppTheme.tagTextStyle.copyWith(fontSize: 13),
+                                      'Order >  ${categoryData['FieldOrder'] ?? ''}',
+                                      style: AppTheme.tagTextStyle
+                                          .copyWith(fontSize: 13),
                                     ),
                                   ),
                                 ],

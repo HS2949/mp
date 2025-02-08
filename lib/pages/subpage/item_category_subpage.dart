@@ -264,7 +264,7 @@ class _Item_CategoryState extends State<Item_Category> {
                                     SelectableText(
                                       categoryData['CategoryName'] ?? 'No Name',
                                       style:
-                                          AppTheme.bodyLargeTextStyle.copyWith(
+                                          AppTheme.bodyMediumTextStyle.copyWith(
                                         fontWeight: FontWeight.w500,
                                         // color: selectedColor?.color,
                                       ),
@@ -283,9 +283,11 @@ class _Item_CategoryState extends State<Item_Category> {
                                       onPressed: () {
                                         FiDeleteDialog(
                                           context: context,
-                                          collectionName: 'Categories',
-                                          documentId: category.id,
-                                          firestoreService: firestoreService,
+                                          deleteFunction: () async =>
+                                              firestoreService.deleteItem(
+                                            collectionName: 'Categories',
+                                            documentId: category.id,
+                                          ),
                                         );
                                       },
                                     ),
@@ -297,21 +299,24 @@ class _Item_CategoryState extends State<Item_Category> {
                                     Flexible(
                                       child: SelectableText(
                                         'ID: ${category.id}',
-                                        style: AppTheme.textHintTextStyle,
+                                        style: AppTheme.textHintTextStyle
+                                            .copyWith(fontSize: 13),
                                       ),
                                     ),
                                     SizedBox(width: 20),
                                     Flexible(
                                       child: SelectableText(
                                         'Icon: ${categoryData['Icon'] ?? '-'}',
-                                        style: AppTheme.textHintTextStyle,
+                                        style: AppTheme.textHintTextStyle
+                                            .copyWith(fontSize: 13),
                                       ),
                                     ),
                                     SizedBox(width: 20),
                                     Flexible(
                                       child: SelectableText(
                                         'Color: ${categoryData['Color'] ?? '-'}',
-                                        style: AppTheme.textHintTextStyle,
+                                        style: AppTheme.textHintTextStyle
+                                            .copyWith(fontSize: 13),
                                       ),
                                     ),
                                   ],
