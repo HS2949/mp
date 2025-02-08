@@ -190,7 +190,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
               flex: 1,
               fit: FlexFit.loose,
               child: Tooltip(
-                message: '탭 모두 닫기기',
+                message: '탭 모두 닫기',
                 child: MouseRegion(
                   onEnter: (_) => setState(() => isHovered = true), // 마우스 진입 시
                   onExit: (_) => setState(() => isHovered = false), // 마우스 나갈 시
@@ -272,7 +272,7 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                   final item = filteredDisplayItems[index];
                   final itemData = item.data() as Map<String, dynamic>;
                   final matchedCategory = provider.categories.firstWhere(
-                    (cat) => int.parse(cat['itemID']) == itemData['CategoryID'],
+                    (cat) => cat['itemID'] == itemData['CategoryID'],
                     orElse: () => {'Color': 'Silver', 'Icon': 'List'},
                   );
 
@@ -301,7 +301,7 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                         ),
                       ),
                       subtitle: Text(
-                        itemData['keyword'].replaceAll(' ', '   ') ?? 'No Tag',
+                        itemData['keyword'] ?? '-'.replaceAll(' ', '   '),
                         maxLines: 2,
                         softWrap: true,
                         overflow: TextOverflow.ellipsis, // 2줄 이상이면 "..." 표시
@@ -344,8 +344,13 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
 }
 
 void showAddItem(BuildContext context) {
-  // _nameController.clear();
-  // _locationController.clear();
+  final TextEditingController nameController = TextEditingController();
+  IconLabel selectedIcon = IconLabel.smile;
+  ColorLabel selectedColor = ColorLabel.grey;
+  final firestoreService = FirestoreService();
+  final categories =
+      context.read<ItemProvider>().categories.skip(1).toList(); // '전체' 제외
+  Map<String, dynamic>? selectedCategory; // 선택되지 않았을 경우 null 가능
 
   showModalBottomSheet(
     context: context,
@@ -353,44 +358,140 @@ void showAddItem(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
     ),
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            // controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Item Name'),
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
           ),
-          const SizedBox(height: 10),
-          TextField(
-            // controller: _locationController,
-            decoration: const InputDecoration(labelText: 'Location'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 250),
+                child: TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.all(13),
+                    suffixIcon: ClearButton(controller: nameController),
+                    labelText: '등록할 상호명',
+                    hintText: '예) OO관광지, OO식당, OO호텔, OO차량 ...',
+                    filled: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selectedIcon.icon,
+                    color: selectedColor.color,
+                    size: 40,
+                  ),
+                  SizedBox(width: 10),
+                  Flexible(
+                    child: SizedBox(
+                      width: 200,
+                      child: DropdownMenu<String>(
+                        requestFocusOnTap: false,
+                        expandedInsets: EdgeInsets.all(0),
+                        label: Text('카테고리 선택'),
+                        dropdownMenuEntries: categories
+                            .map(
+                              (category) => DropdownMenuEntry<String>(
+                                labelWidget: Text(
+                                  category['Name'] ?? '-',
+                                  style: AppTheme.textLabelStyle,
+                                ),
+                                value: category['Name'], // 선택 시 반환될 값
+                                leadingIcon: Icon(
+                                  IconLabel.values
+                                      .firstWhere(
+                                          (e) => e.label == category['Icon'],
+                                          orElse: () => IconLabel.smile)
+                                      .icon,
+                                  color: ColorLabel.values
+                                      .firstWhere(
+                                          (e) => e.label == category['Color'],
+                                          orElse: () => ColorLabel.silver)
+                                      .color,
+                                  size: 20,
+                                ),
+                                label: category['Name'] ?? '-',
+                              ),
+                            )
+                            .toList(),
+                        onSelected: (value) {
+                          setState(() {
+                            selectedCategory = categories.firstWhere(
+                                (category) => category['Name'] == value);
+
+                            selectedIcon = IconLabel.values.firstWhere(
+                                (e) => e.label == selectedCategory!['Icon'],
+                                orElse: () => IconLabel.smile);
+                            selectedColor = ColorLabel.values.firstWhere(
+                                (e) => e.label == selectedCategory!['Color'],
+                                orElse: () => ColorLabel.silver);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("Cancel"),
+                  ),
+                  SizedBox(width: 10),
+                  // 🔹 추가 버튼
+                  ElevatedButton(
+                    onPressed: () async {
+                      // 🔹 유효성 검사 추가
+                      if (nameController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('상호명을 입력해주세요!')),
+                        );
+                        return;
+                      }
+                      if (selectedCategory == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('카테고리를 선택해주세요!')),
+                        );
+                        return;
+                      }
+
+                      // Firestore에 데이터 저장
+                      await firestoreService.addItem(
+                        collectionName: 'Items',
+                        data: {
+                          'ItemName': nameController.text.trim(),
+                          'CategoryID': selectedCategory!['itemID']
+                        },
+                      );
+
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("Add"),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {},
-            // onPressed: () {
-            //   if (_nameController.text.isNotEmpty &&
-            //       _locationController.text.isNotEmpty &&
-            //       selectedCategory != null) {
-            //     addItem(selectedCategory!, _nameController.text,
-            //             _locationController.text)
-            //         .then((_) => Navigator.pop(context))
-            //         .catchError((error) {
-            //       print('Error adding item: $error');
-            //     });
-            //   }
-            // },
-            child: const Text('Add Item'),
-          ),
-        ],
-      ),
-    ),
+        ),
+      );
+    },
   );
 }

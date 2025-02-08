@@ -143,7 +143,38 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         },
       ),
       IconButton(icon: const Icon(Icons.attach_file), onPressed: () {}),
-      IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
+      MenuAnchor(
+        builder: (context, controller, child) {
+          return IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+          );
+        },
+        menuChildren: [
+          MenuItemButton(
+              leadingIcon: const Icon(Icons.edit_note_outlined),
+              child: const Text('Edit', style: AppTheme.textLabelStyle),
+              onPressed: () async {}),
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.delete_forever_outlined),
+            child: const Text('Delete', style: AppTheme.textLabelStyle),
+            onPressed: () async {
+              FiDeleteDialog(
+                  context: context,
+                  deleteFunction: () async => firestoreService.deleteItem(
+                      collectionName: 'Items', documentId: widget.itemId),
+                  shouldCloseScreen: false);
+              provider.removeTab(provider.selectedIndex);
+            },
+          ),
+        ],
+      ),
     ];
 
     return PopScope(
@@ -221,7 +252,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                   child: Wrap(
                     children: [
                       SelectableText(
-                        itemData.itemTag,
+                        (itemData.itemTag).isEmpty ? '#Tag' : itemData.itemTag,
                         style: AppTheme.tagTextStyle,
                         // maxLines: item.itemTag.length > 20 ? 2 : 1,
                         textAlign: TextAlign.start,
@@ -579,7 +610,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           DropdownMenu<String>(
                             initialSelection: selectedKey,
                             enableFilter: true,
-                            // enableSearch: false,
                             requestFocusOnTap: true,
                             expandedInsets: EdgeInsets.all(15),
                             label: const Text('Select Field'),

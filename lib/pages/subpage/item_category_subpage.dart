@@ -87,6 +87,8 @@ class _Item_CategoryState extends State<Item_Category> {
                               dropdownMenuEntries: IconLabel.values
                                   .map(
                                     (icon) => DropdownMenuEntry<IconLabel>(
+                                      labelWidget: Text(icon.label,
+                                          style: AppTheme.textLabelStyle),
                                       value: icon,
                                       leadingIcon: Icon(icon.icon, size: 20),
                                       label: icon.label,
