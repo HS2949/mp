@@ -14,10 +14,11 @@ import '../../models/item_model.dart';
 
 class ItemDetailSubpage extends StatefulWidget {
   const ItemDetailSubpage(
-      {super.key, required this.itemId, required this.viewSelect});
+      {Key? key, required this.itemId, required this.viewSelect})
+      : super(key: key);
 
   final String itemId;
-  final int viewSelect; // 🔹 true: fields 표시 / false: sub_items 표시
+  final int viewSelect; // 0,1: fields 표시 / 2: sub_items 표시
 
   @override
   State<ItemDetailSubpage> createState() => _ItemDetailSubpageState();
@@ -26,23 +27,30 @@ class ItemDetailSubpage extends StatefulWidget {
 class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   final FocusNode _focusNode = FocusNode();
   late final ItemProvider provider;
-  final firestoreService = FirestoreService(); // Firestore 클래스 인스턴스 생성
+  final firestoreService = FirestoreService();
+
+  /// state 변수로 firebase의 subItems 데이터를 그룹화한 결과를 저장
+  List<Map<String, dynamic>> _computedGroups = [];
+  bool _allGroupsExpanded = false;
 
   @override
   void initState() {
     super.initState();
     provider = Provider.of<ItemProvider>(context, listen: false);
-
-    // 🔹 Firestore 조회를 한 번만 수행 (ID 변경 시만 다시 실행)
+    // Firestore 조회 (itemId 변경 시 다시 실행)
     Future.microtask(() {
       Provider.of<ItemDetailProvider>(context, listen: false)
           .listenToItemDetail(itemId: widget.itemId);
     });
+  }
 
-    // // 🔹 initState에서 포커스 요청
-    // Future.delayed(Duration(milliseconds: 100), () {
-    //   FocusScope.of(context).requestFocus(_focusNode);
-    // });
+  @override
+  void didUpdateWidget(covariant ItemDetailSubpage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.itemId != widget.itemId) {
+      // itemId가 바뀌면 그룹 데이터를 초기화 (초기 상태로)
+      _computedGroups = [];
+    }
   }
 
   @override
@@ -53,21 +61,216 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     super.dispose();
   }
 
-  /// ESC 키와 모바일 뒤로가기 버튼 클릭 시 동일한 동작 수행bool _isClosing = false; // 중복 호출 방지 플래그
-  void _handleCloseTab() {
-    if (provider.selectedIndex > 0) {
-      provider.removeTab(provider.selectedIndex);
+  /// Firebase의 최신 item.subItems 데이터를 기반으로 그룹 데이터를 재계산합니다.
+  /// 기존 _computedGroups와 병합하여 동일 그룹/아이템의 확장 상태는 유지합니다.
+  void _updateComputedGroups(Item item) {
+    final Map<String, List<Map<String, dynamic>>> groupedData = {};
+    for (var subItem in item.subItems) {
+      final groupKey = subItem.fields['SubItem'] ?? '(미분류)'; // null이면 "기타"로 설정
+      groupedData.putIfAbsent(groupKey, () => []).add(subItem.fields);
     }
+    // 각 그룹 내에서 'SubOrder' 순으로 정렬
+    groupedData.forEach((groupKey, subItems) {
+      subItems.sort((a, b) {
+        int orderA = int.tryParse(a['SubOrder']?.toString() ?? "") ?? 9999;
+        int orderB = int.tryParse(b['SubOrder']?.toString() ?? "") ?? 9999;
+        return orderA.compareTo(orderB);
+      });
+    });
+    // 그룹들을 아이템 개수가 많은 순(내림차순)으로 정렬
+    final sortedGroups = groupedData.entries.toList()
+      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+    List<Map<String, dynamic>> newGroups = sortedGroups.map((entry) {
+      final groupTitle = entry.key;
+      final subItems = entry.value;
+      final items = subItems.map<Map<String, dynamic>>((subItem) {
+        final title = subItem['SubName']?.toString() ?? "(미지정)";
+        final attributesMap = Map<String, dynamic>.from(subItem)
+          ..remove('SubItem')
+          ..remove('SubName')
+          ..remove('SubOrder');
+
+        final itemProvider = context.read<ItemProvider>();
+        final List<String> attributes = attributesMap.entries
+            .map((e) =>
+                "${itemProvider.fieldMappings[e.key]?['FieldName'] ?? e.key}: ${e.value}")
+            .toList();
+        return {
+          "title": title,
+          "isExpanded": false,
+          "attributes": attributes,
+        };
+      }).toList();
+      return {
+        "groupTitle": groupTitle,
+        "isExpanded": false,
+        "items": items,
+      };
+    }).toList();
+
+    // 기존 _computedGroups와 병합: 같은 그룹/아이템이면 기존 확장 상태를 유지
+    if (_computedGroups.isNotEmpty) {
+      for (var newGroup in newGroups) {
+        final index = _computedGroups
+            .indexWhere((g) => g["groupTitle"] == newGroup["groupTitle"]);
+        if (index != -1) {
+          newGroup["isExpanded"] = _computedGroups[index]["isExpanded"];
+          List newItems = newGroup["items"];
+          List oldItems = _computedGroups[index]["items"];
+          for (int i = 0; i < newItems.length; i++) {
+            int oldIndex = oldItems
+                .indexWhere((item) => item["title"] == newItems[i]["title"]);
+            if (oldIndex != -1) {
+              newItems[i]["isExpanded"] = oldItems[oldIndex]["isExpanded"];
+            }
+          }
+        }
+      }
+    }
+    // 업데이트된 그룹 데이터를 state에 반영 (빌드 완료 후 업데이트)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _computedGroups = newGroups;
+        });
+      }
+    });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // // 🔹 키보드 입력을 항상 받을 수 있도록 설정
-    // if (provider.selectedIndex > 0) {
-    //   Future.microtask(() => FocusScope.of(context).requestFocus(_focusNode));
-    // }
+  // ----- 토글 및 업데이트 함수 (state 변수 _computedGroups 사용) -----
+  void _toggleAllGroups() {
+    setState(() {
+      _allGroupsExpanded = !_allGroupsExpanded;
+      for (var group in _computedGroups) {
+        group["isExpanded"] = _allGroupsExpanded;
+      }
+    });
   }
+
+  void _toggleGroupExpansion(int groupIndex) {
+    setState(() {
+      _computedGroups[groupIndex]["isExpanded"] =
+          !_computedGroups[groupIndex]["isExpanded"];
+    });
+  }
+
+  void _toggleAllItemsInGroup(int groupIndex) {
+    setState(() {
+      bool newState = !_computedGroups[groupIndex]["items"][0]["isExpanded"];
+      for (var item in _computedGroups[groupIndex]["items"]) {
+        item["isExpanded"] = newState;
+      }
+    });
+  }
+
+  void _toggleItemExpansion(int groupIndex, int itemIndex) {
+    setState(() {
+      _computedGroups[groupIndex]["items"][itemIndex]["isExpanded"] =
+          !_computedGroups[groupIndex]["items"][itemIndex]["isExpanded"];
+    });
+  }
+
+  void _addItem(BuildContext context) {
+    TextEditingController itemController = TextEditingController();
+    String? selectedGroup =
+        _computedGroups.isNotEmpty ? _computedGroups[0]["groupTitle"] : null;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text("새 아이템 추가"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: "그룹 선택"),
+                value: selectedGroup,
+                items: [
+                  ..._computedGroups.map((group) => DropdownMenuItem(
+                        value: group["groupTitle"],
+                        child: Text(group["groupTitle"]),
+                      )),
+                  DropdownMenuItem(
+                    value: "새 그룹",
+                    child: Text("새 그룹 생성"),
+                  ),
+                ],
+                onChanged: (value) {
+                  selectedGroup = value;
+                },
+              ),
+              TextField(
+                controller: itemController,
+                decoration: InputDecoration(labelText: "아이템명"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                if (selectedGroup != null &&
+                    itemController.text.trim().isNotEmpty) {
+                  setState(() {
+                    String itemName = itemController.text.trim();
+                    if (selectedGroup == "새 그룹") {
+                      String newGroupName =
+                          "그룹 ${String.fromCharCode(65 + _computedGroups.length)}";
+                      _computedGroups.add({
+                        "groupTitle": newGroupName,
+                        "isExpanded": false,
+                        "items": [
+                          {
+                            "title": itemName,
+                            "isExpanded": false,
+                            "attributes": []
+                          }
+                        ],
+                      });
+                    } else {
+                      int groupIndex = _computedGroups.indexWhere(
+                          (group) => group["groupTitle"] == selectedGroup);
+                      if (groupIndex != -1) {
+                        _computedGroups[groupIndex]["items"].add({
+                          "title": itemName,
+                          "isExpanded": false,
+                          "attributes": [],
+                        });
+                      }
+                    }
+                  });
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: Text("추가"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _addAttribute(int groupIndex, int itemIndex) {
+    setState(() {
+      _computedGroups[groupIndex]["items"][itemIndex]["attributes"].add(
+        "속성 ${_computedGroups[groupIndex]["items"][itemIndex]["title"]}-${_computedGroups[groupIndex]["items"][itemIndex]["attributes"].length + 1}",
+      );
+    });
+  }
+
+  void _removeItem(int groupIndex, int itemIndex) {
+    setState(() {
+      _computedGroups[groupIndex]["items"].removeAt(itemIndex);
+      if (_computedGroups[groupIndex]["items"].isEmpty) {
+        _computedGroups.removeAt(groupIndex);
+      }
+    });
+  }
+  // ----- // 토글 및 업데이트 함수 -----
 
   @override
   Widget build(BuildContext context) {
@@ -116,11 +319,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
             ),
           )
         : widget.viewSelect < 2
-            ? _buildFirstView(itemData) // 0, 1
-            : _buildSecondView(itemData); //2
+            ? _buildFirstView(itemData)
+            : _buildSecondView(itemData);
   }
 
-  /// 🔹 `first` UI - fields 표시
+  /// 첫 번째 뷰 (fields 표시)
   Widget _buildFirstView(Item itemData) {
     final matchedCategory = provider.categories.firstWhere(
       (cat) => cat['itemID'] == itemData.categoryID,
@@ -140,7 +343,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       IconButton(
         icon: const Icon(Icons.add),
         onPressed: () async {
-          // 다이얼로그를 열고 값 입력 및 선택
           await _showAddDialog(context, provider, widget.itemId);
         },
       ),
@@ -185,7 +387,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       canPop: false,
       onPopInvoked: (didPop) {
         if (!didPop) {
-          // _handleCloseTab(); //  ESC 키와 동일한 동작 수행
           provider.selectTab(0);
         }
       },
@@ -196,7 +397,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Icon(icon, color: color, size: 50),
-                SizedBox(width: 15),
+                const SizedBox(width: 15),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -217,7 +418,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                 _fieldDefault(itemData),
                 widget.viewSelect == 0
                     ? _buildSecondView(itemData)
-                    : SizedBox.shrink()
+                    : SizedBox.shrink(),
               ],
             ),
           ),
@@ -258,17 +459,14 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       SelectableText(
                         (itemData.itemTag).isEmpty ? '#Tag' : itemData.itemTag,
                         style: AppTheme.tagTextStyle,
-                        // maxLines: item.itemTag.length > 20 ? 2 : 1,
                         textAlign: TextAlign.start,
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  constraints: BoxConstraints(
-                    minWidth: 16, // 최소 너비 설정
-                    minHeight: 16, // 최소 높이 설정
-                  ),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
                   icon: Icon(
                     Icons.edit,
                     size: 10,
@@ -282,28 +480,25 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               ],
             ),
           ),
-          SizedBox(height: 15),
+          const SizedBox(height: 15),
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(5.0),
               child: Wrap(
-                spacing: 2.0, // 가로 간격
-                runSpacing: 0.0, // 세로 간격
+                spacing: 2.0,
+                runSpacing: 0.0,
                 children: [
                   for (var entry in sortedItemFields.entries)
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final itemProvider = context.read<ItemProvider>();
-
-                        // 🔹 영어 Key → 한글 Key 변환
                         final String label = itemProvider
                                 .fieldMappings[entry.key]?['FieldName'] ??
                             entry.key;
                         final int maxLineLength = entry.value
-                            .split(';') // ";"로 나눔
-                            .map((e) => e.trim().length) // 각 줄의 길이를 계산
-                            .reduce((a, b) => a > b ? a : b); // 가장 긴 줄의 길이를 계산
-
+                            .split(';')
+                            .map((e) => e.trim().length)
+                            .reduce((a, b) => a > b ? a : b);
                         final dynamicWidth = (maxLineLength * 14.0)
                             .clamp(150.0, constraints.maxWidth * 1.0);
 
@@ -311,12 +506,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           padding: const EdgeInsets.only(bottom: 15.0),
                           child: Card(
                             elevation: 0,
-                            // shape: RoundedRectangleBorder(
-                            //   borderRadius: BorderRadius.circular(12.0),
-                            // ),
                             child: Container(
                               width: dynamicWidth,
-                              // padding: EdgeInsets.fromLTRB(10, 0, 10, 0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -325,19 +516,21 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                     children: [
                                       SelectableText(label,
                                           style: AppTheme.fieldLabelTextStyle),
+                                      const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                      ),
                                       SizedBox(
-                                        width: 20, // 원하는 너비
-                                        height: 20, // 원하는 높이
+                                        width: 20,
+                                        height: 20,
                                         child: IconButton(
-                                          padding: EdgeInsets.zero, // 기본 패딩 제거
-                                          constraints: BoxConstraints(
-                                            minWidth: 16, // 최소 너비 설정
-                                            minHeight: 16, // 최소 높이 설정
-                                          ),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(
+                                              minWidth: 16, minHeight: 16),
                                           tooltip: "Edit",
                                           icon: Icon(
                                             Icons.edit,
-                                            size: 10, // 아이콘 크기 조절
+                                            size: 10,
                                             color: AppTheme.toolColor,
                                           ),
                                           onPressed: () {
@@ -354,16 +547,16 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       )
                                     ],
                                   ),
-                                  SizedBox(height: 5),
+                                  const SizedBox(height: 5),
                                   TextField(
                                     controller: TextEditingController(
                                         text: entry.value),
                                     style: entry.value.length > 20
-                                        ? AppTheme.bodySmallTextStyle // 많은 글자
-                                        : AppTheme.bodySmallTextStyle, // 적은 글자
+                                        ? AppTheme.bodySmallTextStyle
+                                        : AppTheme.bodySmallTextStyle,
                                     readOnly: true,
                                     maxLines: null,
-                                    decoration: InputDecoration(
+                                    decoration: const InputDecoration(
                                       filled: false,
                                       border: InputBorder.none,
                                       enabledBorder: InputBorder.none,
@@ -388,27 +581,179 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     );
   }
 
-  ///==============================================================================================
-  /// 🔹 `second` UI - sub_items 표시
+  /// 두 번째 뷰 (sub_items 표시)
   Widget _buildSecondView(Item item) {
+    // Firebase의 최신 데이터가 반영되도록 매 빌드 시 _updateComputedGroups() 호출
+    _updateComputedGroups(item);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('🔹 하위 아이템 목록',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            for (var subItem in item.subItems)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('🔹 ${subItem.id}'),
-                  for (var entry in subItem.fields.entries)
-                    Text('  • ${entry.key}: ${entry.value}'),
-                ],
+            // 상단 컨트롤바: 타이틀, 새 아이템 추가, 전체 그룹 확장/접기 버튼
+            Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.buttonlightbackgroundColor,
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text("Sub Items",
+                          style: AppTheme.appbarTitleTextStyle),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      onPressed: () => _addItem(context),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        _allGroupsExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Colors.white,
+                      ),
+                      onPressed: _toggleAllGroups,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // 그룹별 ListView (각 그룹은 카드 형태)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _computedGroups.length,
+              itemBuilder: (context, groupIndex) {
+                final group = _computedGroups[groupIndex];
+                return Card(
+                  margin: const EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      // 그룹 타이틀 및 전체 아이템 토글 버튼
+                      ListTile(
+                        title: Text(
+                          group["groupTitle"],
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(
+                            group["items"].isNotEmpty &&
+                                    group["items"][0]["isExpanded"]
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () => _toggleAllItemsInGroup(groupIndex),
+                        ),
+                        onTap: () => _toggleGroupExpansion(groupIndex),
+                      ),
+                      // 그룹 확장 상태이면 내부 아이템 목록 표시
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.fastOutSlowIn,
+                        child: group["isExpanded"]
+                            ? Column(
+                                children: group["items"]
+                                    .asMap()
+                                    .entries
+                                    .map<Widget>((entry) {
+                                  int itemIndex = entry.key;
+                                  var itemData = entry.value;
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      ListTile(
+                                        title: Text(itemData["title"]),
+                                        onTap: () => _toggleItemExpansion(
+                                            groupIndex, itemIndex),
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(
+                                                itemData["isExpanded"]
+                                                    ? Icons.keyboard_arrow_up
+                                                    : Icons.keyboard_arrow_down,
+                                                color: Colors.grey,
+                                              ),
+                                              onPressed: () =>
+                                                  _toggleItemExpansion(
+                                                      groupIndex, itemIndex),
+                                            ),
+                                            PopupMenuButton<String>(
+                                              icon: const Icon(Icons.more_vert,
+                                                  color: Colors.grey),
+                                              onSelected: (value) {
+                                                if (value == "addAttribute") {
+                                                  _addAttribute(
+                                                      groupIndex, itemIndex);
+                                                } else if (value ==
+                                                    "removeItem") {
+                                                  _removeItem(
+                                                      groupIndex, itemIndex);
+                                                }
+                                              },
+                                              itemBuilder:
+                                                  (BuildContext context) => [
+                                                const PopupMenuItem(
+                                                  value: "addAttribute",
+                                                  child: Text("속성 추가"),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: "removeItem",
+                                                  child: Text("아이템 삭제"),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      AnimatedSize(
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.fastOutSlowIn,
+                                        child: itemData["isExpanded"]
+                                            ? Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: itemData["attributes"]
+                                                    .map<Widget>((attribute) {
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            left: 16.0,
+                                                            right: 16.0,
+                                                            bottom: 4.0),
+                                                    child: Text(
+                                                      attribute,
+                                                      style: const TextStyle(
+                                                          color:
+                                                              Colors.black54),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -418,15 +763,14 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   void _showEditDialog(BuildContext context, String key, String name,
       String value, String itemId) {
     TextEditingController textController = TextEditingController(text: value);
-    final firestoreService = FirestoreService(); // Firestore 클래스 인스턴스 생성
+    final firestoreService = FirestoreService();
 
     showDialog(
       context: context,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0),
-          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
           child: SizedBox(
             width: 400,
             child: Padding(
@@ -438,64 +782,59 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                     '항목 편집',
                     style: AppTheme.appbarTitleTextStyle,
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Align(
                     alignment: Alignment.centerRight,
                     child: IconButton(
                       onPressed: () async {
                         FiDeleteDialog(
                             context: context,
-                            deleteFunction: () async =>
-                                firestoreService.deleteKeywordValue(
-                                  itemId,
-                                  key,
-                                ),
+                            deleteFunction: () async => firestoreService
+                                .deleteKeywordValue(itemId, key),
                             shouldCloseScreen: true);
                       },
-                      icon: Icon(Icons.delete_forever_outlined), // 🔹 삭제 아이콘 적용
-                      tooltip: "삭제", // 🔹 접근성을 위한 툴팁 추가
+                      icon: const Icon(Icons.delete_forever_outlined),
+                      tooltip: "삭제",
                     ),
                   ),
                   TextField(
-                    controller: TextEditingController(text: name), // 🔹 초기 값 설정
+                    controller: TextEditingController(text: name),
                     decoration: InputDecoration(
                       labelText: 'Edit Field',
-                      labelStyle: AppTheme.textLabelStyle, // 🔹 기존 스타일 적용
+                      labelStyle: AppTheme.textLabelStyle,
                       filled: false,
                       enabled: false,
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                             color: AppTheme.buttonlightbackgroundColor),
                         borderRadius: BorderRadius.circular(8),
-                      ), // 기본 테두리 스타일 추가
+                      ),
                     ),
-                    style: AppTheme.fieldLabelTextStyle, // 🔹 텍스트 스타일 유지
-                    readOnly: true, // 🔹 편집 불가능하게 설정
+                    style: AppTheme.fieldLabelTextStyle,
+                    readOnly: true,
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Container(
-                    constraints: BoxConstraints(
-                      maxHeight: 200, // 최대 높이, 이후 스크롤롤
+                    constraints: const BoxConstraints(
+                      maxHeight: 200,
                     ),
                     child: Scrollbar(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(0),
                         child: TextField(
                           controller: textController,
-                          decoration: InputDecoration(
-                            labelText: key,
+                          decoration: const InputDecoration(
+                            labelText: 'Field Value',
                             border: OutlineInputBorder(),
                           ),
-                          keyboardType:
-                              TextInputType.multiline, // 🔹 키보드 유형을 멀티라인으로 변경
-                          textInputAction:
-                              TextInputAction.newline, // 🔹 엔터 키를 누르면 새 줄 입력
-                          maxLines: null, // 🔹 여러 줄 입력 가능
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          maxLines: null,
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Align(
                     alignment: Alignment.centerRight,
                     child: Wrap(
@@ -506,18 +845,17 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           children: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text("취소"),
+                              child: const Text("취소"),
                             ),
                             TextButton(
                               onPressed: () async {
-                                // 🔹 FirestoreService를 사용하여 값 업데이트
                                 await firestoreService.addKeywordValue(
                                     itemId, key, textController.text, true);
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('수정하였습니다.')));
+                                    const SnackBar(content: Text('수정하였습니다.')));
                               },
-                              child: Text("저장"),
+                              child: const Text("저장"),
                             ),
                           ],
                         ),
@@ -535,13 +873,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
   Future<void> _showAddDialog(
       BuildContext context, ItemProvider itemProvider, String itemId) async {
-    String? selectedKey; // 선택한 키
+    String? selectedKey;
     String? selectedID;
-    String inputValue = ""; // 입력한 값
-
+    String inputValue = "";
     final item = context.read<ItemDetailProvider>().getItemData(widget.itemId);
-
-    bool isDefault = true; // Local state for the dialog
+    bool isDefault = true;
 
     await showDialog(
       context: context,
@@ -550,12 +886,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           builder: (BuildContext context, StateSetter setState) {
             return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: SizedBox(
-                width: 400,
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
+                  borderRadius: BorderRadius.circular(10.0)),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(15.0),
+                child: SizedBox(
+                  width: 400,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -563,22 +898,21 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                         '항목 추가',
                         style: AppTheme.appbarTitleTextStyle,
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.all(15.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Flexible(
                               child: FilterChip(
                                 checkmarkColor: AppTheme.secondaryColor,
                                 selectedColor: Colors.yellow[100],
                                 backgroundColor: Colors.blue[50],
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(8), // 둥근 모서리 설정
-                                  side: BorderSide.none, // 테두리 없애기
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide.none,
                                 ),
                                 label: SizedBox(
                                     width: 100,
@@ -590,7 +924,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                 selected: isDefault,
                                 onSelected: (selected) {
                                   setState(() {
-                                    isDefault = selected; // Update local state
+                                    isDefault = selected;
                                   });
                                 },
                               ),
@@ -598,50 +932,41 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Wrap(
-                        alignment: WrapAlignment.center, // 중앙 정렬
-                        spacing: 10, // 위젯 간 간격
-                        runSpacing: 10, // 줄 바뀔 때 간격
+                        alignment: WrapAlignment.center,
+                        spacing: 10,
+                        runSpacing: 10,
                         children: [
                           isDefault
-                              ? SizedBox.shrink()
+                              ? const SizedBox.shrink()
                               : DropdownMenu<String>(
-                                  // initialSelection:
-                                  //     (item?.subItems.isNotEmpty ?? false)
-                                  //         ? item!.subItems.first
-                                  //             .id // 첫 번째 subItem의 ID 사용
-                                  //         : '신규', // 리스트가 비어 있으면 '신규' 사용
                                   enableFilter: true,
                                   requestFocusOnTap: true,
-                                  expandedInsets: EdgeInsets.all(15),
+                                  expandedInsets: const EdgeInsets.all(15),
                                   label: const Text('Select SubItem'),
                                   dropdownMenuEntries: [
-                                    // 🔹 첫 번째 리스트 값이 있으면 추가하지 않음
                                     DropdownMenuEntry<String>(
                                       labelWidget: Text('신규',
                                           style: AppTheme.textLabelStyle),
                                       value: '신규',
                                       label: '신규',
                                     ),
-                                    // 🔹 Sub_Items 리스트 추가
                                     ...(item?.subItems ?? []).map(
                                       (subItem) => DropdownMenuEntry<String>(
                                         labelWidget: Text(
-                                          subItem.fields.containsKey(
-                                                  'SubName') // 🔹 "SubName" 키 존재 여부 확인
+                                          subItem.fields.containsKey('SubName')
                                               ? subItem.fields['SubName']
-                                                  .toString() // 🔹 존재하면 SubName 표시
-                                              : subItem.id, // 🔹 없으면 id 표시
+                                                  .toString()
+                                              : subItem.id,
                                           style: AppTheme.textLabelStyle,
                                         ),
-                                        value: subItem
-                                            .id, // 🔹 선택 시 subItem의 id 값 저장
+                                        value: subItem.id,
                                         label: subItem.fields
                                                 .containsKey('SubName')
                                             ? subItem.fields['SubName']
                                                 .toString()
-                                            : subItem.id, // 🔹 필드명이 없으면 id 사용
+                                            : subItem.id,
                                       ),
                                     ),
                                   ],
@@ -651,31 +976,29 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                     });
                                   },
                                 ),
-
                           DropdownMenu<String>(
                             initialSelection: selectedKey,
                             enableFilter: true,
                             requestFocusOnTap: true,
-                            expandedInsets: EdgeInsets.all(15),
+                            expandedInsets: const EdgeInsets.all(15),
                             label: const Text('Select Field'),
                             dropdownMenuEntries: itemProvider.fieldMappings.keys
                                 .where((key) =>
                                     itemProvider.fieldMappings[key]
                                         ?['IsDefault'] ==
-                                    isDefault) // 🔹 isDefault가 true인 항목만 필터링
+                                    isDefault)
                                 .map(
                                   (key) => DropdownMenuEntry<String>(
                                     labelWidget: Text(
                                       itemProvider.fieldMappings[key]
                                               ?['FieldName'] ??
                                           key,
-                                      style: AppTheme
-                                          .textLabelStyle, // 🔹 한글 필드명 사용
+                                      style: AppTheme.textLabelStyle,
                                     ),
                                     value: key,
                                     label: itemProvider.fieldMappings[key]
                                             ?['FieldName'] ??
-                                        key, // 🔹 한글 필드명 사용
+                                        key,
                                   ),
                                 )
                                 .toList(),
@@ -685,29 +1008,25 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                               });
                             },
                           ),
-
-                          // 🔹 값 입력 필드
                           Flexible(
                             child: Container(
-                              constraints: BoxConstraints(
+                              constraints: const BoxConstraints(
                                 maxHeight: 200,
-                                // maxWidth: 200,
                               ),
                               child: Scrollbar(
                                 child: SingleChildScrollView(
-                                  padding: EdgeInsets.only(left: 15, right: 15),
+                                  padding: const EdgeInsets.only(
+                                      left: 15, right: 15),
                                   child: TextField(
                                     decoration: InputDecoration(
-                                      contentPadding: EdgeInsets.all(15),
+                                      contentPadding: const EdgeInsets.all(15),
                                       labelText: selectedKey ?? 'keyword',
                                       hintText: "값을 입력하세요",
-                                      border: OutlineInputBorder(),
+                                      border: const OutlineInputBorder(),
                                     ),
-                                    keyboardType: TextInputType
-                                        .multiline, // 🔹 키보드 유형을 멀티라인으로 변경
-                                    textInputAction: TextInputAction
-                                        .newline, // 🔹 엔터 키를 누르면 새 줄 입력
-                                    maxLines: null, // 🔹 여러 줄 입력 가능
+                                    keyboardType: TextInputType.multiline,
+                                    textInputAction: TextInputAction.newline,
+                                    maxLines: null,
                                     onChanged: (value) {
                                       inputValue = value;
                                     },
@@ -718,7 +1037,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -728,38 +1047,28 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                             },
                             child: const Text("Cancel"),
                           ),
-
-                          // 🔹 추가 버튼
                           ElevatedButton(
                             onPressed: () async {
-                              // 🔹 1. `selectedID`와 `selectedKey`가 `null`이면 실행 중단
                               if (!isDefault && selectedID == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("항목을 선택해주세요.")),
+                                  const SnackBar(content: Text("항목을 선택해주세요.")),
                                 );
                                 return;
                               }
                               if (selectedKey == null || inputValue.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("값을 입력해주세요.")),
+                                  const SnackBar(content: Text("값을 입력해주세요.")),
                                 );
                                 return;
                               }
-
-                              // 🔹 2. Firestore 경로 결정 (isDefault 여부에 따라 다름)
                               String collectionPath;
                               String documentId;
-
                               if (isDefault) {
-                                // 🔹 isDefault == true → 기존대로 Items 컬렉션 사용
                                 collectionPath = 'Items';
                                 documentId = itemId;
                               } else {
-                                // 🔹 isDefault == false → Sub_Items 컬렉션 사용
                                 collectionPath = 'Items/$itemId/Sub_Items';
-
                                 if (selectedID == '신규') {
-                                  // 신규 ID 생성 (UUID 또는 Firestore 자동 ID 사용 가능)
                                   documentId = FirebaseFirestore.instance
                                       .collection(collectionPath)
                                       .doc()
@@ -768,13 +1077,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                   documentId = selectedID!;
                                 }
                               }
-
-                              // 🔹 3. 해당 컬렉션에서 `selectedKey`의 존재 여부 확인
                               final docRef = FirebaseFirestore.instance
                                   .collection(collectionPath)
                                   .doc(documentId);
                               final docSnapshot = await docRef.get();
-
                               if (docSnapshot.exists) {
                                 final existingData = docSnapshot.data() ?? {};
                                 if (existingData.containsKey(selectedKey)) {
@@ -786,16 +1092,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                   return;
                                 }
                               }
-
-                              // 🔹 4. Firestore에 키-값 추가
                               await docRef.set({
-                                selectedKey!: inputValue, // 선택된 키-값 추가
-                              }, SetOptions(merge: true)); // 기존 데이터와 병합
-
-                              // 🔹 완료 후 UI 업데이트 및 닫기
+                                selectedKey!: inputValue,
+                              }, SetOptions(merge: true));
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('항목을 추가하였습니다.')),
+                                const SnackBar(content: Text('항목을 추가하였습니다.')),
                               );
                             },
                             child: const Text("Add"),

@@ -1,3 +1,25 @@
+🔹 isDefault == true (기존 방식 유지)
+Items (컬렉션)
+ ├── itemId (문서)
+ │   ├── selectedKey: "입력된 값" ✅ 추가됨
+ │   ├── 기존 데이터 유지
+
+
+🔹 isDefault == false && selectedID == '신규' (새로운 Sub_Item 생성)
+Items (컬렉션)
+ ├── itemId (문서)
+ │   ├── Sub_Items (하위 컬렉션)
+ │   │   ├── newSubItemId (문서) ✅ 새로 생성됨
+ │   │   │   ├── selectedKey: "입력된 값"
+
+🔹 isDefault == false && selectedID != '신규' (기존 Sub_Item에 추가)
+Items (컬렉션)
+ ├── itemId (문서)
+ │   ├── Sub_Items (하위 컬렉션)
+ │   │   ├── selectedID (문서) ✅ 기존 문서에 추가됨
+ │   │   │   ├── selectedKey: "입력된 값"
+
+
 {
   "items": [
     {

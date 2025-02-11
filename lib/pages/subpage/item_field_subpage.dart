@@ -40,6 +40,7 @@ class _Item_FieldState extends State<Item_Field> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          scrollable: true, // 스크롤 가능하도록 설정
           title: Text(
             document == null ? 'Add Field' : 'Edit Field',
             style: AppTheme.appbarTitleTextStyle,
