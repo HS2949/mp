@@ -1,20 +1,21 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
-import 'package:provider/provider.dart';
 
+import '../../models/item_model.dart';
 import '../../providers/Item_detail/Item_detail_provider.dart';
 import '../../providers/Item_detail/Item_detail_state.dart';
-import '../../models/item_model.dart';
 
 class ItemDetailSubpage extends StatefulWidget {
-  const ItemDetailSubpage(
-      {Key? key, required this.itemId, required this.viewSelect})
+  const ItemDetailSubpage({Key? key, required this.itemId, required this.viewSelect})
       : super(key: key);
 
   final String itemId;
@@ -29,7 +30,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   late final ItemProvider provider;
   final firestoreService = FirestoreService();
 
-  /// state 변수로 firebase의 subItems 데이터를 그룹화한 결과를 저장
+  /// Firebase의 subItems 데이터를 그룹화한 결과를 저장하는 상태 변수
   List<Map<String, dynamic>> _computedGroups = [];
   bool _allGroupsExpanded = false;
 
@@ -37,7 +38,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   void initState() {
     super.initState();
     provider = Provider.of<ItemProvider>(context, listen: false);
-    // Firestore 조회 (itemId 변경 시 다시 실행)
+    // itemId 변경 시 Firestore 조회
     Future.microtask(() {
       Provider.of<ItemDetailProvider>(context, listen: false)
           .listenToItemDetail(itemId: widget.itemId);
@@ -61,12 +62,13 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     super.dispose();
   }
 
-  /// Firebase의 최신 item.subItems 데이터를 기반으로 그룹 데이터를 재계산합니다.
-  /// 기존 _computedGroups와 병합하여 동일 그룹/아이템의 확장 상태는 유지합니다.
-  void _updateComputedGroups(Item item) {
+  // -----------------------------------------------------
+  // 그룹 계산 로직을 별도의 함수로 분리
+  List<Map<String, dynamic>> _computeGroupsFromItem(Item item) {
     final Map<String, List<Map<String, dynamic>>> groupedData = {};
     for (var subItem in item.subItems) {
-      final groupKey = subItem.fields['SubItem'] ?? '(미분류)'; // null이면 "기타"로 설정
+      final groupKey =
+          subItem.fields['SubItem'] ?? '(미분류)'; // null이면 "(미분류)"로 설정
       groupedData.putIfAbsent(groupKey, () => []).add(subItem.fields);
     }
     // 각 그룹 내에서 'SubOrder' 순으로 정렬
@@ -80,7 +82,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     // 그룹들을 아이템 개수가 많은 순(내림차순)으로 정렬
     final sortedGroups = groupedData.entries.toList()
       ..sort((a, b) => b.value.length.compareTo(a.value.length));
-    List<Map<String, dynamic>> newGroups = sortedGroups.map((entry) {
+    List<Map<String, dynamic>> groups = sortedGroups.map((entry) {
       final groupTitle = entry.key;
       final subItems = entry.value;
       final items = subItems.map<Map<String, dynamic>>((subItem) {
@@ -89,7 +91,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           ..remove('SubItem')
           ..remove('SubName')
           ..remove('SubOrder');
-
         final itemProvider = context.read<ItemProvider>();
         final List<String> attributes = attributesMap.entries
             .map((e) =>
@@ -107,8 +108,16 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         "items": items,
       };
     }).toList();
+    return groups;
+  }
+  // -----------------------------------------------------
 
-    // 기존 _computedGroups와 병합: 같은 그룹/아이템이면 기존 확장 상태를 유지
+  /// Firebase의 최신 item.subItems 데이터를 기반으로 그룹 데이터를 재계산합니다.
+  /// 기존 _computedGroups와 병합하여 동일 그룹/아이템의 확장 상태를 유지합니다.
+  void _updateComputedGroups(Item item) {
+    List<Map<String, dynamic>> newGroups = _computeGroupsFromItem(item);
+
+    // 기존 _computedGroups와 병합: 같은 그룹/아이템이면 기존 확장 상태 유지
     if (_computedGroups.isNotEmpty) {
       for (var newGroup in newGroups) {
         final index = _computedGroups
@@ -127,7 +136,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         }
       }
     }
-    // 업데이트된 그룹 데이터를 state에 반영 (빌드 완료 후 업데이트)
+    // 업데이트된 그룹 데이터를 state에 반영 (빌드 완료 후)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -170,88 +179,93 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     });
   }
 
-  void _addItem(BuildContext context) {
-    TextEditingController itemController = TextEditingController();
+  /// 아이템 추가 다이얼로그
+  Future<void> _addItem(BuildContext context) async {
+    final TextEditingController itemController = TextEditingController();
     String? selectedGroup =
         _computedGroups.isNotEmpty ? _computedGroups[0]["groupTitle"] : null;
 
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text("새 아이템 추가"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: "그룹 선택"),
-                value: selectedGroup,
-                items: [
-                  ..._computedGroups.map((group) => DropdownMenuItem(
-                        value: group["groupTitle"],
-                        child: Text(group["groupTitle"]),
-                      )),
-                  DropdownMenuItem(
-                    value: "새 그룹",
-                    child: Text("새 그룹 생성"),
-                  ),
-                ],
-                onChanged: (value) {
-                  selectedGroup = value;
-                },
-              ),
-              TextField(
-                controller: itemController,
-                decoration: InputDecoration(labelText: "아이템명"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text("취소"),
+    try {
+      await showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            title: Text("새 아이템 추가"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(labelText: "그룹 선택"),
+                  value: selectedGroup,
+                  items: [
+                    ..._computedGroups.map((group) => DropdownMenuItem(
+                          value: group["groupTitle"],
+                          child: Text(group["groupTitle"]),
+                        )),
+                    DropdownMenuItem(
+                      value: "새 그룹",
+                      child: Text("새 그룹 생성"),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    selectedGroup = value;
+                  },
+                ),
+                TextField(
+                  controller: itemController,
+                  decoration: InputDecoration(labelText: "아이템명"),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                if (selectedGroup != null &&
-                    itemController.text.trim().isNotEmpty) {
-                  setState(() {
-                    String itemName = itemController.text.trim();
-                    if (selectedGroup == "새 그룹") {
-                      String newGroupName =
-                          "그룹 ${String.fromCharCode(65 + _computedGroups.length)}";
-                      _computedGroups.add({
-                        "groupTitle": newGroupName,
-                        "isExpanded": false,
-                        "items": [
-                          {
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text("취소"),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (selectedGroup != null &&
+                      itemController.text.trim().isNotEmpty) {
+                    setState(() {
+                      String itemName = itemController.text.trim();
+                      if (selectedGroup == "새 그룹") {
+                        String newGroupName =
+                            "그룹 ${String.fromCharCode(65 + _computedGroups.length)}";
+                        _computedGroups.add({
+                          "groupTitle": newGroupName,
+                          "isExpanded": false,
+                          "items": [
+                            {
+                              "title": itemName,
+                              "isExpanded": false,
+                              "attributes": []
+                            }
+                          ],
+                        });
+                      } else {
+                        int groupIndex = _computedGroups.indexWhere(
+                            (group) => group["groupTitle"] == selectedGroup);
+                        if (groupIndex != -1) {
+                          _computedGroups[groupIndex]["items"].add({
                             "title": itemName,
                             "isExpanded": false,
-                            "attributes": []
-                          }
-                        ],
-                      });
-                    } else {
-                      int groupIndex = _computedGroups.indexWhere(
-                          (group) => group["groupTitle"] == selectedGroup);
-                      if (groupIndex != -1) {
-                        _computedGroups[groupIndex]["items"].add({
-                          "title": itemName,
-                          "isExpanded": false,
-                          "attributes": [],
-                        });
+                            "attributes": [],
+                          });
+                        }
                       }
-                    }
-                  });
-                  Navigator.pop(dialogContext);
-                }
-              },
-              child: Text("추가"),
-            ),
-          ],
-        );
-      },
-    );
+                    });
+                    Navigator.pop(dialogContext);
+                  }
+                },
+                child: Text("추가"),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      itemController.dispose();
+    }
   }
 
   void _addAttribute(int groupIndex, int itemIndex) {
@@ -393,6 +407,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       child: CustomScrollView(
         slivers: [
           SliverAppBar.large(
+            surfaceTintColor: AppTheme.textStrongColor,
             title: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -445,138 +460,136 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     final sortedItemFields = Map<String, dynamic>.fromEntries(itemFieldEntries);
 
     return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Flexible(
-                  child: Wrap(
-                    children: [
-                      SelectableText(
-                        (itemData.itemTag).isEmpty ? '#Tag' : itemData.itemTag,
-                        style: AppTheme.tagTextStyle,
-                        textAlign: TextAlign.start,
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  constraints:
-                      const BoxConstraints(minWidth: 16, minHeight: 16),
-                  icon: Icon(
-                    Icons.edit,
-                    size: 10,
-                    color: AppTheme.toolColor,
-                  ),
-                  onPressed: () {
-                    _showEditDialog(context, 'keyword', '태그', itemData.itemTag,
-                        itemData.id);
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 15),
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: Wrap(
-                spacing: 2.0,
-                runSpacing: 0.0,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  for (var entry in sortedItemFields.entries)
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final itemProvider = context.read<ItemProvider>();
-                        final String label = itemProvider
-                                .fieldMappings[entry.key]?['FieldName'] ??
-                            entry.key;
-                        final int maxLineLength = entry.value
-                            .split(';')
-                            .map((e) => e.trim().length)
-                            .reduce((a, b) => a > b ? a : b);
-                        final dynamicWidth = (maxLineLength * 14.0)
-                            .clamp(150.0, constraints.maxWidth * 1.0);
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 15.0),
-                          child: Card(
-                            elevation: 0,
-                            child: Container(
-                              width: dynamicWidth,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SelectableText(label,
-                                          style: AppTheme.fieldLabelTextStyle),
-                                      const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                      ),
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(
-                                              minWidth: 16, minHeight: 16),
-                                          tooltip: "Edit",
-                                          icon: Icon(
-                                            Icons.edit,
-                                            size: 10,
-                                            color: AppTheme.toolColor,
-                                          ),
-                                          onPressed: () {
-                                            _showEditDialog(
-                                                context,
-                                                entry.key,
-                                                itemProvider.fieldMappings[entry
-                                                        .key]?['FieldName'] ??
-                                                    entry.key,
-                                                entry.value,
-                                                itemData.id);
-                                          },
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                  const SizedBox(height: 5),
-                                  TextField(
-                                    controller: TextEditingController(
-                                        text: entry.value),
-                                    style: entry.value.length > 20
-                                        ? AppTheme.bodySmallTextStyle
-                                        : AppTheme.bodySmallTextStyle,
-                                    readOnly: true,
-                                    maxLines: null,
-                                    decoration: const InputDecoration(
-                                      filled: false,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      contentPadding: EdgeInsets.zero,
-                                      isDense: true,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                  Flexible(
+                    child: Wrap(
+                      children: [
+                        SelectableText(
+                          (itemData.itemTag).isEmpty
+                              ? '#Tag'
+                              : itemData.itemTag,
+                          style: AppTheme.tagTextStyle,
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
                     ),
+                  ),
+                  IconButton(
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
+                    icon: Icon(
+                      Icons.edit,
+                      size: 10,
+                      color: AppTheme.toolColor,
+                    ),
+                    onPressed: () {
+                      _showEditDialog(context, 'keyword', '태그',
+                          itemData.itemTag, itemData.id);
+                    },
+                  ),
                 ],
               ),
             ),
-          )
-        ],
+            const SizedBox(height: 15),
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(5.0),
+                child: Wrap(
+                  spacing: 40.0,
+                  runSpacing: 50.0,
+                  children: [
+                    for (var entry in sortedItemFields.entries)
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final itemProvider = context.read<ItemProvider>();
+                          final String label = itemProvider
+                                  .fieldMappings[entry.key]?['FieldName'] ??
+                              entry.key;
+
+                          return Card(
+                            elevation: 0,
+                            margin: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                            child: IntrinsicWidth(
+                              child: Container(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        SelectableText(label,
+                                            style:
+                                                AppTheme.fieldLabelTextStyle),
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: IconButton(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(
+                                                minWidth: 16, minHeight: 16),
+                                            tooltip: "Edit",
+                                            icon: Icon(
+                                              Icons.edit,
+                                              size: 10,
+                                              color: AppTheme.toolColor,
+                                            ),
+                                            onPressed: () {
+                                              _showEditDialog(
+                                                  context,
+                                                  entry.key,
+                                                  itemProvider.fieldMappings[
+                                                              entry.key]
+                                                          ?['FieldName'] ??
+                                                      entry.key,
+                                                  entry.value,
+                                                  itemData.id);
+                                            },
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                    const SizedBox(height: 5),
+                                    TextField(
+                                      controller: TextEditingController(
+                                          text: entry.value),
+                                      style: entry.value.length > 20
+                                          ? AppTheme.bodySmallTextStyle
+                                          : AppTheme.bodySmallTextStyle,
+                                      readOnly: true,
+                                      maxLines: null,
+                                      decoration: const InputDecoration(
+                                        filled: false,
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        contentPadding: EdgeInsets.zero,
+                                        isDense: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -760,358 +773,447 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     );
   }
 
-  void _showEditDialog(BuildContext context, String key, String name,
-      String value, String itemId) {
-    TextEditingController textController = TextEditingController(text: value);
+  /// 항목 편집 다이얼로그
+  Future<void> _showEditDialog(BuildContext context, String key, String name,
+      String value, String itemId) async {
+    final TextEditingController textController =
+        TextEditingController(text: value);
     final firestoreService = FirestoreService();
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-          child: SizedBox(
-            width: 400,
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '항목 편집',
-                    style: AppTheme.appbarTitleTextStyle,
-                  ),
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: IconButton(
-                      onPressed: () async {
-                        FiDeleteDialog(
+    try {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+            child: SizedBox(
+              width: 400,
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '항목 편집',
+                      style: AppTheme.appbarTitleTextStyle,
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        onPressed: () async {
+                          FiDeleteDialog(
                             context: context,
-                            deleteFunction: () async => firestoreService
-                                .deleteKeywordValue(itemId, key),
-                            shouldCloseScreen: true);
-                      },
-                      icon: const Icon(Icons.delete_forever_outlined),
-                      tooltip: "삭제",
-                    ),
-                  ),
-                  TextField(
-                    controller: TextEditingController(text: name),
-                    decoration: InputDecoration(
-                      labelText: 'Edit Field',
-                      labelStyle: AppTheme.textLabelStyle,
-                      filled: false,
-                      enabled: false,
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                            color: AppTheme.buttonlightbackgroundColor),
-                        borderRadius: BorderRadius.circular(8),
+                            deleteFunction: () async =>
+                                firestoreService.deleteKeywordValue(itemId, key),
+                            shouldCloseScreen: true,
+                          );
+                        },
+                        icon: const Icon(Icons.delete_forever_outlined),
+                        tooltip: "삭제",
                       ),
                     ),
-                    style: AppTheme.fieldLabelTextStyle,
-                    readOnly: true,
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    constraints: const BoxConstraints(
-                      maxHeight: 200,
+                    TextField(
+                      controller: TextEditingController(text: name),
+                      decoration: InputDecoration(
+                        labelText: 'Edit Field',
+                        labelStyle: AppTheme.textLabelStyle,
+                        filled: false,
+                        enabled: false,
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppTheme.buttonlightbackgroundColor),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      style: AppTheme.fieldLabelTextStyle,
+                      readOnly: true,
                     ),
-                    child: Scrollbar(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(0),
-                        child: TextField(
-                          controller: textController,
-                          decoration: const InputDecoration(
-                            labelText: 'Field Value',
-                            border: OutlineInputBorder(),
+                    const SizedBox(height: 10),
+                    Container(
+                      constraints: const BoxConstraints(
+                        maxHeight: 200,
+                      ),
+                      child: Scrollbar(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(0),
+                          child: TextField(
+                            controller: textController,
+                            decoration: const InputDecoration(
+                              labelText: 'Field Value',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
+                            maxLines: null,
                           ),
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          maxLines: null,
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Wrap(
-                      alignment: WrapAlignment.end,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Wrap(
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("취소"),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                await firestoreService.addKeywordValue(
-                                    itemId, key, textController.text, true);
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('수정하였습니다.')));
-                              },
-                              child: const Text("저장"),
-                            ),
-                          ],
-                        ),
-                      ],
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Wrap(
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("취소"),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await firestoreService.addKeywordValue(
+                                      itemId, key, textController.text, true);
+                                  Navigator.pop(context);
+
+                                  showOverlayMessage(context, '수정하였습니다.');
+                                },
+                                child: const Text("저장"),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      textController.dispose();
+    }
   }
 
+  /// 기본 정보 및 추가 정보 탭이 있는 다이얼로그 (항목 추가)
   Future<void> _showAddDialog(
       BuildContext context, ItemProvider itemProvider, String itemId) async {
     String? selectedKey;
-    String? selectedID;
-    String inputValue = "";
     final item = context.read<ItemDetailProvider>().getItemData(widget.itemId);
-    bool isDefault = true;
-
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0)),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(15.0),
-                child: SizedBox(
-                  width: 400,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '항목 추가',
-                        style: AppTheme.appbarTitleTextStyle,
-                      ),
-                      const SizedBox(height: 20),
-                      Padding(
+    // 현재 아이템 데이터를 기반으로 최신 그룹 리스트를 즉시 계산
+    final computedGroups = item != null ? _computeGroupsFromItem(item) : [];
+    final TextEditingController value1Controller = TextEditingController();
+    final TextEditingController value2Controller = TextEditingController();
+    final TextEditingController groupController = TextEditingController();
+    // 기본 정보 탭과 추가 정보 탭에 각각 사용할 ScrollController
+    final ScrollController defaultScrollController = ScrollController();
+    final ScrollController addScrollController = ScrollController();
+    String? selectedGroup =
+        _computedGroups.isNotEmpty ? _computedGroups[0]["groupTitle"] : null;
+    String? label_ko;
+    
+    try {
+      await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            child: DefaultTabController(
+              length: 2, // 두 개의 탭: 기본 정보, 추가 정보
+              child: Builder(
+                builder: (context) {
+                  final TabController tabController =
+                      DefaultTabController.of(context)!;
+                  return StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setState) {
+                      return SingleChildScrollView(
                         padding: const EdgeInsets.all(15.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: FilterChip(
-                                checkmarkColor: AppTheme.secondaryColor,
-                                selectedColor: Colors.yellow[100],
-                                backgroundColor: Colors.blue[50],
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  side: BorderSide.none,
-                                ),
-                                label: SizedBox(
-                                    width: 100,
-                                    height: 20,
-                                    child: Center(
-                                        child: Text(isDefault
-                                            ? 'Default Field'
-                                            : 'Resources'))),
-                                selected: isDefault,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    isDefault = selected;
-                                  });
-                                },
+                        child: SizedBox(
+                          width: 400,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 다이얼로그 타이틀
+                              Text(
+                                '${item?.itemName ?? ""} - 정보 추가',
+                                style: AppTheme.appbarTitleTextStyle,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          isDefault
-                              ? const SizedBox.shrink()
-                              : DropdownMenu<String>(
-                                  enableFilter: true,
-                                  requestFocusOnTap: true,
-                                  expandedInsets: const EdgeInsets.all(15),
-                                  label: const Text('Select SubItem'),
-                                  dropdownMenuEntries: [
-                                    DropdownMenuEntry<String>(
-                                      labelWidget: Text('신규',
-                                          style: AppTheme.textLabelStyle),
-                                      value: '신규',
-                                      label: '신규',
-                                    ),
-                                    ...(item?.subItems ?? []).map(
-                                      (subItem) => DropdownMenuEntry<String>(
-                                        labelWidget: Text(
-                                          subItem.fields.containsKey('SubName')
-                                              ? subItem.fields['SubName']
-                                                  .toString()
-                                              : subItem.id,
-                                          style: AppTheme.textLabelStyle,
+                              const SizedBox(height: 20),
+                              // 상단 탭바
+                              TabBar(
+                                controller: tabController,
+                                indicatorColor: AppTheme.text9Color,
+                                indicatorSize: TabBarIndicatorSize.label,
+                                dividerColor: Colors.grey[300],
+                                indicatorWeight: 4.0,
+                                unselectedLabelColor: Colors.grey,
+                                tabs: const [
+                                  Tab(text: '기본 정보'),
+                                  Tab(text: '추가 정보'),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              // 탭에 따른 내용을 보여주는 TabBarView
+                              SizedBox(
+                                height: 210,
+                                child: TabBarView(
+                                  controller: tabController,
+                                  children: [
+                                    // =======================================================  첫 번째 탭: 기본 정보
+                                    Column(
+                                      children: [
+                                        const SizedBox(height: 10),
+                                        DropdownMenu<String>(
+                                          initialSelection: selectedKey,
+                                          requestFocusOnTap: false,
+                                          expandedInsets: const EdgeInsets.all(15),
+                                          label: const Text('항목 선택'),
+                                          dropdownMenuEntries: () {
+                                            final sortedKeys = itemProvider
+                                                .fieldMappings.keys
+                                                .where((key) =>
+                                                    itemProvider.fieldMappings[key]?['IsDefault'] ==
+                                                    true)
+                                                .toList();
+                                            sortedKeys.sort((a, b) {
+                                              final orderA =
+                                                  itemProvider.fieldMappings[a]?['FieldOrder'] ?? 0;
+                                              final orderB =
+                                                  itemProvider.fieldMappings[b]?['FieldOrder'] ?? 0;
+                                              return orderA.compareTo(orderB);
+                                            });
+                                            return sortedKeys
+                                                .map(
+                                                  (key) => DropdownMenuEntry<String>(
+                                                    labelWidget: Text(
+                                                      itemProvider.fieldMappings[key]?['FieldName'] ?? key,
+                                                      style: AppTheme.textLabelStyle,
+                                                    ),
+                                                    value: key,
+                                                    label: itemProvider.fieldMappings[key]?['FieldName'] ?? key,
+                                                  ),
+                                                )
+                                                .toList();
+                                          }(),
+                                          onSelected: (String? newValue) {
+                                            setState(() {
+                                              selectedKey = newValue;
+                                              label_ko = itemProvider.fieldMappings[selectedKey]?['FieldName'] ?? selectedKey;
+                                            });
+                                          },
                                         ),
-                                        value: subItem.id,
-                                        label: subItem.fields
-                                                .containsKey('SubName')
-                                            ? subItem.fields['SubName']
-                                                .toString()
-                                            : subItem.id,
-                                      ),
+                                        const SizedBox(height: 10),
+                                        Flexible(
+                                          child: Container(
+                                            constraints: const BoxConstraints(maxHeight: 200),
+                                            child: Scrollbar(
+                                              controller: defaultScrollController,
+                                              child: SingleChildScrollView(
+                                                controller: defaultScrollController,
+                                                padding: const EdgeInsets.only(left: 15, right: 15),
+                                                child: TextField(
+                                                  controller: value1Controller,
+                                                  decoration: InputDecoration(
+                                                    contentPadding: const EdgeInsets.all(15),
+                                                    labelText: selectedKey ?? 'Value',
+                                                    hintText: label_ko == null
+                                                        ? "Field를 먼저 선택하세요"
+                                                        : "[$label_ko] - 입력해 주세요",
+                                                    border: const OutlineInputBorder(),
+                                                  ),
+                                                  keyboardType: TextInputType.multiline,
+                                                  textInputAction: TextInputAction.newline,
+                                                  maxLines: null,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    // ======================================================= 두 번째 탭: 추가 정보
+                                    Column(
+                                      children: [
+                                        const SizedBox(height: 10),
+                                        DropdownMenu<String>(
+                                          requestFocusOnTap: false,
+                                          expandedInsets: const EdgeInsets.all(15),
+                                          label: const Text('그룹'),
+                                          dropdownMenuEntries: [
+                                            DropdownMenuEntry<String>(
+                                              labelWidget: Text(
+                                                '새 그룹 생성',
+                                                style: AppTheme.textLabelStyle.copyWith(color: AppTheme.text4Color),
+                                              ),
+                                              value: '신규',
+                                              label: '새 그룹 생성',
+                                            ),
+                                            // computedGroups를 기반으로 그룹 목록 생성
+                                            ...computedGroups.map(
+                                              (group) => DropdownMenuEntry<String>(
+                                                value: group["groupTitle"],
+                                                label: group["groupTitle"],
+                                                labelWidget: Text(
+                                                  group["groupTitle"],
+                                                  style: AppTheme.textLabelStyle,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          onSelected: (String? newValue) {
+                                            setState(() {
+                                              selectedGroup = newValue;
+                                            });
+                                          },
+                                        ),
+                                        if (selectedGroup == '신규')
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 10, left: 50),
+                                            child: Flexible(
+                                              child: Container(
+                                                constraints: const BoxConstraints(maxHeight: 200),
+                                                child: Scrollbar(
+                                                  controller: addScrollController,
+                                                  child: SingleChildScrollView(
+                                                    controller: addScrollController,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                                                    child: TextField(
+                                                      controller: groupController,
+                                                      decoration: InputDecoration(
+                                                        contentPadding: const EdgeInsets.all(15),
+                                                        labelText: '새 그룹명',
+                                                        hintText: "예) 음식메뉴, 객실, 이용권, 기타..",
+                                                        border: const OutlineInputBorder(),
+                                                      ),
+                                                      maxLines: 1,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 20),
+                                        Flexible(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(15, 0, 15, 0),
+                                            child: TextField(
+                                              controller: value2Controller,
+                                              decoration: const InputDecoration(
+                                                contentPadding: EdgeInsets.all(15),
+                                                labelText: '서브 아이템명',
+                                                hintText: "예) 메뉴명, 객실명, 서비스명..",
+                                                border: OutlineInputBorder(),
+                                              ),
+                                              maxLines: 1,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                  onSelected: (String? newValue) {
-                                    setState(() {
-                                      selectedID = newValue;
-                                    });
-                                  },
-                                ),
-                          DropdownMenu<String>(
-                            initialSelection: selectedKey,
-                            enableFilter: true,
-                            requestFocusOnTap: true,
-                            expandedInsets: const EdgeInsets.all(15),
-                            label: const Text('Select Field'),
-                            dropdownMenuEntries: itemProvider.fieldMappings.keys
-                                .where((key) =>
-                                    itemProvider.fieldMappings[key]
-                                        ?['IsDefault'] ==
-                                    isDefault)
-                                .map(
-                                  (key) => DropdownMenuEntry<String>(
-                                    labelWidget: Text(
-                                      itemProvider.fieldMappings[key]
-                                              ?['FieldName'] ??
-                                          key,
-                                      style: AppTheme.textLabelStyle,
-                                    ),
-                                    value: key,
-                                    label: itemProvider.fieldMappings[key]
-                                            ?['FieldName'] ??
-                                        key,
-                                  ),
-                                )
-                                .toList(),
-                            onSelected: (String? newValue) {
-                              setState(() {
-                                selectedKey = newValue;
-                              });
-                            },
-                          ),
-                          Flexible(
-                            child: Container(
-                              constraints: const BoxConstraints(
-                                maxHeight: 200,
-                              ),
-                              child: Scrollbar(
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.only(
-                                      left: 15, right: 15),
-                                  child: TextField(
-                                    decoration: InputDecoration(
-                                      contentPadding: const EdgeInsets.all(15),
-                                      labelText: selectedKey ?? 'keyword',
-                                      hintText: "값을 입력하세요",
-                                      border: const OutlineInputBorder(),
-                                    ),
-                                    keyboardType: TextInputType.multiline,
-                                    textInputAction: TextInputAction.newline,
-                                    maxLines: null,
-                                    onChanged: (value) {
-                                      inputValue = value;
-                                    },
-                                  ),
                                 ),
                               ),
-                            ),
+                              const SizedBox(height: 30),
+                              // ======================================================= 버튼
+                              Padding(
+                                padding: const EdgeInsets.only(left: 15, right: 15),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text("Cancel"),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        // 현재 선택된 탭 인덱스 확인 (0: 기본 정보, 1: 추가 정보)
+                                        final int currentTabIndex = tabController.index;
+
+                                        if (currentTabIndex == 0) {
+                                          // 기본 정보 탭
+                                          if (selectedKey == null) {
+                                            showOverlayMessage(context, "항목을 선택해주세요.");
+                                            return;
+                                          }
+                                          final String defaultValue = value1Controller.text.trim();
+                                          if (defaultValue.isEmpty) {
+                                            showOverlayMessage(context, "값을 입력해주세요.");
+                                            return;
+                                          }
+                                          final String collectionPath = 'Items';
+                                          final String documentId = itemId;
+                                          final docRef = FirebaseFirestore.instance.collection(collectionPath).doc(documentId);
+
+                                          final docSnapshot = await docRef.get();
+                                          if (docSnapshot.exists) {
+                                            final existingData = docSnapshot.data() ?? {};
+                                            if (existingData.containsKey(selectedKey)) {
+                                              showOverlayMessage(context, "'$label_ko' 항목이 이미 존재합니다.");
+                                              return;
+                                            }
+                                          }
+
+                                          await docRef.set({selectedKey!: defaultValue}, SetOptions(merge: true));
+                                          Navigator.of(context).pop();
+                                          showOverlayMessage(context, '항목을 추가하였습니다.');
+                                        } else if (currentTabIndex == 1) {
+                                          // 추가 정보 탭
+                                          final String subItemName = value2Controller.text.trim();
+                                          if (subItemName.isEmpty) {
+                                            showOverlayMessage(context, "서브 아이템명을 입력해주세요.");
+                                            return;
+                                          }
+                                          if (selectedGroup == null) {
+                                            showOverlayMessage(context, "그룹을 선택해주세요.");
+                                            return;
+                                          }
+                                          String finalGroup;
+                                          if (selectedGroup == '신규') {
+                                            final String groupName = groupController.text.trim();
+                                            if (groupName.isEmpty) {
+                                              showOverlayMessage(context, "새 그룹명을 입력해주세요.");
+                                              return;
+                                            }
+                                            finalGroup = groupName;
+                                          } else {
+                                            finalGroup = selectedGroup!;
+                                          }
+                                          final String subCollectionPath = 'Items/$itemId/Sub_Items';
+                                          final String documentId = FirebaseFirestore.instance.collection(subCollectionPath).doc().id;
+                                          final docRef = FirebaseFirestore.instance.collection(subCollectionPath).doc(documentId);
+                                          final Map<String, dynamic> subItemData = {
+                                            'SubName': subItemName,
+                                            'SubItem': finalGroup,
+                                          };
+
+                                          await docRef.set(subItemData);
+                                          Navigator.of(context).pop();
+                                          showOverlayMessage(context, '서브 아이템을 추가하였습니다.');
+                                        }
+                                      },
+                                      child: const Text("Add"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text("Cancel"),
-                          ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              if (!isDefault && selectedID == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("항목을 선택해주세요.")),
-                                );
-                                return;
-                              }
-                              if (selectedKey == null || inputValue.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("값을 입력해주세요.")),
-                                );
-                                return;
-                              }
-                              String collectionPath;
-                              String documentId;
-                              if (isDefault) {
-                                collectionPath = 'Items';
-                                documentId = itemId;
-                              } else {
-                                collectionPath = 'Items/$itemId/Sub_Items';
-                                if (selectedID == '신규') {
-                                  documentId = FirebaseFirestore.instance
-                                      .collection(collectionPath)
-                                      .doc()
-                                      .id;
-                                } else {
-                                  documentId = selectedID!;
-                                }
-                              }
-                              final docRef = FirebaseFirestore.instance
-                                  .collection(collectionPath)
-                                  .doc(documentId);
-                              final docSnapshot = await docRef.get();
-                              if (docSnapshot.exists) {
-                                final existingData = docSnapshot.data() ?? {};
-                                if (existingData.containsKey(selectedKey)) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text(
-                                            "'${selectedKey}' 항목이 이미 존재합니다.")),
-                                  );
-                                  return;
-                                }
-                              }
-                              await docRef.set({
-                                selectedKey!: inputValue,
-                              }, SetOptions(merge: true));
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('항목을 추가하였습니다.')),
-                              );
-                            },
-                            child: const Text("Add"),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
-            );
-          },
-        );
-      },
-    );
+            ),
+          );
+        },
+      );
+    } finally {
+      value1Controller.dispose();
+      value2Controller.dispose();
+      groupController.dispose();
+      defaultScrollController.dispose();
+      addScrollController.dispose();
+    }
   }
 }

@@ -26,32 +26,37 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
   String? selectedCategory;
   late ItemProvider _provider;
 
-  @override
+  late final VoidCallback _searchListener;
+
   @override
   void initState() {
     super.initState();
     _provider = context.read<ItemProvider>();
 
-    // 검색어 변경 감지 및 필터링 적용
-    _provider.searchController.addListener(() {
+    // searchController의 리스너를 별도 변수로 저장
+    _searchListener = () {
       _provider.filterItems(
         _provider.searchController.text,
         selectedCategory: selectedCategory,
       );
-    });
+    };
+
+    _provider.searchController.addListener(_searchListener);
   }
 
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    // 네비게이션에서 돌아올 때마다 필터 초기화
-    _provider.searchController.text = '';
-    _provider.filterItems('', selectedCategory: '전체');
+    // build가 완료된 후에 상태를 변경하도록 post frame callback 사용
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _provider.searchController.text = '';
+      _provider.filterItems('', selectedCategory: '전체');
+    });
   }
 
   @override
   void dispose() {
-    _provider.searchController.removeListener(() {});
+    _provider.searchController.removeListener(_searchListener);
     super.dispose();
   }
 
@@ -185,7 +190,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                 },
               ),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Flexible(
               flex: 1,
               fit: FlexFit.loose,
@@ -196,18 +201,15 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                   onExit: (_) => setState(() => isHovered = false), // 마우스 나갈 시
                   child: ElevatedButton(
                       onPressed: () {
-                        _provider
-                            .removeAllTabs(); // Close 버튼 클릭 시에도 0번 탭으로 변경 가능
-                        // _provider.toggleSecondTab(false); // 두 번째 탭 활성화
+                        _provider.removeAllTabs();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isHovered
                             ? AppTheme.buttonbackgroundColor
-                            : AppTheme
-                                .buttonlightbackgroundColor, // 마우스 오버 시 색상 변경
-                        foregroundColor: Colors.white, // 글자 색상 유지
+                            : AppTheme.buttonlightbackgroundColor,
+                        foregroundColor: Colors.white,
                       ),
-                      child: Text('Close')),
+                      child: const Text('Close')),
                 ),
               ),
             )
@@ -248,6 +250,16 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
           filteredItems.sublist((filteredItems.length / 2).ceil());
     }
 
+    // 빌드 시점에 리스트 정렬 처리 (빌드 도중에 리스트 변경하지 않도록)
+    final sortedItems = List.from(filteredDisplayItems)
+      ..sort((a, b) {
+        final aName =
+            (a.data() as Map<String, dynamic>)['ItemName'] ?? '';
+        final bName =
+            (b.data() as Map<String, dynamic>)['ItemName'] ?? '';
+        return koreanCompare(aName, bName);
+      });
+
     return provider.isLoading
         ? const Center(
             child: Padding(
@@ -261,103 +273,90 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
               ),
             ),
           )
-        : Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
-              child: ListView.builder(
-                shrinkWrap: true, // ListView 크기를 자식 위젯에 맞춤
-                physics: const NeverScrollableScrollPhysics(), // 스크롤 비활성화
-                itemCount: filteredDisplayItems.length,
-                itemBuilder: (context, index) {
-                  // 한글 자음 순서대로 정렬
-                  filteredDisplayItems.sort((a, b) {
-                    final aName =
-                        (a.data() as Map<String, dynamic>)['ItemName'] ?? '';
-                    final bName =
-                        (b.data() as Map<String, dynamic>)['ItemName'] ?? '';
-                    return koreanCompare(aName, bName);
-                  });
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: sortedItems.length,
+              itemBuilder: (context, index) {
+                final item = sortedItems[index];
+                final itemData = item.data() as Map<String, dynamic>;
+                final matchedCategory = provider.categories.firstWhere(
+                  (cat) => cat['itemID'] == itemData['CategoryID'],
+                  orElse: () => {'Color': 'Silver', 'Icon': 'List'},
+                );
 
-                  final item = filteredDisplayItems[index];
-                  final itemData = item.data() as Map<String, dynamic>;
-                  final matchedCategory = provider.categories.firstWhere(
-                    (cat) => cat['itemID'] == itemData['CategoryID'],
-                    orElse: () => {'Color': 'Silver', 'Icon': 'List'},
-                  );
+                final color = ColorLabel.values
+                    .firstWhere((e) => e.label == matchedCategory['Color'],
+                        orElse: () => ColorLabel.silver)
+                    .color;
+                final icon = IconLabel.values
+                    .firstWhere((e) => e.label == matchedCategory['Icon'],
+                        orElse: () => IconLabel.smile)
+                    .icon;
 
-                  final color = ColorLabel.values
-                      .firstWhere((e) => e.label == matchedCategory['Color'],
-                          orElse: () => ColorLabel.silver)
-                      .color;
-                  final icon = IconLabel.values
-                      .firstWhere((e) => e.label == matchedCategory['Icon'],
-                          orElse: () => IconLabel.smile)
-                      .icon;
-
-                  return Card(
-                    child: ListTile(
-                      leading: Icon(icon, color: color),
-                      title: Text(
-                        itemData['ItemName'] ?? 'No Name',
-                        style: TextStyle(
-                          color: provider.searchController.text.startsWith('#')
-                              ? AppTheme.textHintColor // #으로 시작하면 회색
-                              : Colors.black, // 기본 색상 (원하는 색으로 변경 가능)
-                          fontSize:
-                              provider.searchController.text.startsWith('#')
-                                  ? 15
-                                  : 16, // 기본 색상 (원하는 색으로 변경 가능)
-                        ),
+                return Card(
+                  child: ListTile(
+                    leading: Icon(icon, color: color),
+                    title: Text(
+                      itemData['ItemName'] ?? 'No Name',
+                      style: TextStyle(
+                        color: provider.searchController.text.startsWith('#')
+                            ? AppTheme.textHintColor
+                            : Colors.black,
+                        fontSize:
+                            provider.searchController.text.startsWith('#')
+                                ? 15
+                                : 16,
                       ),
-                      subtitle: Text(
-                        itemData['keyword'] ?? '-'.replaceAll(' ', '   '),
-                        maxLines: 2,
-                        softWrap: true,
-                        overflow: TextOverflow.ellipsis, // 2줄 이상이면 "..." 표시
-                        style: TextStyle(
-                          color: provider.searchController.text.startsWith('#')
-                              ? AppTheme.text6Color // #으로 시작하면
-                              : AppTheme.textHintColor, // 기본 색상 (원하는 색으로 변경 가능)
-                          fontSize:
-                              provider.searchController.text.startsWith('#')
-                                  ? 16
-                                  : 13, // 기본 색상 (원하는 색으로 변경 가능)
-                        ),
-                      ),
-                      onTap: () {
-                        // addTab 호출 시 this는 TickerProviderStateMixin을 구현하고 있음
-                        provider.addTab(
-                          context,
-                          itemData['ItemName'] ?? 'No Name',
-                          ItemDetailSubpage(
-                            itemId: filteredDisplayItems[index].id,
-                            viewSelect: 1,
-                          ),
-                          second: ItemDetailSubpage(
-                            itemId: filteredDisplayItems[index].id,
-                            viewSelect: 2,
-                          ),
-                          all: ItemDetailSubpage(
-                            itemId: filteredDisplayItems[index].id,
-                            viewSelect: 0,
-                          ),
-                        );
-                      },
                     ),
-                  );
-                },
-              ),
+                    subtitle: Text(
+                      itemData['keyword'] ?? '-'.replaceAll(' ', '   '),
+                      maxLines: 2,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: provider.searchController.text.startsWith('#')
+                            ? AppTheme.text6Color
+                            : AppTheme.textHintColor,
+                        fontSize:
+                            provider.searchController.text.startsWith('#')
+                                ? 16
+                                : 13,
+                      ),
+                    ),
+                    onTap: () {
+                      provider.addTab(
+                        context,
+                        itemData['ItemName'] ?? 'No Name',
+                        ItemDetailSubpage(
+                          itemId: sortedItems[index].id,
+                          viewSelect: 1,
+                        ),
+                        second: ItemDetailSubpage(
+                          itemId: sortedItems[index].id,
+                          viewSelect: 2,
+                        ),
+                        all: ItemDetailSubpage(
+                          itemId: sortedItems[index].id,
+                          viewSelect: 0,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           );
   }
 }
 
-///한글 정렬을 위한 koreanCompare 함수
+/// 한글 정렬을 위한 koreanCompare 함수
 int koreanCompare(String a, String b) {
   final String aFirst = a.isNotEmpty ? a[0] : '';
   final String bFirst = b.isNotEmpty ? b[0] : '';
-
-  return aFirst.compareTo(bFirst); // 기본적으로 한글 자음 순서대로 정렬
+  return aFirst.compareTo(bFirst);
 }
 
 void showAddItem(BuildContext context, String? itemId) async {
@@ -369,7 +368,7 @@ void showAddItem(BuildContext context, String? itemId) async {
       context.read<ItemProvider>().categories.skip(1).toList(); // '전체' 제외
   Map<String, dynamic>? selectedCategory; // 선택되지 않았을 경우 null 가능
 
-  // 🔹 편집 모드일 경우 기존 데이터 불러오기
+  // 편집 모드일 경우 기존 데이터 불러오기
   if (itemId != null && itemId.isNotEmpty) {
     final itemData = await firestoreService.getItemById(
         collectionName: 'Items', documentId: itemId);
@@ -406,11 +405,11 @@ void showAddItem(BuildContext context, String? itemId) async {
             mainAxisSize: MainAxisSize.min,
             children: [
               ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 250),
+                constraints: const BoxConstraints(maxWidth: 250),
                 child: TextField(
                   controller: nameController,
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.all(13),
+                    contentPadding: const EdgeInsets.all(13),
                     suffixIcon: ClearButton(controller: nameController),
                     labelText: '등록할 상호명',
                     hintText: '예) OO관광지, OO식당, OO호텔, OO차량 ...',
@@ -428,16 +427,15 @@ void showAddItem(BuildContext context, String? itemId) async {
                     color: selectedColor.color,
                     size: 40,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Flexible(
                     child: SizedBox(
                       width: 200,
                       child: DropdownMenu<String>(
                         requestFocusOnTap: false,
-                        expandedInsets: EdgeInsets.all(0),
-                        label: Text('카테고리 선택'),
-                        initialSelection:
-                            selectedCategory?['Name'], // 🔹 초기 선택값 설정
+                        expandedInsets: EdgeInsets.zero,
+                        label: const Text('카테고리 선택'),
+                        initialSelection: selectedCategory?['Name'],
                         dropdownMenuEntries: categories
                             .map(
                               (category) => DropdownMenuEntry<String>(
@@ -445,7 +443,7 @@ void showAddItem(BuildContext context, String? itemId) async {
                                   category['Name'] ?? '-',
                                   style: AppTheme.textLabelStyle,
                                 ),
-                                value: category['Name'], // 선택 시 반환될 값
+                                value: category['Name'],
                                 leadingIcon: Icon(
                                   IconLabel.values
                                       .firstWhere(
@@ -492,23 +490,18 @@ void showAddItem(BuildContext context, String? itemId) async {
                     },
                     child: const Text("Cancel"),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   ElevatedButton(
                     onPressed: () async {
                       if (nameController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('상호명을 입력해주세요!')),
-                        );
+                        showOverlayMessage(context, '상호명을 입력해주세요!');
                         return;
                       }
                       if (selectedCategory == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('카테고리를 선택해주세요!')),
-                        );
+                        showOverlayMessage(context, '카테고리를 선택해주세요!');
                         return;
                       }
 
-                      // 🔹 편집 모드일 경우 기존 문서 업데이트
                       if (itemId != null && itemId.isNotEmpty) {
                         await firestoreService.updateItem(
                           collectionName: 'Items',
@@ -519,13 +512,10 @@ void showAddItem(BuildContext context, String? itemId) async {
                             'keyword': ''
                           },
                         );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text('${nameController.text}을 수정하였습니다.')),
-                        );
+
+                        showOverlayMessage(
+                            context, '${nameController.text}을 수정하였습니다.');
                       } else {
-                        // 🔹 추가 모드일 경우 새 문서 생성
                         await firestoreService.addItem(
                           collectionName: 'Items',
                           data: {
@@ -533,17 +523,14 @@ void showAddItem(BuildContext context, String? itemId) async {
                             'CategoryID': selectedCategory!['itemID']
                           },
                         );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text('${nameController.text}을 추가하였습니다.')),
-                        );
+
+                        showOverlayMessage(
+                            context, '${nameController.text}을 추가하였습니다.');
                       }
 
                       Navigator.of(context).pop();
                     },
-                    child:
-                        Text(itemId == null || itemId.isEmpty ? "Add" : "Edit"),
+                    child: Text(itemId == null || itemId.isEmpty ? "Add" : "Edit"),
                   ),
                 ],
               ),

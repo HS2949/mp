@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:provider/provider.dart';
 

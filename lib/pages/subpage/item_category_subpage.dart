@@ -27,7 +27,6 @@ class _Item_CategoryState extends State<Item_Category> {
         (e) => e.label == document['Color'],
         orElse: () => ColorLabel.silver, // 기본값 설정
       );
-
       // Icon 값을 label로 찾기
       selectedIcon = IconLabel.values.firstWhere(
         (e) => e.label == document['Icon'],
@@ -59,7 +58,7 @@ class _Item_CategoryState extends State<Item_Category> {
                         'Select Options',
                         style: AppTheme.appbarTitleTextStyle,
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       TextField(
                         controller: _nameController,
                         decoration: InputDecoration(
@@ -69,7 +68,7 @@ class _Item_CategoryState extends State<Item_Category> {
                           filled: true,
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           Icon(
@@ -78,17 +77,19 @@ class _Item_CategoryState extends State<Item_Category> {
                                 Colors.grey.withAlpha(128),
                             size: 40,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Flexible(
                             child: DropdownMenu<IconLabel>(
                               initialSelection: selectedIcon,
                               enableFilter: true,
-                              label: Text('Icon'),
+                              label: const Text('Icon'),
                               dropdownMenuEntries: IconLabel.values
                                   .map(
                                     (icon) => DropdownMenuEntry<IconLabel>(
-                                      labelWidget: Text(icon.label,
-                                          style: AppTheme.textLabelStyle),
+                                      labelWidget: Text(
+                                        icon.label,
+                                        style: AppTheme.textLabelStyle,
+                                      ),
                                       value: icon,
                                       leadingIcon: Icon(icon.icon, size: 20),
                                       label: icon.label,
@@ -102,19 +103,21 @@ class _Item_CategoryState extends State<Item_Category> {
                               },
                             ),
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Flexible(
                             child: DropdownMenu<ColorLabel>(
                               initialSelection: selectedColor,
                               enableFilter: true,
-                              label: Text('Color'),
+                              label: const Text('Color'),
                               dropdownMenuEntries: ColorLabel.values
-                                  .map((color) => DropdownMenuEntry<ColorLabel>(
-                                        value: color,
-                                        leadingIcon: Icon(Icons.favorite,
-                                            color: color.color, size: 20),
-                                        label: color.label,
-                                      ))
+                                  .map(
+                                    (color) => DropdownMenuEntry<ColorLabel>(
+                                      value: color,
+                                      leadingIcon: Icon(Icons.favorite,
+                                          color: color.color, size: 20),
+                                      label: color.label,
+                                    ),
+                                  )
                                   .toList(),
                               onSelected: (color) {
                                 setState(() {
@@ -125,13 +128,13 @@ class _Item_CategoryState extends State<Item_Category> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: Text('Cancel'),
+                            child: const Text('Cancel'),
                           ),
                           TextButton(
                             onPressed: () {
@@ -158,7 +161,7 @@ class _Item_CategoryState extends State<Item_Category> {
                               }
                               Navigator.of(context).pop();
                             },
-                            child: Text('Save'),
+                            child: const Text('Save'),
                           ),
                         ],
                       ),
@@ -175,6 +178,7 @@ class _Item_CategoryState extends State<Item_Category> {
 
   @override
   Widget build(BuildContext context) {
+    // 최상위 Expanded 제거 (Expanded는 Flex 내부에서만 사용 가능)
     final List<DropdownMenuEntry<ColorLabel>> colorEntries =
         <DropdownMenuEntry<ColorLabel>>[];
     for (final ColorLabel color in ColorLabel.values) {
@@ -188,152 +192,172 @@ class _Item_CategoryState extends State<Item_Category> {
       iconEntries
           .add(DropdownMenuEntry<IconLabel>(value: icon, label: icon.label));
     }
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.only(bottom: 10),
-              width: 500,
-              child: Row(
-                children: [
-                  Text('Categories',
-                      style: AppTheme.textCGreyStyle.copyWith(fontSize: 22)),
-                  Spacer(),
-                  SizedBox(
-                    width: 100,
-                    height: 40,
-                    child: FloatingActionButton.extended(
-                      onPressed: () => _showDialog(),
-                      tooltip: '카테고리 추가',
-                      icon: const Icon(Icons.add, color: AppTheme.primaryColor),
-                      label: const Text('Add',
-                          style: TextStyle(color: AppTheme.primaryColor)),
-                      backgroundColor: AppTheme.buttonlightbackgroundColor,
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: narrowScreenWidthThreshold * 1.2),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Text('Categories',
+                        style: AppTheme.textCGreyStyle.copyWith(fontSize: 22)),
+                    const Spacer(),
+                    SizedBox(
+                      width: 80,
+                      height: 35,
+                      child: FloatingActionButton.extended(
+                        onPressed: () => _showDialog(),
+                        tooltip: '카테고리 추가',
+                        icon:
+                            const Icon(Icons.add, color: AppTheme.primaryColor),
+                        label: const Text('Add',
+                            style: TextStyle(color: AppTheme.primaryColor)),
+                        backgroundColor: AppTheme.buttonlightbackgroundColor,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            StreamBuilder(
-              stream: firestoreService.getItemsSnapshot('Categories'),
-              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(child: CircularProgressIndicator());
-                }
+              StreamBuilder(
+                stream: firestoreService.getItemsSnapshot('Categories'),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final categories = snapshot.data!.docs;
+                  final categories = snapshot.data!.docs;
 
-                return Expanded(
-                  child: SizedBox(
-                    width: 500,
-                    // height: MediaQuery.of(context).size.height,
-                    child: ListView.builder(
-                      shrinkWrap: true, // ListView 크기를 자식 위젯에 맞춤
-                      // physics: NeverScrollableScrollPhysics(), // 스크롤 비활성화
-                      itemCount: categories.length,
-                      itemBuilder: (context, index) {
-                        final category = categories[index];
-                        final categoryData =
-                            category.data() as Map<String, dynamic>;
+                  return Expanded(
+                    child: SizedBox(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: categories.length,
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          final categoryData =
+                              category.data() as Map<String, dynamic>;
 
-                        selectedColor = ColorLabel.values.firstWhere(
-                          (e) => e.label == categoryData['Color'],
-                          orElse: () => ColorLabel.silver, // 기본값 설정
-                        );
-
-                        // Icon 값을 label로 찾기
-                        selectedIcon = IconLabel.values.firstWhere(
-                          (e) => e.label == categoryData['Icon'],
-                          orElse: () => IconLabel.smile, // 기본값 설정
-                        );
-                        return Card(
-                          margin: EdgeInsets.symmetric(
-                              vertical: 5.0, horizontal: 0.0),
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Icon(selectedIcon?.icon,
-                                        color: selectedColor?.color, size: 50),
-                                    SizedBox(width: 40),
-                                    SelectableText(
-                                      categoryData['CategoryName'] ?? 'No Name',
-                                      style:
-                                          AppTheme.bodyMediumTextStyle.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                        // color: selectedColor?.color,
+                          final ColorLabel displayColor =
+                              ColorLabel.values.firstWhere(
+                            (e) => e.label == categoryData['Color'],
+                            orElse: () => ColorLabel.silver,
+                          );
+                          final IconLabel displayIcon =
+                              IconLabel.values.firstWhere(
+                            (e) => e.label == categoryData['Icon'],
+                            orElse: () => IconLabel.smile,
+                          );
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 5.0, horizontal: 0.0),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Wrap(
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            Icon(displayIcon.icon,
+                                                color: displayColor.color,
+                                                size: 50),
+                                            const SizedBox(width: 40),
+                                            SelectableText(
+                                              categoryData['CategoryName'] ??
+                                                  'No Name',
+                                              style: AppTheme
+                                                  .bodyMediumTextStyle
+                                                  .copyWith(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    Spacer(), // 텍스트와 아이콘 버튼 사이의 공간을 채움
-                                    IconButton(
-                                      icon: Icon(Icons.edit),
-                                      tooltip: '수정',
-                                      onPressed: () =>
-                                          _showDialog(document: category),
-                                    ),
-
-                                    IconButton(
-                                      icon: Icon(Icons.delete),
-                                      tooltip: '삭제',
-                                      onPressed: () {
-                                        FiDeleteDialog(
-                                          context: context,
-                                          deleteFunction: () async =>
-                                              firestoreService.deleteItem(
-                                            collectionName: 'Categories',
-                                            documentId: category.id,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8.0),
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: SelectableText(
-                                        'ID: ${category.id}',
-                                        style: AppTheme.textHintTextStyle
-                                            .copyWith(fontSize: 13),
+                                      Flexible(
+                                        child: Wrap(
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.edit,
+                                                  size: 20),
+                                              tooltip: '수정',
+                                              onPressed: () => _showDialog(
+                                                  document: category),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete,
+                                                  size: 20),
+                                              tooltip: '삭제',
+                                              onPressed: () {
+                                                FiDeleteDialog(
+                                                  context: context,
+                                                  deleteFunction: () async =>
+                                                      firestoreService
+                                                          .deleteItem(
+                                                    collectionName:
+                                                        'Categories',
+                                                    documentId: category.id,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(width: 20),
-                                    Flexible(
-                                      child: SelectableText(
-                                        'Icon: ${categoryData['Icon'] ?? '-'}',
-                                        style: AppTheme.textHintTextStyle
-                                            .copyWith(fontSize: 13),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8.0),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: SelectableText(
+                                          'ID: ${category.id}',
+                                          style: AppTheme.textHintTextStyle
+                                              .copyWith(fontSize: 13),
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(width: 20),
-                                    Flexible(
-                                      child: SelectableText(
-                                        'Color: ${categoryData['Color'] ?? '-'}',
-                                        style: AppTheme.textHintTextStyle
-                                            .copyWith(fontSize: 13),
+                                      const SizedBox(width: 20),
+                                      Flexible(
+                                        child: SelectableText(
+                                          'Icon: ${categoryData['Icon'] ?? '-'}',
+                                          style: AppTheme.textHintTextStyle
+                                              .copyWith(fontSize: 13),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                      const SizedBox(width: 20),
+                                      Flexible(
+                                        child: SelectableText(
+                                          'Color: ${categoryData['Color'] ?? '-'}',
+                                          style: AppTheme.textHintTextStyle
+                                              .copyWith(fontSize: 13),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mp_db/utils/widget_help.dart';
 
 class ItemProvider extends ChangeNotifier {
   List<DocumentSnapshot> _items = [];
@@ -99,7 +100,6 @@ class ItemProvider extends ChangeNotifier {
     });
   }
 
-
   void filterItems(String query, {String? selectedCategory}) {
     // 검색어를 소문자로 변환
     query = query.toLowerCase();
@@ -161,8 +161,6 @@ class ItemProvider extends ChangeNotifier {
     _controller = TabController(length: maxTabs, vsync: vsync);
   }
 
-  // 🔹 Snackbar를 띄우기 위한 콜백 (외부에서 설정 가능)
-  void Function(BuildContext, String)? showSnackbar;
   void addTab(BuildContext context, String title, Widget first,
       {Widget? all, Widget? second}) {
     // 1️ 이미 동일한 제목의 탭이 존재하는지 확인
@@ -178,9 +176,7 @@ class ItemProvider extends ChangeNotifier {
 
     // 3️ 탭 최대 개수 초과 방지
     if (_activeTabCount >= _maxTabs) {
-      if (showSnackbar != null) {
-        showSnackbar!(context, '최대 탭 수 ($_maxTabs개)에 도달했습니다.');
-      }
+      showOverlayMessage(context, '최대 탭 수 ($_maxTabs개)에 도달했습니다.');
       return;
     }
 

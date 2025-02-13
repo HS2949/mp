@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
-import '../pages/dialog/item_detail_dialog.dart';
+
 
 class ItemScreen extends StatefulWidget {
   const ItemScreen({super.key});
@@ -410,13 +410,13 @@ class ItemScreenState extends State<ItemScreen> {
                                 subtitle: Text(data['Location'],
                                     style: AppTheme.bodyMediumTextStyle),
                                 onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ItemDetailScreen(
-                                          itemId: items[index].id),
-                                    ),
-                                  );
+                                  // Navigator.push(
+                                  //   context,
+                                  //   MaterialPageRoute(
+                                  //     builder: (context) => ItemDetailScreen(
+                                  //         itemId: items[index].id),
+                                  //   ),
+                                  // );
                                 },
                               );
                             },

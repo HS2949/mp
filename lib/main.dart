@@ -2,9 +2,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/material/constants.dart';
+
 import 'package:mp_db/pages/home.dart';
-import 'package:mp_db/pages/subpage/item_subpage.dart';
+
 import 'package:mp_db/providers/Item_detail/Item_detail_provider.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
@@ -28,7 +28,7 @@ import 'package:mp_db/pages/splash_page.dart';
 
 // Firebase 초기화 옵션이 정의된 파일 임포트
 import 'firebase_options.dart';
-import 'models/item_model.dart';
+
 
 // main 함수는 Flutter 앱의 진입점입니다.
 void main() async {

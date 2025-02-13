@@ -90,9 +90,9 @@ class First_Field_Page extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
-      Item_Field(title: 'Default', isDefault: true),
+      Item_Field(title: '기본 정보', isDefault: true),
       if (!showSecondList) ...[
-        Item_Field(title: 'Resources', isDefault: false),
+        Item_Field(title: '추가 정보', isDefault: false),
       ]
     ];
     List<double?> heights = List.filled(children.length, null);
@@ -135,7 +135,7 @@ class Second_Field_Page extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
-      Item_Field(title: 'Resources', isDefault: false),
+      Item_Field(title: '추가 정보', isDefault: false),
     ];
     List<double?> heights = List.filled(children.length, null);
 
@@ -206,13 +206,6 @@ class _Item_WidgetState extends State<Item_Widget>
         ItemList(filterType: 1);
     Provider.of<ItemProvider>(context, listen: false).tabViews[0].second =
         ItemList(filterType: 2);
-
-    Provider.of<ItemProvider>(context, listen: false).showSnackbar =
-        (context, message) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    };
   }
 
   /// TabBar에 전달할 탭 목록 생성

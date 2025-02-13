@@ -1,6 +1,6 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 
 //텍스트필드 지우기 버튼튼
@@ -64,4 +64,44 @@ void FiDeleteDialog({
       );
     },
   );
+}
+
+// ScaffoldMessenger.of(context)
+//     .showSnackBar(
+//   const SnackBar(
+//       content: Text("값을 입력해주세요.")),
+// );
+void showOverlayMessage(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: MediaQuery.of(context).size.height * 0.4,
+      left: MediaQuery.of(context).size.width * 0.3,
+      right: MediaQuery.of(context).size.width * 0.3,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              message,
+              style: AppTheme.textLabelStyle
+                  .copyWith(color: AppTheme.appbarbackgroundColor),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay.insert(overlayEntry);
+
+  // 2초 후 자동 제거
+  Future.delayed(const Duration(seconds: 2), () {
+    overlayEntry.remove();
+  });
 }

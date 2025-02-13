@@ -31,8 +31,8 @@ class _SchemePreviewState extends State<SchemePreview> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final fonts = theme.textTheme;
-    final colors = theme.colorScheme;
-    final dark = widget.brightness == Brightness.dark;
+    // final colors = theme.colorScheme;
+    // final dark = widget.brightness == Brightness.dark;
 
     final scheme = widget.scheme;
 
