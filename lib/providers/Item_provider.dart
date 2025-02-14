@@ -129,7 +129,7 @@ class ItemProvider extends ChangeNotifier {
       // 카테고리 일치 여부 확인
       final matchesCategory = selectedCategory == null ||
           selectedCategory == '전체' ||
-          itemCategory == int.tryParse(selectedCategoryID?.toString() ?? '');
+          itemCategory == selectedCategoryID;
 
       return matchesSearch && matchesCategory;
     }).toList();

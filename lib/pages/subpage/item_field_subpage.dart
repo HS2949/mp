@@ -162,7 +162,6 @@ class _Item_FieldState extends State<Item_Field> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
