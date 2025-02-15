@@ -1,0 +1,2 @@
+D:/Code/mp_db/android/app/.cxx/Debug/1okr3556/x86/CMakeFiles/edit_cache.dir
+D:/Code/mp_db/android/app/.cxx/Debug/1okr3556/x86/CMakeFiles/rebuild_cache.dir

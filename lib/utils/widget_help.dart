@@ -1,7 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:intl/intl.dart'; // 숫자 포맷을 위한 패키지
 
 //텍스트필드 지우기 버튼튼
 class ClearButton extends StatelessWidget {
@@ -50,15 +52,20 @@ void FiDeleteDialog({
           ),
           TextButton(
             onPressed: () async {
-              await deleteFunction(); // 삭제 함수 실행
+              try {
+                await deleteFunction(); // 삭제 함수 실행
 
-              Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
+                Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
 
-              if (shouldCloseScreen) {
-                Navigator.of(context).pop(); // 이전 화면도 닫기
+                if (shouldCloseScreen) {
+                  Navigator.of(context).pop(); // 이전 화면도 닫기
+                }
+                showOverlayMessage(context, "삭제 완료");
+              } catch (e) {
+                showOverlayMessage(context, "삭제 중 오류 발생: ${e.toString()}");
               }
             },
-            child: Text('삭제'),
+            child: Text('삭제', style: TextStyle(color: AppTheme.errorColor)),
           ),
         ],
       );
@@ -76,21 +83,23 @@ void showOverlayMessage(BuildContext context, String message) {
   final overlayEntry = OverlayEntry(
     builder: (context) => Positioned(
       top: MediaQuery.of(context).size.height * 0.4,
-      left: MediaQuery.of(context).size.width * 0.3,
-      right: MediaQuery.of(context).size.width * 0.3,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
+      left: 0, // 좌측 제약 추가
+      right: 0, // 우측 제약 추가
+      child: Center(
+        // 자식 컨테이너를 가운데 정렬
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Text(
               message,
-              style: AppTheme.textLabelStyle
-                  .copyWith(color: AppTheme.appbarbackgroundColor),
+              style: AppTheme.textLabelStyle.copyWith(
+                color: AppTheme.appbarbackgroundColor,
+              ),
             ),
           ),
         ),
@@ -100,8 +109,98 @@ void showOverlayMessage(BuildContext context, String message) {
 
   overlay.insert(overlayEntry);
 
-  // 2초 후 자동 제거
-  Future.delayed(const Duration(seconds: 2), () {
+  // 1초 후 자동 제거
+  Future.delayed(const Duration(seconds: 1), () {
     overlayEntry.remove();
   });
+}
+
+String formatNumber(String value) {
+  // 각 줄별로 처리하기 위해 줄 단위로 분리
+  List<String> lines = value.split('\n');
+  // 숫자 부분과 괄호 부분을 분리하는 정규표현식
+  RegExp regExp = RegExp(r'^([\d,]+)(\s*\(.*\))?$');
+
+  List<String> formattedLines = lines.map((line) {
+    Match? match = regExp.firstMatch(line);
+    if (match != null) {
+      String numberPart = match.group(1)!; // 숫자 및 콤마 포함 부분
+      String? suffix = match.group(2); // 괄호를 포함한 접미사 (null일 수 있음)
+
+      // 콤마 제거 후 순수 숫자 문자열 추출
+      String numberStr = numberPart.replaceAll(',', '');
+      if (RegExp(r'^\d+$').hasMatch(numberStr)) {
+        try {
+          int number = int.parse(numberStr);
+          String formattedNumber = NumberFormat('#,###').format(number);
+          return formattedNumber + (suffix ?? '');
+        } catch (e) {
+          return line; // 변환 중 오류 발생 시 원래 줄 반환
+        }
+      }
+    }
+    // 정규표현식에 맞지 않거나 숫자 이외의 문자가 있는 경우 원래 줄 반환
+    return line;
+  }).toList();
+
+  // 처리한 각 줄을 다시 개행 문자로 연결하여 반환
+  return formattedLines.join('\n');
+}
+
+enum TextWidgetType { selectable, plain, textField }
+
+/// 길게 눌렀을 때 텍스트를 클립보드에 복사하는 텍스트 위젯을 반환합니다.
+/// [widgetType]에 따라 SelectableText, Text, 혹은 TextField를 사용할 수 있습니다.
+Widget copyTextWidget(
+  BuildContext context, {
+  required String text,
+  required TextWidgetType widgetType,
+  TextStyle? style,
+  int maxLines = 1,
+  // TextField일 경우 외부에서 controller를 지정할 수 있도록 함.
+  TextEditingController? controller,
+}) {
+  Widget child;
+
+  switch (widgetType) {
+    case TextWidgetType.selectable:
+      child = SelectableText(
+        text,
+        style: style,
+        maxLines: maxLines,
+      );
+      break;
+    case TextWidgetType.plain:
+      child = Text(
+        text,
+        style: style,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+      );
+      break;
+    case TextWidgetType.textField:
+      child = TextField(
+        controller: controller ?? TextEditingController(text: text),
+        style: style,
+        maxLines: maxLines == 0 ? null : maxLines,
+        readOnly: true,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
+          filled: false,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+      );
+      break;
+  }
+
+  return GestureDetector(
+    onLongPress: () {
+      Clipboard.setData(ClipboardData(text: text));
+      showOverlayMessage(context, "클립보드 복사");
+    },
+    child: child,
+  );
 }

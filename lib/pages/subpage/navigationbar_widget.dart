@@ -9,6 +9,7 @@ import 'package:mp_db/pages/subpage/item_field_subpage.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/two_line.dart';
+import 'package:mp_db/utils/widget_help.dart';
 import 'package:provider/provider.dart';
 
 class Category_Widget extends StatelessWidget {
@@ -225,7 +226,11 @@ class _Item_WidgetState extends State<Item_Widget>
                 tabProvider.tabTitles[index].icon!,
                 SizedBox(width: 8), // 아이콘과 텍스트 간격
               ],
-              Text(tabProvider.tabTitles[index].text),
+
+              Flexible(
+                  child: copyTextWidget(context,
+                      text: tabProvider.tabTitles[index].text,
+                      widgetType: TextWidgetType.plain)),
               if (index != 0) ...[
                 // 0번 탭이 아닐 때 X 버튼 추가
                 SizedBox(width: 5),
@@ -465,7 +470,7 @@ class Second_Item_Page extends StatelessWidget {
       child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsetsDirectional.only(end: smallSpacing),
+            padding: const EdgeInsetsDirectional.only(end: 0.0), //smallSpacing
             sliver: SliverList(
               delegate: BuildSlivers(
                 heights: heights,

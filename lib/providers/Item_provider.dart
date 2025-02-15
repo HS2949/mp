@@ -36,17 +36,31 @@ class ItemProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // Real-time Items updates
+    // 각 컬렉션의 첫 로딩 완료 여부를 추적할 변수
+    bool itemsLoaded = false;
+    bool categoriesLoaded = false;
+    bool fieldsLoaded = false;
+
     _itemSubscription = FirebaseFirestore.instance
         .collection('Items')
         .snapshots()
         .listen((snapshot) {
       _items = snapshot.docs;
-      _filteredItem = List.from(_items); // Update filtered items
+      _filteredItem = List.from(_items);
+
+      // 첫 번째 스냅샷일 때만 플래그 설정
+      if (!itemsLoaded) {
+        itemsLoaded = true;
+        // 모든 데이터가 최초 로딩 완료되면 로딩 상태 해제
+        if (itemsLoaded && categoriesLoaded && fieldsLoaded) {
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
+
       notifyListeners();
     });
 
-    // Real-time Categories updates
     _categorySubscription = FirebaseFirestore.instance
         .collection('Categories')
         .snapshots()
@@ -63,31 +77,44 @@ class ItemProvider extends ChangeNotifier {
           };
         }).toList(),
       ];
+
+      if (!categoriesLoaded) {
+        categoriesLoaded = true;
+        if (itemsLoaded && categoriesLoaded && fieldsLoaded) {
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
+
       notifyListeners();
     });
 
-    // Real-time Fields updates
     _fieldSubscription = FirebaseFirestore.instance
         .collection('Fields')
         .snapshots()
         .listen((snapshot) {
       _fields = snapshot.docs;
 
-      // 🔹 영어 → 한글 매핑 생성
+      // 영어 필드 Key → 한글 매핑 생성
       _fieldMappings = {
         for (var doc in snapshot.docs)
           (doc.data())['FieldKey']: {
             'FieldName': (doc.data())['FieldName'],
             'FieldOrder': (doc.data())['FieldOrder'],
-            'IsDefault': (doc.data())['IsDefault'] ?? false // 기본값 추가
+            'IsDefault': (doc.data())['IsDefault'] ?? false,
           }
       };
 
+      if (!fieldsLoaded) {
+        fieldsLoaded = true;
+        if (itemsLoaded && categoriesLoaded && fieldsLoaded) {
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
+
       notifyListeners();
     });
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   /// 🔹 Key 변환 메서드 (한글 Key 매칭)

@@ -151,7 +151,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.home => Expanded(
+        ScreenSelected.item => Expanded(
             child: Category_Widget(
                 railAnimation: railAnimation,
                 scaffoldKey: scaffoldKey,
@@ -159,7 +159,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 showMediumSizeLayout: showMediumSizeLayout,
                 showLargeSizeLayout: showLargeSizeLayout),
           ),
-        ScreenSelected.item => Expanded(
+        ScreenSelected.home => Expanded(
             child: Item_Widget(
                 railAnimation: railAnimation,
                 scaffoldKey: scaffoldKey,
@@ -169,7 +169,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           ),
         // ScreenSelected.temp1 => const ItemScreen(),
         // ScreenSelected.temp1 => Expanded(child: const ItemDetailScreen(itemId: 'EGA9krhnxChp3EcXHBG9')),
-        ScreenSelected.temp1 => Expanded(child: const  ItemScreen()),
+        ScreenSelected.temp1 => Expanded(child: const ItemScreen()),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),

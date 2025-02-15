@@ -253,26 +253,26 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
     // 빌드 시점에 리스트 정렬 처리 (빌드 도중에 리스트 변경하지 않도록)
     final sortedItems = List.from(filteredDisplayItems)
       ..sort((a, b) {
-        final aName =
-            (a.data() as Map<String, dynamic>)['ItemName'] ?? '';
-        final bName =
-            (b.data() as Map<String, dynamic>)['ItemName'] ?? '';
+        final aName = (a.data() as Map<String, dynamic>)['ItemName'] ?? '';
+        final bName = (b.data() as Map<String, dynamic>)['ItemName'] ?? '';
         return koreanCompare(aName, bName);
       });
 
     return provider.isLoading
-        ? const Center(
-            child: Padding(
-              padding: EdgeInsets.all(50.0),
-              child: SizedBox(
-                width: 100,
-                height: 100,
-                child: CircularProgressIndicator(
-                  strokeWidth: 4.0,
+        ? (widget.filterType == 1
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(50.0),
+                  child: SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 4.0,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          )
+              )
+            : const SizedBox.shrink())
         : Padding(
             padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
             child: ListView.builder(
@@ -305,10 +305,9 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                         color: provider.searchController.text.startsWith('#')
                             ? AppTheme.textHintColor
                             : Colors.black,
-                        fontSize:
-                            provider.searchController.text.startsWith('#')
-                                ? 15
-                                : 16,
+                        fontSize: provider.searchController.text.startsWith('#')
+                            ? 15
+                            : 16,
                       ),
                     ),
                     subtitle: Text(
@@ -320,10 +319,9 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                         color: provider.searchController.text.startsWith('#')
                             ? AppTheme.text6Color
                             : AppTheme.textHintColor,
-                        fontSize:
-                            provider.searchController.text.startsWith('#')
-                                ? 16
-                                : 13,
+                        fontSize: provider.searchController.text.startsWith('#')
+                            ? 16
+                            : 13,
                       ),
                     ),
                     onTap: () {
@@ -530,7 +528,8 @@ void showAddItem(BuildContext context, String? itemId) async {
 
                       Navigator.of(context).pop();
                     },
-                    child: Text(itemId == null || itemId.isEmpty ? "Add" : "Edit"),
+                    child:
+                        Text(itemId == null || itemId.isEmpty ? "Add" : "Edit"),
                   ),
                 ],
               ),

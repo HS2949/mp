@@ -5,7 +5,7 @@ import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 class Item_Category extends StatefulWidget {
-  const Item_Category({super.key});
+  const Item_Category({Key? key}) : super(key: key);
 
   @override
   _Item_CategoryState createState() => _Item_CategoryState();
@@ -15,10 +15,18 @@ class _Item_CategoryState extends State<Item_Category> {
   final TextEditingController _nameController = TextEditingController();
   final firestoreService = FirestoreService();
 
-  final TextEditingController colorController = TextEditingController();
-  final TextEditingController iconController = TextEditingController();
+  // 사용하지 않는 colorController, iconController는 제거합니다.
+  // final TextEditingController colorController = TextEditingController();
+  // final TextEditingController iconController = TextEditingController();
+
   IconLabel? selectedIcon;
   ColorLabel? selectedColor;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
 
   void _showDialog({DocumentSnapshot? document}) {
     if (document != null) {
@@ -41,6 +49,7 @@ class _Item_CategoryState extends State<Item_Category> {
     showDialog(
       context: context,
       builder: (context) {
+        // 다이얼로그 내부 상태 변경을 위해 StatefulBuilder 사용
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
@@ -73,8 +82,7 @@ class _Item_CategoryState extends State<Item_Category> {
                         children: [
                           Icon(
                             selectedIcon?.icon,
-                            color: selectedColor?.color ??
-                                Colors.grey.withAlpha(128),
+                            color: selectedColor?.color ?? Colors.grey.withAlpha(128),
                             size: 40,
                           ),
                           const SizedBox(width: 10),
@@ -144,7 +152,7 @@ class _Item_CategoryState extends State<Item_Category> {
                                   data: {
                                     'CategoryName': _nameController.text,
                                     'Icon': selectedIcon?.label,
-                                    'Color': selectedColor?.label
+                                    'Color': selectedColor?.label,
                                   },
                                   autoGenerateId: false,
                                 );
@@ -155,7 +163,7 @@ class _Item_CategoryState extends State<Item_Category> {
                                   updatedData: {
                                     'CategoryName': _nameController.text.trim(),
                                     'Icon': selectedIcon?.label.trim(),
-                                    'Color': selectedColor?.label.trim()
+                                    'Color': selectedColor?.label.trim(),
                                   },
                                 );
                               }
@@ -178,20 +186,28 @@ class _Item_CategoryState extends State<Item_Category> {
 
   @override
   Widget build(BuildContext context) {
-    // 최상위 Expanded 제거 (Expanded는 Flex 내부에서만 사용 가능)
-    final List<DropdownMenuEntry<ColorLabel>> colorEntries =
-        <DropdownMenuEntry<ColorLabel>>[];
+    // DropdownMenuEntry 목록은 필요에 따라 생성(현재 사용되지 않는 변수지만 추후 활용 가능)
+    final List<DropdownMenuEntry<ColorLabel>> colorEntries = <DropdownMenuEntry<ColorLabel>>[];
     for (final ColorLabel color in ColorLabel.values) {
-      colorEntries.add(DropdownMenuEntry<ColorLabel>(
-          value: color, label: color.label, enabled: color.label != 'Grey'));
+      colorEntries.add(
+        DropdownMenuEntry<ColorLabel>(
+          value: color,
+          label: color.label,
+          enabled: color.label != 'Grey',
+        ),
+      );
     }
 
-    final List<DropdownMenuEntry<IconLabel>> iconEntries =
-        <DropdownMenuEntry<IconLabel>>[];
+    final List<DropdownMenuEntry<IconLabel>> iconEntries = <DropdownMenuEntry<IconLabel>>[];
     for (final IconLabel icon in IconLabel.values) {
-      iconEntries
-          .add(DropdownMenuEntry<IconLabel>(value: icon, label: icon.label));
+      iconEntries.add(
+        DropdownMenuEntry<IconLabel>(
+          value: icon,
+          label: icon.label,
+        ),
+      );
     }
+
     return Align(
       alignment: Alignment.topLeft,
       child: Container(
@@ -205,8 +221,10 @@ class _Item_CategoryState extends State<Item_Category> {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
-                    Text('Categories',
-                        style: AppTheme.textCGreyStyle.copyWith(fontSize: 22)),
+                    Text(
+                      'Categories',
+                      style: AppTheme.textCGreyStyle.copyWith(fontSize: 22),
+                    ),
                     const Spacer(),
                     SizedBox(
                       width: 80,
@@ -214,147 +232,137 @@ class _Item_CategoryState extends State<Item_Category> {
                       child: FloatingActionButton.extended(
                         onPressed: () => _showDialog(),
                         tooltip: '카테고리 추가',
-                        icon:
-                            const Icon(Icons.add, color: AppTheme.primaryColor),
-                        label: const Text('Add',
-                            style: TextStyle(color: AppTheme.primaryColor)),
+                        icon: const Icon(Icons.add, color: AppTheme.primaryColor),
+                        label: const Text(
+                          'Add',
+                          style: TextStyle(color: AppTheme.primaryColor),
+                        ),
                         backgroundColor: AppTheme.buttonlightbackgroundColor,
                       ),
                     ),
                   ],
                 ),
               ),
-              StreamBuilder(
-                stream: firestoreService.getItemsSnapshot('Categories'),
-                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              // StreamBuilder를 Expanded로 감싸서 레이아웃이 안정되도록 함
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: firestoreService.getItemsSnapshot('Categories'),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                  final categories = snapshot.data!.docs;
+                    final categories = snapshot.data!.docs;
 
-                  return Expanded(
-                    child: SizedBox(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: categories.length,
-                        itemBuilder: (context, index) {
-                          final category = categories[index];
-                          final categoryData =
-                              category.data() as Map<String, dynamic>;
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        final categoryData =
+                            category.data() as Map<String, dynamic>;
 
-                          final ColorLabel displayColor =
-                              ColorLabel.values.firstWhere(
-                            (e) => e.label == categoryData['Color'],
-                            orElse: () => ColorLabel.silver,
-                          );
-                          final IconLabel displayIcon =
-                              IconLabel.values.firstWhere(
-                            (e) => e.label == categoryData['Icon'],
-                            orElse: () => IconLabel.smile,
-                          );
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                                vertical: 5.0, horizontal: 0.0),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Flexible(
-                                        child: Wrap(
-                                          crossAxisAlignment:
-                                              WrapCrossAlignment.center,
-                                          children: [
-                                            Icon(displayIcon.icon,
-                                                color: displayColor.color,
-                                                size: 50),
-                                            const SizedBox(width: 40),
-                                            SelectableText(
-                                              categoryData['CategoryName'] ??
-                                                  'No Name',
-                                              style: AppTheme
-                                                  .bodyMediumTextStyle
-                                                  .copyWith(
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                        final ColorLabel displayColor = ColorLabel.values.firstWhere(
+                          (e) => e.label == categoryData['Color'],
+                          orElse: () => ColorLabel.silver,
+                        );
+                        final IconLabel displayIcon = IconLabel.values.firstWhere(
+                          (e) => e.label == categoryData['Icon'],
+                          orElse: () => IconLabel.smile,
+                        );
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 5.0, horizontal: 0.0),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Wrap(
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        children: [
+                                          Icon(
+                                            displayIcon.icon,
+                                            color: displayColor.color,
+                                            size: 50,
+                                          ),
+                                          const SizedBox(width: 40),
+                                          SelectableText(
+                                            categoryData['CategoryName'] ?? 'No Name',
+                                            style: AppTheme.bodyMediumTextStyle.copyWith(
+                                              fontWeight: FontWeight.w500,
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
-                                      Flexible(
-                                        child: Wrap(
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.edit,
-                                                  size: 20),
-                                              tooltip: '수정',
-                                              onPressed: () => _showDialog(
-                                                  document: category),
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.delete,
-                                                  size: 20),
-                                              tooltip: '삭제',
-                                              onPressed: () {
-                                                FiDeleteDialog(
-                                                  context: context,
-                                                  deleteFunction: () async =>
-                                                      firestoreService
-                                                          .deleteItem(
-                                                    collectionName:
-                                                        'Categories',
-                                                    documentId: category.id,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ],
-                                        ),
+                                    ),
+                                    Flexible(
+                                      child: Wrap(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, size: 20),
+                                            tooltip: '수정',
+                                            onPressed: () =>
+                                                _showDialog(document: category),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete, size: 20),
+                                            tooltip: '삭제',
+                                            onPressed: () {
+                                              FiDeleteDialog(
+                                                context: context,
+                                                deleteFunction: () async =>
+                                                    firestoreService.deleteItem(
+                                                  collectionName: 'Categories',
+                                                  documentId: category.id,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8.0),
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: SelectableText(
-                                          'ID: ${category.id}',
-                                          style: AppTheme.textHintTextStyle
-                                              .copyWith(fontSize: 13),
-                                        ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8.0),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: SelectableText(
+                                        'ID: ${category.id}',
+                                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 13),
                                       ),
-                                      const SizedBox(width: 20),
-                                      Flexible(
-                                        child: SelectableText(
-                                          'Icon: ${categoryData['Icon'] ?? '-'}',
-                                          style: AppTheme.textHintTextStyle
-                                              .copyWith(fontSize: 13),
-                                        ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Flexible(
+                                      child: SelectableText(
+                                        'Icon: ${categoryData['Icon'] ?? '-'}',
+                                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 13),
                                       ),
-                                      const SizedBox(width: 20),
-                                      Flexible(
-                                        child: SelectableText(
-                                          'Color: ${categoryData['Color'] ?? '-'}',
-                                          style: AppTheme.textHintTextStyle
-                                              .copyWith(fontSize: 13),
-                                        ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Flexible(
+                                      child: SelectableText(
+                                        'Color: ${categoryData['Color'] ?? '-'}',
+                                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 13),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),

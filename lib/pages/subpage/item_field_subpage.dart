@@ -23,6 +23,14 @@ class _Item_FieldState extends State<Item_Field> {
   final TextEditingController _orderController = TextEditingController();
   final firestoreService = FirestoreService();
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _fieldController.dispose();
+    _orderController.dispose();
+    super.dispose();
+  }
+
   void _showDialog({DocumentSnapshot? document}) {
     // 다이얼로그 내에서 사용되는 지역 isDefault 변수 (필요에 따라 사용자가 토글 가능)
     bool isDefaultLocal = widget.isDefault;
@@ -60,7 +68,7 @@ class _Item_FieldState extends State<Item_Field> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     FilterChip(
                       checkmarkColor: AppTheme.secondaryColor,
                       selectedColor: Colors.yellow[100],
@@ -77,7 +85,7 @@ class _Item_FieldState extends State<Item_Field> {
                         });
                       },
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _nameController,
                       decoration: InputDecoration(
@@ -87,7 +95,7 @@ class _Item_FieldState extends State<Item_Field> {
                         filled: true,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _fieldController,
                       decoration: InputDecoration(
@@ -98,7 +106,7 @@ class _Item_FieldState extends State<Item_Field> {
                         filled: true,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _orderController,
                       decoration: InputDecoration(
@@ -116,7 +124,7 @@ class _Item_FieldState extends State<Item_Field> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -152,7 +160,7 @@ class _Item_FieldState extends State<Item_Field> {
                 }
                 Navigator.of(context).pop();
               },
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -168,11 +176,10 @@ class _Item_FieldState extends State<Item_Field> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.only(bottom: 10),
-            // width: narrowScreenWidthThreshold*1.2,
+            padding: const EdgeInsets.only(bottom: 10),
             child: Row(
               children: [
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 SizedBox(
                   height: 35,
                   child: Center(
@@ -180,8 +187,8 @@ class _Item_FieldState extends State<Item_Field> {
                         Text(widget.title, style: AppTheme.bodyLargeTextStyle),
                   ),
                 ),
-                if (widget.isDefault == true) ...[
-                  Spacer(),
+                if (widget.isDefault) ...[
+                  const Spacer(),
                   SizedBox(
                     width: 80,
                     height: 35,
@@ -202,17 +209,18 @@ class _Item_FieldState extends State<Item_Field> {
           ),
           StreamBuilder(
             stream: firestoreService.getConditionSnapshot(
-                'Fields', {'IsDefault': widget.isDefault}),
+              'Fields',
+              {'IsDefault': widget.isDefault},
+            ),
             builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
               if (!snapshot.hasData) {
-                return Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator());
               }
 
               // Firestore에서 받아온 문서 리스트
               final List<DocumentSnapshot> docs = snapshot.data!.docs.toList();
 
-              // 추가정보(즉, IsDefault가 false)인 경우
-              // 'SubItem', 'SubOrder', 'SubName' 키를 가진 항목은 기본 정보이므로 리스트에서 제외
+              // 추가정보(즉, IsDefault가 false)인 경우 'SubItem', 'SubOrder', 'SubName' 키를 가진 항목은 제외
               List<DocumentSnapshot> filteredCategories;
               if (!widget.isDefault) {
                 filteredCategories = docs.where((doc) {
@@ -246,7 +254,7 @@ class _Item_FieldState extends State<Item_Field> {
 
               return ListView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: filteredCategories.length,
                 itemBuilder: (context, index) {
                   final category = filteredCategories[index];
@@ -262,83 +270,85 @@ class _Item_FieldState extends State<Item_Field> {
                       : (storedOrder - 3).toString();
 
                   return Card(
-                    margin:
-                        EdgeInsets.symmetric(vertical: 5.0, horizontal: 0.0),
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 5.0,
+                      horizontal: 0.0,
+                    ),
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.center, // 👉 세로 중앙 정렬 추가
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Flexible(
-                                child: Wrap(
-                                  children: [
-                                    Icon(
-                                      isDefaultField
-                                          ? Icons.loyalty
-                                          : Icons.label_important_outline,
-                                      color: isDefaultField
-                                          ? Colors.yellow
-                                          : Colors.blue,
-                                    ),
-                                    SizedBox(width: 30),
-                                    SelectableText(
-                                      categoryData['FieldName'] ??
-                                          'No Name',
-                                      style: AppTheme.bodyMediumTextStyle,
-                                    ),
-                                    SizedBox(width: 30),
-                                    SelectableText(
-                                      categoryData['FieldKey'] ?? ' - ',
-                                      style: AppTheme.textLabelStyle,
-                                    ),
-                                  ],
+                          Flexible(
+                            flex: 2,
+                            child: Wrap(
+                              // alignment: WrapAlignment.center,
+                              crossAxisAlignment: WrapCrossAlignment
+                                  .center, // 👉 Wrap 내 요소 세로 중앙 정렬 추가
+                              children: [
+                                Icon(
+                                  isDefaultField
+                                      ? Icons.loyalty
+                                      : Icons.label_important_outline,
+                                  color: isDefaultField
+                                      ? Colors.yellow
+                                      : Colors.blue,
                                 ),
-                              ),
-                             
-                            ],
+                                Container(
+                                  width: 30,
+                                  alignment:
+                                      Alignment.centerRight, // 👉 수직 중앙 정렬
+                                  child: SelectableText(
+                                    '$displayOrder',
+                                    style: AppTheme.tagTextStyle
+                                        .copyWith(fontSize: 13),
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                SelectableText(
+                                  categoryData['FieldName'] ?? 'No Name',
+                                  style: AppTheme.bodyMediumTextStyle,
+                                ),
+                                const SizedBox(width: 20),
+                                SelectableText(
+                                  categoryData['FieldKey'] ?? ' - ',
+                                  style: AppTheme.textLabelStyle,
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 8.0),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: SelectableText(
-                                  'Order > $displayOrder',
-                                  style: AppTheme.tagTextStyle
-                                      .copyWith(fontSize: 13),
+                          Flexible(
+                            child: Wrap(
+                              // alignment: WrapAlignment.center,
+                              // crossAxisAlignment: WrapCrossAlignment
+                              //     .center, // 👉 아이콘도 중앙 정렬
+                              spacing: 5, // 아이콘 사이 간격
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 16),
+                                  tooltip: '수정',
+                                  onPressed: () =>
+                                      _showDialog(document: category),
                                 ),
-                              ),
-                              Flexible(
-                                child: Wrap(
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(Icons.edit,size: 20),
-                                      tooltip: '수정',
-                                      onPressed: () =>
-                                          _showDialog(document: category),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.delete,size: 20),
-                                      tooltip: '삭제',
-                                      onPressed: () {
-                                        FiDeleteDialog(
-                                          context: context,
-                                          deleteFunction: () async =>
-                                              firestoreService.deleteItem(
-                                            collectionName: 'Fields',
-                                            documentId: category.id,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
+                                IconButton(
+                                  icon: const Icon(Icons.delete, size: 16),
+                                  tooltip: '삭제',
+                                  onPressed: () {
+                                    FiDeleteDialog(
+                                      context: context,
+                                      deleteFunction: () async =>
+                                          firestoreService.deleteItem(
+                                        collectionName: 'Fields',
+                                        documentId: category.id,
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -347,7 +357,7 @@ class _Item_FieldState extends State<Item_Field> {
                 },
               );
             },
-          )
+          ),
         ],
       ),
     );
