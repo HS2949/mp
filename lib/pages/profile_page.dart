@@ -34,6 +34,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         FadeInImage.assetNetwork(
                           placeholder: 'assets/images/loading.gif',
+                          placeholderScale: 2,
+                          placeholderFit: BoxFit.none, // 플레이스홀더의 크기 맞춤 방식 설정
                           image: user.profileImage,
                           width: 350,
                           fit: BoxFit.cover,

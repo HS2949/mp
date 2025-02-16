@@ -165,8 +165,8 @@ class AppTheme {
       // ========================================================  ElevatedButton 테마
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: buttonbackgroundColor, // 버튼 배경색
-          padding: EdgeInsets.symmetric(vertical: 15.0), // 버튼 내부 패딩
+          backgroundColor: textHintColor.withOpacity(0.3), // 버튼 배경색
+          padding: EdgeInsets.symmetric(vertical: 0.0), // 버튼 내부 패딩
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(textfieldRadious), // 테두리 반경
           ),

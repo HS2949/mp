@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:intl/intl.dart'; // 숫자 포맷을 위한 패키지
+// 숫자 포맷을 위한 패키지
 
 //텍스트필드 지우기 버튼튼
 class ClearButton extends StatelessWidget {
@@ -92,7 +92,7 @@ void showOverlayMessage(BuildContext context, String message) {
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.7),
+              color: AppTheme.primaryColor.withOpacity(0.5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -113,38 +113,6 @@ void showOverlayMessage(BuildContext context, String message) {
   Future.delayed(const Duration(seconds: 1), () {
     overlayEntry.remove();
   });
-}
-
-String formatNumber(String value) {
-  // 각 줄별로 처리하기 위해 줄 단위로 분리
-  List<String> lines = value.split('\n');
-  // 숫자 부분과 괄호 부분을 분리하는 정규표현식
-  RegExp regExp = RegExp(r'^([\d,]+)(\s*\(.*\))?$');
-
-  List<String> formattedLines = lines.map((line) {
-    Match? match = regExp.firstMatch(line);
-    if (match != null) {
-      String numberPart = match.group(1)!; // 숫자 및 콤마 포함 부분
-      String? suffix = match.group(2); // 괄호를 포함한 접미사 (null일 수 있음)
-
-      // 콤마 제거 후 순수 숫자 문자열 추출
-      String numberStr = numberPart.replaceAll(',', '');
-      if (RegExp(r'^\d+$').hasMatch(numberStr)) {
-        try {
-          int number = int.parse(numberStr);
-          String formattedNumber = NumberFormat('#,###').format(number);
-          return formattedNumber + (suffix ?? '');
-        } catch (e) {
-          return line; // 변환 중 오류 발생 시 원래 줄 반환
-        }
-      }
-    }
-    // 정규표현식에 맞지 않거나 숫자 이외의 문자가 있는 경우 원래 줄 반환
-    return line;
-  }).toList();
-
-  // 처리한 각 줄을 다시 개행 문자로 연결하여 반환
-  return formattedLines.join('\n');
 }
 
 enum TextWidgetType { selectable, plain, textField }

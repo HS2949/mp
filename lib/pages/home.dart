@@ -65,7 +65,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   bool showLargeSizeLayout = false;
   // 큰 크기 레이아웃 활성화 여부.
 
-  int screenIndex = ScreenSelected.home.value;
+  int screenIndex = ScreenSelected.item.value; // 초기 index 설정
   // 현재 선택된 화면 인덱스. 기본값은 'component 화면'.
 
   @override
@@ -151,7 +151,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.item => Expanded(
+        ScreenSelected.home => Expanded(
             child: Category_Widget(
                 railAnimation: railAnimation,
                 scaffoldKey: scaffoldKey,
@@ -159,7 +159,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 showMediumSizeLayout: showMediumSizeLayout,
                 showLargeSizeLayout: showLargeSizeLayout),
           ),
-        ScreenSelected.home => Expanded(
+        ScreenSelected.item => Expanded(
             child: Item_Widget(
                 railAnimation: railAnimation,
                 scaffoldKey: scaffoldKey,
