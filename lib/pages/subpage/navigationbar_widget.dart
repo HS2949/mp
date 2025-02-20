@@ -1,11 +1,12 @@
-// ignore_for_file: non_constant_identifier_names, camel_case_types
+// ignore_for_file: non_constant_identifier_names, camel_case_types, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/pages/dialog/dialog_field.dart';
 import 'package:mp_db/pages/home.dart';
-import 'package:mp_db/pages/subpage/item_category_subpage.dart';
-import 'package:mp_db/pages/subpage/item_field_subpage.dart';
+import 'package:mp_db/pages/subpage/settings/item_category_subpage.dart';
+import 'package:mp_db/pages/subpage/settings/item_field_subpage.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/two_line.dart';
@@ -56,17 +57,87 @@ class Category_Widget extends StatelessWidget {
             KeepAlivePage(child: Item_Category()),
             // 2번 탭
             KeepAlivePage(
-              child: OneTwoTransition(
-                animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-                one: First_Field_Page(
-                  showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
-                  scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                  showSecondList: showMediumSizeLayout || showLargeSizeLayout,
-                  // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-                ), // 첫 번째 구성 요소 리스트.
-                two: Second_Field_Page(
-                  scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                ), // 두 번째 구성 요소 리스트.
+              child: Scaffold(
+                appBar: AppBar(
+                  automaticallyImplyLeading: false,
+                  surfaceTintColor: AppTheme.textStrongColor.withOpacity(0.1),
+                  title: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('아이템 항목 편집'),
+                        SizedBox(
+                          width: 80,
+                          height: 35,
+                          child: FloatingActionButton.extended(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return DialogField(
+                                    isDefault:
+                                        true, // 필요한 경우 기본 정보(true) 또는 추가 정보(false)로 설정
+                                    document:
+                                        null, // 추가 시 새 항목을 위한 null, 편집 시 해당 DocumentSnapshot 전달
+                                  );
+                                },
+                              );
+                            },
+                            tooltip: '필드명 추가',
+                            icon: const Icon(Icons.add,
+                                color: AppTheme.primaryColor),
+                            label: const Text(
+                              'Add',
+                              style: TextStyle(color: AppTheme.primaryColor),
+                            ),
+                            backgroundColor: AppTheme.buttonlightbackgroundColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                body: OneTwoTransition(
+                  animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+                  one: First_Field_Page(
+                    showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
+                    scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                    showSecondList: showMediumSizeLayout || showLargeSizeLayout,
+                    // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+                  ), // 첫 번째 구성 요소 리스트.
+                  two: Second_Field_Page(
+                    scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                  ), // 두 번째 구성 요소 리스트.
+                ),
+                // floatingActionButton: SizedBox(
+                //   width: 80,
+                //   height: 35,
+                //   child: FloatingActionButton.extended(
+                //     onPressed: () {
+                //       showDialog(
+                //         context: context,
+                //         builder: (BuildContext context) {
+                //           return DialogField(
+                //             isDefault:
+                //                 false, // 필요한 경우 기본 정보(true) 또는 추가 정보(false)로 설정
+                //             document:
+                //                 null, // 추가 시 새 항목을 위한 null, 편집 시 해당 DocumentSnapshot 전달
+                //             firestoreService:
+                //                 FirestoreService(), // FirestoreService 인스턴스 전달
+                //           );
+                //         },
+                //       );
+                //     },
+                //     tooltip: '필드명 추가',
+                //     icon: const Icon(Icons.add, color: AppTheme.primaryColor),
+                //     label: const Text(
+                //       'Add',
+                //       style: TextStyle(color: AppTheme.primaryColor),
+                //     ),
+                //     backgroundColor: AppTheme.buttonlightbackgroundColor,
+                //   ),
+                // ),
               ),
             ),
           ],
@@ -91,9 +162,9 @@ class First_Field_Page extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
-      Item_Field(title: '기본 정보', isDefault: true),
+      Item_Field(title: '기본 항목', isDefault: true),
       if (!showSecondList) ...[
-        Item_Field(title: '추가 정보', isDefault: false),
+        Item_Field(title: '추가 항목', isDefault: false),
       ]
     ];
     List<double?> heights = List.filled(children.length, null);
@@ -226,7 +297,6 @@ class _Item_WidgetState extends State<Item_Widget>
                 tabProvider.tabTitles[index].icon!,
                 SizedBox(width: 8), // 아이콘과 텍스트 간격
               ],
-
               Flexible(
                   child: copyTextWidget(context,
                       text: tabProvider.tabTitles[index].text,

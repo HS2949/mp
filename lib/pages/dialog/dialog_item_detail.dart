@@ -1,8 +1,12 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 // ============================================================================
 // 1. 기본 정보(항목) 추가 다이얼로그
 // ============================================================================
+// ignore_for_file: deprecated_member_use
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/models/item_model.dart';
@@ -126,7 +130,8 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                   ),
                   onPressed: () async {
                     // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
-                    String? imageUrl = await showImageSelectionDialog(context);
+                    String? imageUrl = await showImageSelectionDialog(context,
+                        folder: 'uploads/${widget.item?.itemName}/default');
                     if (imageUrl != null) {
                       // 받아온 URL을 value1Controller에 할당
                       value1Controller.text = imageUrl;
@@ -315,13 +320,14 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-                '${widget.item?.itemName ?? ""} - ${isAddmode ? '추가 정보' : '편집'}',
-                style: AppTheme.appbarTitleTextStyle),
+              '${widget.item?.itemName ?? ""} - ${isAddmode ? '추가 정보' : '편집'}',
+              style: AppTheme.appbarTitleTextStyle,
+            ),
             const SizedBox(height: 20),
             DropdownMenu<String>(
               requestFocusOnTap: false,
               expandedInsets: const EdgeInsets.all(15),
-              label: const Text('그룹'),
+              label: const Text('그룹 미지정'),
               initialSelection: selectedGroup,
               dropdownMenuEntries: [
                 DropdownMenuEntry<String>(
@@ -385,7 +391,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                         color: AppTheme.text5Color,
                         size: 15,
                       ),
-                      const SizedBox(width: 8), // 아이콘과 텍스트 필드 사이 간격 추
+                      const SizedBox(width: 8), // 아이콘과 텍스트 필드 사이 간격
                       Flexible(
                         child: TextField(
                           controller: value2Controller,
@@ -403,7 +409,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: orderController,
                     decoration: InputDecoration(
@@ -439,10 +445,6 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       showOverlayMessage(context, "서브 아이템명을 입력해주세요.");
                       return;
                     }
-                    if (selectedGroup == null) {
-                      showOverlayMessage(context, "그룹을 선택해주세요.");
-                      return;
-                    }
 
                     // 2️⃣ 신규 그룹 생성 시 이름 체크
                     String finalGroup;
@@ -454,7 +456,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       }
                       finalGroup = groupName;
                     } else {
-                      finalGroup = selectedGroup!;
+                      finalGroup = selectedGroup ?? '(미지정)';
                     }
 
                     // 3️⃣ Firestore 경로 설정
@@ -501,12 +503,33 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       if (updatedFields.isNotEmpty) {
                         await docRef.update(updatedFields);
                       }
+
+                      // 8️⃣ 편집 모드에서 그룹(폴더명)이 변경되었으면 Files 컬렉션 업데이트
+                      final String oldGroup = existingData?['SubName'] ?? '';
+                      if (oldGroup != subItemName) {
+                        final String oldFolder = 'uploads/${widget.item?.itemName}/$oldGroup';
+                        final String newFolder = 'uploads/${widget.item?.itemName}/$subItemName';
+
+                        QuerySnapshot filesSnapshot = await FirebaseFirestore
+                            .instance
+                            .collection('files')
+                            .where('folder', isEqualTo: oldFolder)
+                            .get();
+
+                        WriteBatch batch = FirebaseFirestore.instance.batch();
+                        for (var doc in filesSnapshot.docs) {
+                          batch.update(doc.reference, {'folder': newFolder});
+                        }
+                        await batch.commit();
+                      }
                     }
 
-                    // 8️⃣ 완료 후 UI 업데이트 및 메시지 표시
+                    // 9️⃣ 완료 후 UI 업데이트 및 메시지 표시
                     Navigator.of(context).pop();
                     showOverlayMessage(
-                        context, '서브 아이템을 ${isAddmode ? '추가' : '수정'}하였습니다.');
+                      context,
+                      '서브 아이템을 ${isAddmode ? '추가' : '수정'}하였습니다.',
+                    );
                   },
                   child: Text(isAddmode ? 'Add' : 'Edit'),
                 ),
@@ -521,6 +544,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
 
 class EditDialogContent extends StatefulWidget {
   final String keyField; // 예: 'keyword'
+  final String itemName;
   final String fieldName;
   final String fieldValue;
   final String itemId;
@@ -529,6 +553,7 @@ class EditDialogContent extends StatefulWidget {
   const EditDialogContent({
     Key? key,
     required this.keyField,
+    required this.itemName,
     required this.fieldName,
     required this.fieldValue,
     required this.itemId,
@@ -604,8 +629,8 @@ class _EditDialogContentState extends State<EditDialogContent> {
                     labelText: 'Edit Field',
                     labelStyle: AppTheme.textLabelStyle,
                     enabledBorder: OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: AppTheme.buttonlightbackgroundColor),
+                      borderSide: BorderSide(
+                          color: AppTheme.buttonlightbackgroundColor),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -634,8 +659,10 @@ class _EditDialogContentState extends State<EditDialogContent> {
                       ),
                       onPressed: () async {
                         // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
-                        String? imageUrl =
-                            await showImageSelectionDialog(context);
+                        String? imageUrl = await showImageSelectionDialog(
+                            context,
+                            folder: 'uploads/${widget.itemName}/default');
+
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
                           textController.text = imageUrl;
@@ -825,8 +852,10 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                     ),
                     onPressed: () async {
                       // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
-                      String? imageUrl =
-                          await showImageSelectionDialog(context);
+                      String title = widget.itemProvider.items.firstWhere(
+                          (item) => item.id == widget.itemId)['ItemName'];
+                      String? imageUrl = await showImageSelectionDialog(context,
+                          folder: 'uploads/${title}/default');
                       if (imageUrl != null) {
                         // 받아온 URL을 value1Controller에 할당
                         _valueController.text = imageUrl;
@@ -918,6 +947,114 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class RenameGroupDialog extends StatefulWidget {
+  final String oldGroupName;
+  final List groupItems; // 그룹 내 하위 아이템 목록
+  final String itemId;
+  final Function(String newGroupName) onRenameComplete; // 변경 후 부모에 반영할 콜백
+
+  const RenameGroupDialog({
+    Key? key,
+    required this.oldGroupName,
+    required this.groupItems,
+    required this.itemId,
+    required this.onRenameComplete,
+  }) : super(key: key);
+
+  @override
+  _RenameGroupDialogState createState() => _RenameGroupDialogState();
+}
+
+class _RenameGroupDialogState extends State<RenameGroupDialog> {
+  late TextEditingController _renameController;
+  bool _isUpdating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _renameController = TextEditingController(text: widget.oldGroupName);
+  }
+
+  @override
+  void dispose() {
+    _renameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updateGroupName() async {
+    final newGroupName = _renameController.text.trim();
+    if (newGroupName.isEmpty || newGroupName == widget.oldGroupName) {
+      Navigator.pop(context);
+      return;
+    }
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      // WriteBatch 생성
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+
+      // 그룹 내 모든 하위 아이템에 대해 배치 업데이트 추가
+      for (var item in widget.groupItems) {
+        final DocumentReference docRef = FirebaseFirestore.instance
+            .collection('Items')
+            .doc(widget.itemId)
+            .collection('Sub_Items')
+            .doc(item["id"]);
+        batch.update(docRef, {"SubItem": newGroupName});
+      }
+
+      // 배치 커밋(모든 업데이트가 동시에 적용됨)
+      await batch.commit();
+
+      // 변경된 그룹명을 부모에 반영
+      widget.onRenameComplete(newGroupName);
+      Navigator.pop(context);
+      showOverlayMessage(context, "그룹명이 변경되었습니다.");
+    } catch (error) {
+      Navigator.pop(context);
+      showOverlayMessage(context, "그룹명 변경 중 오류가 발생했습니다.");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("그룹명 변경"),
+      content: TextField(
+        controller: _renameController,
+        decoration: const InputDecoration(
+          labelText: "새로운 그룹명",
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("취소"),
+        ),
+        TextButton(
+          onPressed: _isUpdating ? null : _updateGroupName,
+          child: _isUpdating
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text("변경"),
+        ),
+      ],
     );
   }
 }

@@ -1,6 +1,3 @@
-// Copyright 2021 The Flutter team. All rights reserved.
-// Flutter 팀의 소스 코드. BSD-style 라이선스에 따라 배포 가능. 자세한 내용은 LICENSE 파일 참조.
-
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 // Flutter의 Material Design 위젯 및 테마를 사용하기 위한 패키지.
@@ -18,13 +15,13 @@ import 'package:mp_db/material/constants.dart';
 
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
-import 'package:mp_db/pages/subpage/item_category_subpage.dart';
+import 'package:mp_db/pages/subpage/home_subpage.dart';
+import 'package:mp_db/pages/subpage/settings/item_category_subpage.dart';
 
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
-import 'package:mp_db/screens/item_screen.dart';
 import 'package:mp_db/utils/two_line.dart';
 import 'package:provider/provider.dart';
 
@@ -49,6 +46,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   // GlobalKey를 생성하여 Scaffold 상태를 관리.
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  
 
   late final AnimationController controller;
   // 애니메이션의 상태와 진행률을 제어하는 컨트롤러.
@@ -151,14 +149,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.home => Expanded(
-            child: Category_Widget(
-                railAnimation: railAnimation,
-                scaffoldKey: scaffoldKey,
-                showNavBottomBar: showNavBottomBar,
-                showMediumSizeLayout: showMediumSizeLayout,
-                showLargeSizeLayout: showLargeSizeLayout),
-          ),
+        ScreenSelected.home => Expanded(child: HomeSubpage()),
         ScreenSelected.item => Expanded(
             child: Item_Widget(
                 railAnimation: railAnimation,
@@ -169,7 +160,14 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           ),
         // ScreenSelected.temp1 => const ItemScreen(),
         // ScreenSelected.temp1 => Expanded(child: const ItemDetailScreen(itemId: 'EGA9krhnxChp3EcXHBG9')),
-        ScreenSelected.temp1 => Expanded(child: const ItemScreen()),
+        ScreenSelected.temp1 => Expanded(
+            child: Category_Widget(
+                railAnimation: railAnimation,
+                scaffoldKey: scaffoldKey,
+                showNavBottomBar: showNavBottomBar,
+                showMediumSizeLayout: showMediumSizeLayout,
+                showLargeSizeLayout: showLargeSizeLayout),
+          ),
         ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),

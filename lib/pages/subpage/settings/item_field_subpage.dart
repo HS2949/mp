@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/pages/dialog/dialog_field.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 class Item_Field extends StatefulWidget {
@@ -32,141 +33,16 @@ class _Item_FieldState extends State<Item_Field> {
   }
 
   void _showDialog({DocumentSnapshot? document}) {
-    // 다이얼로그 내에서 사용되는 지역 isDefault 변수 (필요에 따라 사용자가 토글 가능)
-    bool isDefaultLocal = widget.isDefault;
-
-    if (document != null) {
-      _nameController.text = document['FieldName'];
-      _fieldController.text = document['FieldKey'];
-      // 추가정보인 경우 Firestore에 저장된 FieldOrder에서 3을 빼서 보여준다.
-      if (widget.isDefault) {
-        _orderController.text = document['FieldOrder'].toString();
-      } else {
-        final int firestoreOrder =
-            int.tryParse(document['FieldOrder'].toString()) ?? 0;
-        _orderController.text = (firestoreOrder - 3).toString();
-      }
-    } else {
-      _nameController.clear();
-      _fieldController.clear();
-      _orderController.clear();
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          scrollable: true, // 내용이 길 경우 스크롤 가능
-          title: Text(
-            document == null ? 'Add Field' : 'Edit Field',
-            style: AppTheme.appbarTitleTextStyle,
-          ),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return SizedBox(
-                width: 300,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 10),
-                    FilterChip(
-                      checkmarkColor: AppTheme.secondaryColor,
-                      selectedColor: Colors.yellow[100],
-                      backgroundColor: Colors.blue[50],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide.none,
-                      ),
-                      label: Text(isDefaultLocal ? '기본 정보' : '추가 정보'),
-                      selected: isDefaultLocal,
-                      onSelected: (selected) {
-                        setState(() {
-                          isDefaultLocal = selected;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        suffixIcon: ClearButton(controller: _nameController),
-                        labelText: 'Field Name',
-                        hintText: '예) 주소, 전화번호, 휴무, 메모 ... ',
-                        filled: true,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _fieldController,
-                      decoration: InputDecoration(
-                        suffixIcon: ClearButton(controller: _fieldController),
-                        labelText: 'Field Key',
-                        hintText:
-                            '예) Address, PhoneNumber, Holiday, Notes ... ',
-                        filled: true,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _orderController,
-                      decoration: InputDecoration(
-                        suffixIcon: ClearButton(controller: _orderController),
-                        labelText: 'Order',
-                        hintText: '예) 1, 2, 3, 4.. ',
-                        filled: true,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // 사용자가 입력한 순서 값을 파싱하여 추가정보인 경우 Firestore 저장 시 3을 더한다.
-                int orderInput =
-                    int.tryParse(_orderController.text.trim()) ?? 0;
-                final String firestoreOrder = isDefaultLocal
-                    ? orderInput.toString()
-                    : (orderInput + 3).toString();
-
-                if (document == null) {
-                  firestoreService.addItem(
-                    collectionName: 'Fields',
-                    data: {
-                      'FieldName': _nameController.text.trim(),
-                      'FieldKey': _fieldController.text.trim(),
-                      'FieldOrder': firestoreOrder,
-                      'IsDefault': isDefaultLocal,
-                    },
-                    autoGenerateId: true,
-                  );
-                } else {
-                  firestoreService.updateItem(
-                    collectionName: 'Fields',
-                    documentId: document.id,
-                    updatedData: {
-                      'FieldName': _nameController.text.trim(),
-                      'FieldKey': _fieldController.text.trim(),
-                      'FieldOrder': firestoreOrder,
-                      'IsDefault': isDefaultLocal,
-                    },
-                  );
-                }
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  showDialog(
+    context: context,
+    builder: (context) {
+      return DialogField(
+        isDefault: widget.isDefault,
+        document: document,
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -176,35 +52,10 @@ class _Item_FieldState extends State<Item_Field> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                const SizedBox(width: 10),
-                SizedBox(
-                  height: 35,
-                  child: Center(
-                    child:
-                        Text(widget.title, style: AppTheme.bodyLargeTextStyle),
-                  ),
-                ),
-                if (widget.isDefault) ...[
-                  const Spacer(),
-                  SizedBox(
-                    width: 80,
-                    height: 35,
-                    child: FloatingActionButton.extended(
-                      onPressed: () => _showDialog(),
-                      tooltip: '필드명 추가',
-                      icon: const Icon(Icons.add, color: AppTheme.primaryColor),
-                      label: const Text(
-                        'Add',
-                        style: TextStyle(color: AppTheme.primaryColor),
-                      ),
-                      backgroundColor: AppTheme.buttonlightbackgroundColor,
-                    ),
-                  ),
-                ]
-              ],
+            padding: const EdgeInsets.only(left: 10),
+            child: SizedBox(
+              // height: 35,
+              child: Text(widget.title, style: AppTheme.bodyMediumTextStyle),
             ),
           ),
           StreamBuilder(

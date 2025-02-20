@@ -3,6 +3,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:mp_db/pages/dialog/dialog_ImageView.dart';
 import 'package:mp_db/pages/dialog/dialog_item_detail.dart';
 import 'package:mp_db/utils/formatters.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/item_model.dart';
 import '../../providers/Item_detail/Item_detail_provider.dart';
@@ -92,8 +94,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         return orderA.compareTo(orderB);
       });
     });
+    // // 그룹 정렬 : 아이템 개수가 많을 순서대로 정렬
+    // final sortedGroups = groupedData.entries.toList()
+    //   ..sort((a, b) => b.value.length.compareTo(a.value.length));
+    // 그룹 정렬 : 그룹명 오름차순 정렬
     final sortedGroups = groupedData.entries.toList()
-      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+      ..sort((a, b) => a.key.compareTo(b.key));
     List<Map<String, dynamic>> groups = sortedGroups.map((entry) {
       final groupTitle = entry.key;
       final subItems = entry.value;
@@ -221,6 +227,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       context: context,
       builder: (context) => EditDialogContent(
         keyField: key,
+        itemName:
+            provider.items.firstWhere((item) => item.id == itemId)['ItemName'],
         fieldName: name,
         fieldValue: value,
         itemId: itemId,
@@ -337,6 +345,21 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                 await _showAddDialogItem(context, provider, widget.itemId);
               },
             ),
+            IconButton(
+              icon: const Icon(Icons.image_outlined),
+              tooltip: '사진 정보',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        // ImageGridScreen(folderName: 'uploads/${itemData.itemName}'),
+                        ImageGridScreen(
+                            folderName: 'uploads/${itemData.itemName}'),
+                  ),
+                );
+              },
+            ),
             // IconButton(icon: const Icon(Icons.attach_file), onPressed: () {}),
             MenuAnchor(
               builder: (context, controller, child) {
@@ -377,6 +400,16 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       ),
     ];
 
+    /// 이미지 URL을 브라우저에서 열기 위한 함수
+    Future<void> _launchURL(String url) async {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch $url';
+      }
+    }
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -392,7 +425,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: color, size: 50),
+                Icon(
+                  icon,
+                  color: color,
+                  size: 50,
+                ),
                 const SizedBox(width: 15),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,11 +442,18 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                             style: AppTheme.textHintTextStyle
                                 .copyWith(fontSize: 10))),
                     Flexible(
-                      child: copyTextWidget(
-                        context,
-                        text: itemData.itemName,
-                        widgetType: TextWidgetType.plain,
-                        style: AppTheme.titleLargeTextStyle,
+                      child: GestureDetector(
+                        onDoubleTap: () => _launchURL(
+                            "https://map.naver.com/p/search/${itemData.itemName}"),
+                        child: Tooltip(
+                          message: "길게 누르기 : 클립보드 복사\n더블 클릭 : 네이버 지도 검색",
+                          child: copyTextWidget(
+                            context,
+                            text: itemData.itemName,
+                            widgetType: TextWidgetType.plain,
+                            style: AppTheme.titleLargeTextStyle,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -502,7 +546,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           final String label = itemProvider
                                   .fieldMappings[entry.key]?['FieldName'] ??
                               entry.key;
-                          final dynamic result = formatValue(entry.value);
+                          final dynamic result =
+                              formatValue(context, entry.value);
                           return Card(
                             elevation: 0,
                             margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
@@ -516,10 +561,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.start,
                                       children: [
-                                        SelectableText(label,
-                                            style:
-                                                AppTheme.fieldLabelTextStyle),
-                                        const SizedBox(width: 5),
+                                        copyTextWidget(
+                                          context,
+                                          text: label,
+                                          widgetType: TextWidgetType.selectable,
+                                          style: AppTheme.fieldLabelTextStyle,
+                                        ),
                                         SizedBox(
                                           width: 20,
                                           height: 20,
@@ -533,15 +580,15 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 color: AppTheme.toolColor),
                                             onPressed: () {
                                               _showEditDialog(
-                                                  context,
-                                                  entry.key,
-                                                  itemProvider.fieldMappings[
-                                                              entry.key]
-                                                          ?['FieldName'] ??
-                                                      entry.key,
-                                                  entry.value,
-                                                  itemData.id,
-                                                  '');
+                                                context,
+                                                entry.key,
+                                                itemProvider.fieldMappings[entry
+                                                        .key]?['FieldName'] ??
+                                                    entry.key,
+                                                entry.value,
+                                                itemData.id,
+                                                '',
+                                              );
                                             },
                                           ),
                                         )
@@ -636,38 +683,52 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       elevation: 0,
                       child: Column(
                         children: [
-                          ListTile(
-                            dense: true,
-                            minVerticalPadding: 0,
-                            visualDensity: VisualDensity(vertical: -4),
-                            title: Padding(
-                              padding:
-                                  const EdgeInsets.only(left: 20, right: 50),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    group["groupTitle"],
-                                    style:
-                                        AppTheme.fieldLabelTextStyle.copyWith(
-                                      color:
-                                          AppTheme.text9Color.withOpacity(0.3),
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 20),
-                                  const Expanded(
-                                    child: Divider(
-                                      color: AppTheme.text9Color,
-                                      thickness: 0.2,
-                                    ),
-                                  )
-                                ],
-                              ),
+                          Tooltip(
+                            message: '클릭 : 열기/닫기\n길게 누르기 : 그룹명 변경',
+                            decoration: BoxDecoration(
+                              color: AppTheme.text9Color
+                                  .withOpacity(0.3), // 배경색 변경
+                              borderRadius:
+                                  BorderRadius.circular(8), // 둥근 모서리 적용
                             ),
-                            onTap: () => _toggleGroupExpansion(groupIndex),
-                            onLongPress: () =>
-                                _toggleAllItemsInGroup(groupIndex, true),
+                            textStyle: TextStyle(
+                              color: Colors.white, // 글자 색상 변경
+                              fontSize: 11,
+                            ),
+                            child: ListTile(
+                              dense: true,
+                              minVerticalPadding: 0,
+                              visualDensity: VisualDensity(vertical: -4),
+                              title: Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 20, right: 50),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      group["groupTitle"],
+                                      style:
+                                          AppTheme.fieldLabelTextStyle.copyWith(
+                                        color: AppTheme.text9Color
+                                            .withOpacity(0.3),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    const Expanded(
+                                      child: Divider(
+                                        color: AppTheme.text9Color,
+                                        thickness: 0.2,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                              onTap: () => _toggleGroupExpansion(groupIndex),
+                              onLongPress: () =>
+                                  // _toggleAllItemsInGroup(groupIndex, true),
+                                  _showRenameGroupDialog(groupIndex),
+                            ),
                           ),
                           AnimatedSize(
                             duration: const Duration(milliseconds: 300),
@@ -684,111 +745,152 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
                                         children: [
-                                          ListTile(
-                                            tileColor: AppTheme.text5Color
-                                                .withOpacity(0.03),
-                                            contentPadding:
-                                                const EdgeInsets.fromLTRB(
-                                                    0, 0, 55, 0),
-                                            dense: true,
-                                            minVerticalPadding: 0,
-                                            visualDensity: const VisualDensity(
-                                                vertical: -4),
-                                            title: Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                MenuAnchor(
-                                                  builder: (context, controller,
-                                                      child) {
-                                                    return TextButton.icon(
-                                                      style:
-                                                          TextButton.styleFrom(
-                                                        padding:
-                                                            EdgeInsets.zero,
-                                                        minimumSize:
-                                                            const Size(50, 30),
-                                                      ),
-                                                      label: Text(
-                                                        itemData['subOrder'] ??
-                                                            '-',
-                                                        style: AppTheme
-                                                            .tagTextStyle
-                                                            .copyWith(
-                                                          fontSize: 8,
+                                          Tooltip(
+                                            message:
+                                                '클릭 : 열기/닫기\n길게 누르기 : 아이템 전부 열기/닫기',
+                                            child: ListTile(
+                                              tileColor: AppTheme.text5Color
+                                                  .withOpacity(0.03),
+                                              contentPadding:
+                                                  const EdgeInsets.fromLTRB(
+                                                      0, 0, 55, 0),
+                                              dense: true,
+                                              minVerticalPadding: 0,
+                                              visualDensity:
+                                                  const VisualDensity(
+                                                      vertical: -4),
+                                              title: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  MenuAnchor(
+                                                    builder: (context,
+                                                        controller, child) {
+                                                      return TextButton.icon(
+                                                        style: TextButton
+                                                            .styleFrom(
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          minimumSize:
+                                                              const Size(
+                                                                  50, 30),
                                                         ),
+                                                        label: Text(
+                                                          itemData[
+                                                                  'subOrder'] ??
+                                                              '-',
+                                                          style: AppTheme
+                                                              .tagTextStyle
+                                                              .copyWith(
+                                                            fontSize: 8,
+                                                          ),
+                                                        ),
+                                                        icon: const Icon(
+                                                          Icons
+                                                              .label_important_sharp,
+                                                          color: AppTheme
+                                                              .text5Color,
+                                                          size: 10,
+                                                        ),
+                                                        onPressed: () {
+                                                          if (controller
+                                                              .isOpen) {
+                                                            controller.close();
+                                                          } else {
+                                                            controller.open();
+                                                          }
+                                                        },
+                                                      );
+                                                    },
+                                                    menuChildren: [
+                                                      MenuItemButton(
+                                                        leadingIcon: const Icon(
+                                                            Icons
+                                                                .edit_note_outlined),
+                                                        child: const Text(
+                                                          'Edit',
+                                                          style: AppTheme
+                                                              .textLabelStyle,
+                                                        ),
+                                                        onPressed: () async {
+                                                          await _showAddDialogSubItem(
+                                                              context,
+                                                              provider,
+                                                              widget.itemId,
+                                                              itemData);
+                                                        },
                                                       ),
-                                                      icon: const Icon(
-                                                        Icons
-                                                            .label_important_sharp,
-                                                        color:
-                                                            AppTheme.text5Color,
-                                                        size: 10,
+                                                      MenuItemButton(
+                                                        leadingIcon: const Icon(
+                                                            Icons
+                                                                .delete_forever_outlined),
+                                                        child: const Text(
+                                                          'Delete',
+                                                          style: AppTheme
+                                                              .textLabelStyle,
+                                                        ),
+                                                        onPressed: () async {
+                                                          FiDeleteDialog(
+                                                            context: context,
+                                                            deleteFunction:
+                                                                () async {
+                                                              FirebaseFirestore
+                                                                  .instance
+                                                                  .collection(
+                                                                      'Items')
+                                                                  .doc(widget
+                                                                      .itemId)
+                                                                  .collection(
+                                                                      'Sub_Items')
+                                                                  .doc(itemData[
+                                                                      'id'])
+                                                                  .delete();
+                                                            },
+                                                            shouldCloseScreen:
+                                                                false,
+                                                          );
+                                                        },
                                                       ),
-                                                      onPressed: () {
-                                                        if (controller.isOpen) {
-                                                          controller.close();
-                                                        } else {
-                                                          controller.open();
-                                                        }
-                                                      },
-                                                    );
-                                                  },
-                                                  menuChildren: [
-                                                    MenuItemButton(
-                                                      leadingIcon: const Icon(Icons
-                                                          .edit_note_outlined),
-                                                      child: const Text(
-                                                        'Edit',
-                                                        style: AppTheme
-                                                            .textLabelStyle,
+                                                      MenuItemButton(
+                                                        leadingIcon: const Icon(
+                                                            Icons
+                                                                .add_to_photos_outlined),
+                                                        child: const Text(
+                                                          '속성 추가',
+                                                          style: AppTheme
+                                                              .textLabelStyle,
+                                                        ),
+                                                        onPressed: () async {
+                                                          await _showAddAttributeDialog(
+                                                              context,
+                                                              provider,
+                                                              widget.itemId,
+                                                              itemData);
+                                                          _toggleAllItemsInGroup(
+                                                              groupIndex,
+                                                              false);
+                                                        },
                                                       ),
-                                                      onPressed: () async {
-                                                        await _showAddDialogSubItem(
-                                                            context,
-                                                            provider,
-                                                            widget.itemId,
-                                                            itemData);
-                                                      },
+                                                    ],
+                                                  ),
+                                                  Text(
+                                                    '${itemData["title"]}',
+                                                    style: AppTheme
+                                                        .fieldLabelTextStyle
+                                                        .copyWith(
+                                                      color:
+                                                          AppTheme.primaryColor,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
-                                                    MenuItemButton(
-                                                      leadingIcon: const Icon(Icons
-                                                          .delete_forever_outlined),
-                                                      child: const Text(
-                                                        'Delete',
-                                                        style: AppTheme
-                                                            .textLabelStyle,
-                                                      ),
-                                                      onPressed: () async {
-                                                        FiDeleteDialog(
-                                                          context: context,
-                                                          deleteFunction:
-                                                              () async {
-                                                            FirebaseFirestore
-                                                                .instance
-                                                                .collection(
-                                                                    'Items')
-                                                                .doc(widget
-                                                                    .itemId)
-                                                                .collection(
-                                                                    'Sub_Items')
-                                                                .doc(itemData[
-                                                                    'id'])
-                                                                .delete();
-                                                          },
-                                                          shouldCloseScreen:
-                                                              false,
-                                                        );
-                                                      },
-                                                    ),
-                                                    MenuItemButton(
-                                                      leadingIcon: const Icon(Icons
-                                                          .add_to_photos_outlined),
-                                                      child: const Text(
-                                                        '속성 추가',
-                                                        style: AppTheme
-                                                            .textLabelStyle,
-                                                      ),
+                                                  ),
+                                                  SizedBox(width: 16),
+                                                  IconButton(
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                              minWidth: 16,
+                                                              minHeight: 16),
                                                       onPressed: () async {
                                                         await _showAddAttributeDialog(
                                                             context,
@@ -798,32 +900,47 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                         _toggleAllItemsInGroup(
                                                             groupIndex, false);
                                                       },
-                                                    ),
-                                                  ],
-                                                ),
-                                                Text(
-                                                  '${itemData["title"]}',
-                                                  style: AppTheme
-                                                      .fieldLabelTextStyle
-                                                      .copyWith(
-                                                    color:
-                                                        AppTheme.primaryColor,
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
+                                                      icon: Icon(
+                                                          Icons.add_outlined,
+                                                          color: AppTheme
+                                                              .text5Color,
+                                                          size: 16)),
+                                                  IconButton(
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                            minWidth: 16,
+                                                            minHeight: 16),
+                                                    icon: const Icon(
+                                                        Icons.image_outlined,
+                                                        color: AppTheme.text5Color,
+                                                        size: 16),
+                                                    tooltip: '사진 정보',
+                                                    onPressed: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              // ImageGridScreen(folderName: 'uploads/${itemData.itemName}'),
+                                                              ImageGridScreen(
+                                                                  folderName:
+                                                                      'uploads/${item.itemName}/${itemData["title"]}'),
+                                                        ),
+                                                      );
+                                                    },
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                            onTap: () => _toggleItemExpansion(
-                                                groupIndex, itemIndex),
-                                            onLongPress: () =>
-                                                _toggleAllItemsInGroup(
-                                                    groupIndex, true),
-                                            trailing: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // 필요에 따라 trailing 버튼 추가
-                                              ],
+                                                ],
+                                              ),
+                                              onTap: () => _toggleItemExpansion(
+                                                  groupIndex, itemIndex),
+                                              onLongPress: () =>
+                                                  _toggleAllItemsInGroup(
+                                                      groupIndex, true),
+                                              trailing: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // 필요에 따라 trailing 버튼 추가
+                                                ],
+                                              ),
                                             ),
                                           ),
                                           AnimatedSize(
@@ -843,21 +960,23 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                         children: (List.from(
                                                                 itemData[
                                                                     "attributes"])
-                                                              ..sort((a, b) {
-                                                                final aOrder =
-                                                                    (a['FieldOrder']
-                                                                            ?.toString() ??
-                                                                        '9999');
-                                                                final bOrder =
-                                                                    (b['FieldOrder']
-                                                                            ?.toString() ??
-                                                                        '9999');
-                                                                return int.parse(
-                                                                        aOrder)
-                                                                    .compareTo(
-                                                                        int.parse(
-                                                                            bOrder));
-                                                              }))
+                                                              ..sort(
+                                                                (a, b) {
+                                                                  final aOrder =
+                                                                      (a['FieldOrder']
+                                                                              ?.toString() ??
+                                                                          '9999');
+                                                                  final bOrder =
+                                                                      (b['FieldOrder']
+                                                                              ?.toString() ??
+                                                                          '9999');
+                                                                  return int.parse(
+                                                                          aOrder)
+                                                                      .compareTo(
+                                                                          int.parse(
+                                                                              bOrder));
+                                                                },
+                                                              ))
                                                             .map<Widget>(
                                                                 (attribute) {
                                                           return LayoutBuilder(
@@ -866,6 +985,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                               final dynamic
                                                                   result =
                                                                   formatValue(
+                                                                      context,
                                                                       attribute[
                                                                           'FieldValue']);
                                                               return Card(
@@ -895,7 +1015,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                           text:
                                                                               "${attribute['FieldName']}",
                                                                           widgetType:
-                                                                              TextWidgetType.plain,
+                                                                              TextWidgetType.selectable,
                                                                           style: AppTheme
                                                                               .bodySmallTextStyle
                                                                               .copyWith(
@@ -908,9 +1028,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                           ),
                                                                         ),
 
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                5),
                                                                         IconButton(
                                                                           padding:
                                                                               EdgeInsets.zero,
@@ -948,13 +1065,20 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                         ),
                                                                         const SizedBox(
                                                                             width:
-                                                                                2),
+                                                                                5),
                                                                         // 필드 값 표시 (읽기 전용 TextField)
 
                                                                         Flexible(
                                                                           child: result is Widget
                                                                               ? result
-                                                                              : copyTextWidget(context, text: result, widgetType: TextWidgetType.textField, controller: TextEditingController(text: result), style: AppTheme.bodySmallTextStyle.copyWith(fontSize: 13), maxLines: 0),
+                                                                              : copyTextWidget(
+                                                                                  context,
+                                                                                  text: result,
+                                                                                  widgetType: TextWidgetType.textField,
+                                                                                  controller: TextEditingController(text: result),
+                                                                                  style: AppTheme.bodySmallTextStyle.copyWith(fontSize: 13),
+                                                                                  maxLines: 0,
+                                                                                ),
                                                                         ),
                                                                         const SizedBox(
                                                                             width:
@@ -1016,6 +1140,31 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     return widget.viewSelect < 2
         ? content
         : SingleChildScrollView(child: content);
+  }
+
+  Future<void> _showRenameGroupDialog(int groupIndex) async {
+    final oldGroupName = _computedGroups[groupIndex]["groupTitle"];
+    final List groupItems = _computedGroups[groupIndex]["items"];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return RenameGroupDialog(
+          oldGroupName: oldGroupName,
+          groupItems: groupItems,
+          itemId: widget.itemId,
+          onRenameComplete: (newGroupName) {
+            // 다이얼로그에서 변경 완료 후 _computedGroups에 반영
+            setState(() {
+              _computedGroups[groupIndex]["groupTitle"] = newGroupName;
+              for (var item in _computedGroups[groupIndex]["items"]) {
+                item["subItem"] = newGroupName;
+              }
+            });
+          },
+        );
+      },
+    );
   }
 }
 

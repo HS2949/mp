@@ -74,11 +74,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => ItemProvider()..loadSnapshot(),
         ),
-        // ChangeNotifierProvider(
-        //   create: (context) => ItemDetailProvider(
-        //     itemdetailRepository: ItemdetailRepository(),
-        //   ),
-        // ),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(
             authRepository: context.read<AuthRepository>(),
@@ -125,7 +120,6 @@ class MyApp extends StatelessWidget {
 
         // 앱의 테마를 설정합니다.
         theme: AppTheme.mpTheme,
-
         debugShowCheckedModeBanner: false,
         // 앱의 초기 화면을 설정합니다. HomeScreen 위젯이 시작 화면으로 사용됩니다.
         home: SplashPage(),

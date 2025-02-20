@@ -155,12 +155,26 @@ class AppTheme {
       // ========================================================  SnackBar 테마
       snackBarTheme: SnackBarThemeData(
         backgroundColor: primaryColor.withOpacity(0.8), // 🔹 배경 색상
-        contentTextStyle: textLabelStyle.copyWith(color: backgroundColor), // 🔹 텍스트 색상
+        contentTextStyle:
+            textLabelStyle.copyWith(color: backgroundColor), // 🔹 텍스트 색상
         actionTextColor: buttonbackgroundColor, // 🔹 액션 버튼 텍스트 색상
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8), // 🔹 둥근 모서리
         ),
         behavior: SnackBarBehavior.floating, // 🔹 떠 있는 스낵바 스타일
+      ),
+      // ========================================================  Tooltip 테마
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withOpacity(0.4), // 배경색 변경
+          borderRadius: BorderRadius.circular(8), // 모서리 둥글게
+        ),
+        textStyle: TextStyle(
+          color: Colors.white, // 글자 색상 변경
+          fontSize: 11,
+        ),
+        waitDuration: Duration(milliseconds: 500), // 툴팁 표시까지 걸리는 시간
+        showDuration: Duration(seconds: 2), // 툴팁이 유지되는 시간
       ),
       // ========================================================  ElevatedButton 테마
       elevatedButtonTheme: ElevatedButtonThemeData(

@@ -1,5 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, library_private_types_in_public_api, use_super_parameters, non_constant_identifier_names, camel_case_types
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mp_db/pages/subpage/item_detail_subpage.dart';
 import 'package:provider/provider.dart';
 
@@ -153,6 +154,16 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
     );
   }
 
+  // 클립보드에서 텍스트 가져오기
+  Future<void> _pasteFromClipboard() async {
+    ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data != null && data.text != null) {
+      setState(() {
+        _provider.searchController.text = data.text!;
+      });
+    }
+  }
+
   bool isHovered = false; // 마우스 오버 상태 변수
   String labelText = 'Search';
   @override
@@ -169,25 +180,31 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
             Flexible(
               fit: FlexFit.tight,
               flex: 3,
-              child: TextField(
-                controller: _provider.searchController,
-                focusNode: _provider.searchFocusNode,
-                decoration: InputDecoration(
-                  labelText: labelText,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon:
-                      ClearButton(controller: _provider.searchController),
+              child: Tooltip(
+                message: '# 입력 시 : 태그 검색\n더블 클릭 : 클립보드 붙여넣기',
+                child: GestureDetector(
+                  onDoubleTap: _pasteFromClipboard,
+                  child: TextField(
+                    controller: _provider.searchController,
+                    focusNode: _provider.searchFocusNode,
+                    decoration: InputDecoration(
+                      labelText: labelText,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon:
+                          ClearButton(controller: _provider.searchController),
+                    ),
+                    onChanged: (text) {
+                      setState(() {
+                        // 검색어가 #으로 시작하면 라벨 변경
+                        labelText = text.startsWith('#') ? 'Tag' : 'Search';
+                      });
+                    },
+                    onTap: () {
+                      _provider.selectTab(0); // 포커스될 때 탭을 0번으로 변경
+                    },
+                  ),
                 ),
-                onChanged: (text) {
-                  setState(() {
-                    // 검색어가 #으로 시작하면 라벨 변경
-                    labelText = text.startsWith('#') ? 'Tag' : 'Search';
-                  });
-                },
-                onTap: () {
-                  _provider.selectTab(0); // 포커스될 때 탭을 0번으로 변경
-                },
               ),
             ),
             const SizedBox(width: 10),
