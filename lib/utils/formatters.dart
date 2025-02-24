@@ -103,7 +103,7 @@ dynamic formatValue(BuildContext context, String value) {
                 }
               },
               child: Text(
-                displayText,
+                remainingText.isNotEmpty ? '[링크]' : displayText,
                 style: AppTheme.bodySmallTextStyle.copyWith(
                   fontSize: 13,
                   color: AppTheme.text9Color,
@@ -111,14 +111,6 @@ dynamic formatValue(BuildContext context, String value) {
               ),
             ),
           ),
-          if (remainingText.isNotEmpty)
-            Flexible(
-              child: Text(
-                remainingText,
-                style: AppTheme.bodySmallTextStyle.copyWith(fontSize: 13),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
         ],
       ));
       continue;

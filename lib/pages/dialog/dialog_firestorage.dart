@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/dialog_Imageupload.dart';
+import 'package:mp_db/pages/dialog/dialog_ImageUpload.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 /// 파일 삭제 함수: Storage와 Firestore에서 모두 삭제
@@ -304,13 +304,25 @@ Future<String?> showImageSelectionDialog(BuildContext context,
                     TextButton(
                       onPressed: () async {
                         // List<String>? imageUrls = await UploadImage.uploadNewImage(context, multiple: true, folder: 'uploads/test');
-                        String? url = (await UploadImage.uploadNewImage(
+                        // String? url = (await UploadImage.uploadNewImage(
+                        //   context,
+                        //   multiple: false,
+                        //   folder: folder,
+                        //   imageQuality: 80,
+                        //   targetWidth: 800,
+                        // ))
+                        // ?.first;
+
+                        List<String>? urls = await UploadImage.uploadNewImage(
                           context,
                           multiple: false,
                           folder: folder,
-                          compress: false, // 압축하지 않음
-                        ))
-                            ?.first;
+                          imageQuality: 100,
+                          targetWidth: 1000,
+                        );
+
+                        String? url =
+                            urls?.isNotEmpty == true ? urls!.first : null;
                         Navigator.of(context).pop(url);
                       },
                       child: Text("새 이미지 업로드"),

@@ -37,6 +37,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   late final ItemProvider provider;
   final firestoreService = FirestoreService();
 
+  /// 각 subItem 별 파일 개수를 저장 (subItem id를 키로 사용)
+  Map<String, int> _fileCounts = {};
+
   /// Firebase의 subItems 데이터를 그룹화한 결과를 저장하는 상태 변수
   List<Map<String, dynamic>> _computedGroups = [];
   bool _allGroupsExpanded = true;
@@ -61,6 +64,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     if (oldWidget.itemId != widget.itemId) {
       _computedGroups = [];
       _lastSubItemsHash = '';
+      _fileCounts.clear(); // 이전 subItem 파일 개수 초기화
     }
   }
 
@@ -82,8 +86,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       final groupKey = subItem.fields['SubItem'] ?? '(미분류)';
       // subItem.fields에 id 추가 (subItem이 DocumentSnapshot과 유사한 구조라고 가정)
       final fieldsWithId = Map<String, dynamic>.from(subItem.fields)
-        ..['id'] = subItem.id; // subItem.id가 존재해야 함
-      // ..['id'] = subItem.o; // subItem.id가 존재해야 함
+        ..['id'] = subItem.id;
       // 그룹핑 진행
       groupedData.putIfAbsent(groupKey, () => []).add(fieldsWithId);
     }
@@ -94,9 +97,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         return orderA.compareTo(orderB);
       });
     });
-    // // 그룹 정렬 : 아이템 개수가 많을 순서대로 정렬
-    // final sortedGroups = groupedData.entries.toList()
-    //   ..sort((a, b) => b.value.length.compareTo(a.value.length));
     // 그룹 정렬 : 그룹명 오름차순 정렬
     final sortedGroups = groupedData.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
@@ -109,7 +109,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           ..remove('SubItem')
           ..remove('SubName')
           ..remove('SubOrder')
-          ..remove('id'); // id는 별도로 저장해둡니다.
+          ..remove('id');
         final itemProvider = context.read<ItemProvider>();
         // 각 attribute를 별도의 맵으로 분리
         final List<Map<String, dynamic>> attributes =
@@ -124,7 +124,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           };
         }).toList();
         return {
-          "id": subItem['id'], // subItem의 id를 여기서 저장
+          "id": subItem['id'],
           "subOrder": subItem['SubOrder'],
           "subItem": subItem['SubItem'],
           "title": title,
@@ -173,14 +173,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       for (int groupIndex = 0;
           groupIndex < _computedGroups.length;
           groupIndex++) {
-        _computedGroups[groupIndex]["isExpanded"] =
-            _allGroupsExpanded; // 모든 그룹 확장/축소
-
+        _computedGroups[groupIndex]["isExpanded"] = _allGroupsExpanded;
         for (int itemIndex = 0;
             itemIndex < _computedGroups[groupIndex]["items"].length;
             itemIndex++) {
           _computedGroups[groupIndex]["items"][itemIndex]["isExpanded"] =
-              _allGroupsExpanded; // 모든 아이템 확장/축소
+              _allGroupsExpanded;
         }
       }
     });
@@ -212,7 +210,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   }
 
   // -------------------------------------------------------------------
-
   /// Firestore의 값을 수정한 후 실시간 반영을 위해 EditDialogContent에서 값이 변경되면
   /// Firestore 업데이트 후 Overlay 메시지를 띄워줍니다.
   Future<void> _showEditDialog(
@@ -261,13 +258,30 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   /// subItems의 필드값 변경까지 감지하기 위해 모든 내용을 문자열로 만들어 해시값을 계산합니다.
   String _computeSubItemsHash(Item item) {
     return item.subItems.map((subItem) {
-      // 필드들의 key를 정렬하여 안정적인 문자열을 생성합니다.
       final sortedEntries = subItem.fields.entries.toList()
         ..sort((a, b) => a.key.compareTo(b.key));
       final fieldsString =
           sortedEntries.map((e) => '${e.key}:${e.value}').join(',');
       return '${subItem.id}-$fieldsString';
     }).join('|');
+  }
+
+  // 각 subItem 별 파일 개수를 가져오는 함수
+  Future<void> _fetchFileCount(String subItemId, String folderName) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('files')
+          .where('folder', isEqualTo: folderName)
+          .get();
+      setState(() {
+        _fileCounts[subItemId] = querySnapshot.docs.length;
+      });
+    } catch (e) {
+      print("Error fetching file count for $folderName: $e");
+      setState(() {
+        _fileCounts[subItemId] = 0;
+      });
+    }
   }
 
   @override
@@ -346,21 +360,19 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               },
             ),
             IconButton(
+              // 기본 정보의 아이콘
               icon: const Icon(Icons.image_outlined),
               tooltip: '사진 정보',
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        // ImageGridScreen(folderName: 'uploads/${itemData.itemName}'),
-                        ImageGridScreen(
-                            folderName: 'uploads/${itemData.itemName}'),
+                    builder: (context) => ImageGridScreen(
+                        folderName: 'uploads/${itemData.itemName}'),
                   ),
                 );
               },
             ),
-            // IconButton(icon: const Icon(Icons.attach_file), onPressed: () {}),
             MenuAnchor(
               builder: (context, controller, child) {
                 return IconButton(
@@ -460,7 +472,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                 ),
               ],
             ),
-            // leading: const BackButton(),
             actions: actions,
           ),
           SliverToBoxAdapter(
@@ -626,7 +637,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   }
 
   Widget _buildSecondView(Item item) {
-    // 기존의 subItems 개수 비교 대신 subItems의 해시값을 계산하여 내용 변경까지 감지합니다.
+    // subItems의 해시값을 계산하여 내용 변경 감지
     final newHash = _computeSubItemsHash(item);
     if (newHash != _lastSubItemsHash) {
       _lastSubItemsHash = newHash;
@@ -686,13 +697,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           Tooltip(
                             message: '클릭 : 열기/닫기\n길게 누르기 : 그룹명 변경',
                             decoration: BoxDecoration(
-                              color: AppTheme.text9Color
-                                  .withOpacity(0.3), // 배경색 변경
-                              borderRadius:
-                                  BorderRadius.circular(8), // 둥근 모서리 적용
+                              color: AppTheme.text9Color.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             textStyle: TextStyle(
-                              color: Colors.white, // 글자 색상 변경
+                              color: Colors.white,
                               fontSize: 11,
                             ),
                             child: ListTile(
@@ -708,10 +717,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                     Text(
                                       group["groupTitle"],
                                       style:
-                                          AppTheme.fieldLabelTextStyle.copyWith(
+                                          AppTheme.bodySmallTextStyle.copyWith(
                                         color: AppTheme.text9Color
                                             .withOpacity(0.3),
-                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
                                       ),
                                     ),
                                     const SizedBox(width: 20),
@@ -726,7 +736,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                               ),
                               onTap: () => _toggleGroupExpansion(groupIndex),
                               onLongPress: () =>
-                                  // _toggleAllItemsInGroup(groupIndex, true),
                                   _showRenameGroupDialog(groupIndex),
                             ),
                           ),
@@ -741,6 +750,13 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                         .map<Widget>((entry) {
                                       int itemIndex = entry.key;
                                       var itemData = entry.value;
+                                      String subItemId = itemData["id"];
+                                      String folderName =
+                                          'uploads/${item.itemName}/${itemData["title"]}';
+                                      // subItem 별 파일 개수가 없으면 Firestore 쿼리 실행
+                                      if (!_fileCounts.containsKey(subItemId)) {
+                                        _fetchFileCount(subItemId, folderName);
+                                      }
                                       return Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
@@ -763,115 +779,120 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.center,
                                                 children: [
-                                                  MenuAnchor(
-                                                    builder: (context,
-                                                        controller, child) {
-                                                      return TextButton.icon(
-                                                        style: TextButton
-                                                            .styleFrom(
-                                                          padding:
-                                                              EdgeInsets.zero,
-                                                          minimumSize:
-                                                              const Size(
-                                                                  50, 30),
-                                                        ),
-                                                        label: Text(
-                                                          itemData[
-                                                                  'subOrder'] ??
-                                                              '-',
-                                                          style: AppTheme
-                                                              .tagTextStyle
-                                                              .copyWith(
-                                                            fontSize: 8,
+                                                  Tooltip(
+                                                    message: '아이템 메뉴',
+                                                    child: MenuAnchor(
+                                                      builder: (context,
+                                                          controller, child) {
+                                                        return TextButton.icon(
+                                                          style: TextButton
+                                                              .styleFrom(
+                                                            padding:
+                                                                EdgeInsets.zero,
+                                                            minimumSize:
+                                                                const Size(
+                                                                    50, 30),
                                                           ),
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .label_important_sharp,
-                                                          color: AppTheme
-                                                              .text5Color,
-                                                          size: 10,
-                                                        ),
-                                                        onPressed: () {
-                                                          if (controller
-                                                              .isOpen) {
-                                                            controller.close();
-                                                          } else {
-                                                            controller.open();
-                                                          }
-                                                        },
-                                                      );
-                                                    },
-                                                    menuChildren: [
-                                                      MenuItemButton(
-                                                        leadingIcon: const Icon(
+                                                          label: Text(
+                                                            itemData[
+                                                                    'subOrder'] ??
+                                                                '-',
+                                                            style: AppTheme
+                                                                .tagTextStyle
+                                                                .copyWith(
+                                                                    fontSize: 8,
+                                                                    color: AppTheme
+                                                                        .buttonlightbackgroundColor),
+                                                          ),
+                                                          icon: const Icon(
                                                             Icons
-                                                                .edit_note_outlined),
-                                                        child: const Text(
-                                                          'Edit',
-                                                          style: AppTheme
-                                                              .textLabelStyle,
+                                                                .label_important_sharp,
+                                                            color: AppTheme
+                                                                .text5Color,
+                                                            size: 10,
+                                                          ),
+                                                          onPressed: () {
+                                                            if (controller
+                                                                .isOpen) {
+                                                              controller
+                                                                  .close();
+                                                            } else {
+                                                              controller.open();
+                                                            }
+                                                          },
+                                                        );
+                                                      },
+                                                      menuChildren: [
+                                                        MenuItemButton(
+                                                          leadingIcon:
+                                                              const Icon(Icons
+                                                                  .edit_note_outlined),
+                                                          child: const Text(
+                                                            'Edit',
+                                                            style: AppTheme
+                                                                .textLabelStyle,
+                                                          ),
+                                                          onPressed: () async {
+                                                            await _showAddDialogSubItem(
+                                                                context,
+                                                                provider,
+                                                                widget.itemId,
+                                                                itemData);
+                                                          },
                                                         ),
-                                                        onPressed: () async {
-                                                          await _showAddDialogSubItem(
-                                                              context,
-                                                              provider,
-                                                              widget.itemId,
-                                                              itemData);
-                                                        },
-                                                      ),
-                                                      MenuItemButton(
-                                                        leadingIcon: const Icon(
-                                                            Icons
-                                                                .delete_forever_outlined),
-                                                        child: const Text(
-                                                          'Delete',
-                                                          style: AppTheme
-                                                              .textLabelStyle,
+                                                        MenuItemButton(
+                                                          leadingIcon:
+                                                              const Icon(Icons
+                                                                  .delete_forever_outlined),
+                                                          child: const Text(
+                                                            'Delete',
+                                                            style: AppTheme
+                                                                .textLabelStyle,
+                                                          ),
+                                                          onPressed: () async {
+                                                            FiDeleteDialog(
+                                                              context: context,
+                                                              deleteFunction:
+                                                                  () async {
+                                                                FirebaseFirestore
+                                                                    .instance
+                                                                    .collection(
+                                                                        'Items')
+                                                                    .doc(widget
+                                                                        .itemId)
+                                                                    .collection(
+                                                                        'Sub_Items')
+                                                                    .doc(itemData[
+                                                                        'id'])
+                                                                    .delete();
+                                                              },
+                                                              shouldCloseScreen:
+                                                                  false,
+                                                            );
+                                                          },
                                                         ),
-                                                        onPressed: () async {
-                                                          FiDeleteDialog(
-                                                            context: context,
-                                                            deleteFunction:
-                                                                () async {
-                                                              FirebaseFirestore
-                                                                  .instance
-                                                                  .collection(
-                                                                      'Items')
-                                                                  .doc(widget
-                                                                      .itemId)
-                                                                  .collection(
-                                                                      'Sub_Items')
-                                                                  .doc(itemData[
-                                                                      'id'])
-                                                                  .delete();
-                                                            },
-                                                            shouldCloseScreen:
-                                                                false,
-                                                          );
-                                                        },
-                                                      ),
-                                                      MenuItemButton(
-                                                        leadingIcon: const Icon(
-                                                            Icons
-                                                                .add_to_photos_outlined),
-                                                        child: const Text(
-                                                          '속성 추가',
-                                                          style: AppTheme
-                                                              .textLabelStyle,
+                                                        MenuItemButton(
+                                                          leadingIcon:
+                                                              const Icon(Icons
+                                                                  .add_to_photos_outlined),
+                                                          child: const Text(
+                                                            '속성 추가',
+                                                            style: AppTheme
+                                                                .textLabelStyle,
+                                                          ),
+                                                          onPressed: () async {
+                                                            await _showAddAttributeDialog(
+                                                                context,
+                                                                provider,
+                                                                widget.itemId,
+                                                                itemData);
+                                                            _toggleAllItemsInGroup(
+                                                                groupIndex,
+                                                                false);
+                                                          },
                                                         ),
-                                                        onPressed: () async {
-                                                          await _showAddAttributeDialog(
-                                                              context,
-                                                              provider,
-                                                              widget.itemId,
-                                                              itemData);
-                                                          _toggleAllItemsInGroup(
-                                                              groupIndex,
-                                                              false);
-                                                        },
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                   Text(
                                                     '${itemData["title"]}',
@@ -880,17 +901,17 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                         .copyWith(
                                                       color:
                                                           AppTheme.primaryColor,
-                                                      fontSize: 14,
+                                                      fontSize: 13,
                                                       fontWeight:
                                                           FontWeight.bold,
                                                     ),
                                                   ),
-                                                  SizedBox(width: 16),
+                                                  const SizedBox(width: 16),
                                                   IconButton(
                                                       constraints:
                                                           const BoxConstraints(
-                                                              minWidth: 16,
-                                                              minHeight: 16),
+                                                              minWidth: 0,
+                                                              minHeight: 0),
                                                       onPressed: () async {
                                                         await _showAddAttributeDialog(
                                                             context,
@@ -900,30 +921,37 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                         _toggleAllItemsInGroup(
                                                             groupIndex, false);
                                                       },
+                                                      tooltip: '속성 추가',
                                                       icon: Icon(
                                                           Icons.add_outlined,
                                                           color: AppTheme
-                                                              .text5Color,
-                                                          size: 16)),
+                                                              .buttonlightbackgroundColor,
+                                                          size: 13)),
                                                   IconButton(
                                                     constraints:
                                                         const BoxConstraints(
-                                                            minWidth: 16,
-                                                            minHeight: 16),
-                                                    icon: const Icon(
+                                                            minWidth: 0,
+                                                            minHeight: 0),
+                                                    icon: Icon(
                                                         Icons.image_outlined,
-                                                        color: AppTheme.text5Color,
-                                                        size: 16),
+                                                        color: (_fileCounts[
+                                                                        subItemId] ??
+                                                                    -1) >
+                                                                0
+                                                            ? AppTheme
+                                                                .text5Color
+                                                            : AppTheme
+                                                                .buttonlightbackgroundColor,
+                                                        size: 13),
                                                     tooltip: '사진 정보',
                                                     onPressed: () {
                                                       Navigator.push(
                                                         context,
                                                         MaterialPageRoute(
                                                           builder: (context) =>
-                                                              // ImageGridScreen(folderName: 'uploads/${itemData.itemName}'),
                                                               ImageGridScreen(
                                                                   folderName:
-                                                                      'uploads/${item.itemName}/${itemData["title"]}'),
+                                                                      folderName),
                                                         ),
                                                       );
                                                     },
@@ -960,23 +988,21 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                         children: (List.from(
                                                                 itemData[
                                                                     "attributes"])
-                                                              ..sort(
-                                                                (a, b) {
-                                                                  final aOrder =
-                                                                      (a['FieldOrder']
-                                                                              ?.toString() ??
-                                                                          '9999');
-                                                                  final bOrder =
-                                                                      (b['FieldOrder']
-                                                                              ?.toString() ??
-                                                                          '9999');
-                                                                  return int.parse(
-                                                                          aOrder)
-                                                                      .compareTo(
-                                                                          int.parse(
-                                                                              bOrder));
-                                                                },
-                                                              ))
+                                                              ..sort((a, b) {
+                                                                final aOrder =
+                                                                    (a['FieldOrder']
+                                                                            ?.toString() ??
+                                                                        '9999');
+                                                                final bOrder =
+                                                                    (b['FieldOrder']
+                                                                            ?.toString() ??
+                                                                        '9999');
+                                                                return int.parse(
+                                                                        aOrder)
+                                                                    .compareTo(
+                                                                        int.parse(
+                                                                            bOrder));
+                                                              }))
                                                             .map<Widget>(
                                                                 (attribute) {
                                                           return LayoutBuilder(
@@ -1008,8 +1034,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                           CrossAxisAlignment
                                                                               .center,
                                                                       children: [
-                                                                        // 필드 이름 표시
-
                                                                         copyTextWidget(
                                                                           context,
                                                                           text:
@@ -1027,20 +1051,15 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                                 AppTheme.text4Color,
                                                                           ),
                                                                         ),
-
                                                                         IconButton(
                                                                           padding:
                                                                               EdgeInsets.zero,
                                                                           visualDensity: const VisualDensity(
                                                                               horizontal: -4,
                                                                               vertical: -4),
-                                                                          constraints:
-                                                                              const BoxConstraints(
-                                                                            minWidth:
-                                                                                10,
-                                                                            minHeight:
-                                                                                10,
-                                                                          ),
+                                                                          constraints: const BoxConstraints(
+                                                                              minWidth: 10,
+                                                                              minHeight: 10),
                                                                           tooltip:
                                                                               "Edit",
                                                                           icon:
@@ -1066,8 +1085,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                         const SizedBox(
                                                                             width:
                                                                                 5),
-                                                                        // 필드 값 표시 (읽기 전용 TextField)
-
                                                                         Flexible(
                                                                           child: result is Widget
                                                                               ? result
@@ -1153,15 +1170,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           oldGroupName: oldGroupName,
           groupItems: groupItems,
           itemId: widget.itemId,
-          onRenameComplete: (newGroupName) {
-            // 다이얼로그에서 변경 완료 후 _computedGroups에 반영
-            setState(() {
-              _computedGroups[groupIndex]["groupTitle"] = newGroupName;
-              for (var item in _computedGroups[groupIndex]["items"]) {
-                item["subItem"] = newGroupName;
-              }
-            });
-          },
         );
       },
     );
@@ -1176,11 +1184,11 @@ Future<void> _showAddDialogItem(
     BuildContext context, ItemProvider itemProvider, String itemId) async {
   final item = context.read<ItemDetailProvider>().getItemData(itemId);
   await showDialog(
-    barrierDismissible: false, // 외부 터치로 닫히지 않도록 설정
+    barrierDismissible: false,
     context: context,
     builder: (BuildContext context) {
       return WillPopScope(
-        onWillPop: () async => true, // ESC(백 버튼) 허용
+        onWillPop: () async => true,
         child: Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
@@ -1196,11 +1204,11 @@ Future<void> _showAddDialogSubItem(BuildContext context,
     ItemProvider itemProvider, String itemId, var itemData) async {
   final item = context.read<ItemDetailProvider>().getItemData(itemId);
   await showDialog(
-    barrierDismissible: false, // 외부 터치로 닫히지 않도록 설정
+    barrierDismissible: false,
     context: context,
     builder: (BuildContext context) {
       return WillPopScope(
-        onWillPop: () async => true, // ESC(백 버튼) 허용
+        onWillPop: () async => true,
         child: Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
@@ -1215,11 +1223,11 @@ Future<void> _showAddDialogSubItem(BuildContext context,
 Future<void> _showAddAttributeDialog(BuildContext context,
     ItemProvider itemProvider, String itemId, var itemData) async {
   await showDialog(
-    barrierDismissible: false, // 외부 터치로 닫히지 않도록 설정
+    barrierDismissible: false,
     context: context,
     builder: (BuildContext context) {
       return WillPopScope(
-        onWillPop: () async => true, // ESC(백 버튼) 허용
+        onWillPop: () async => true,
         child: Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),

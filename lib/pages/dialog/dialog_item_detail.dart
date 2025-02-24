@@ -507,8 +507,10 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       // 8️⃣ 편집 모드에서 그룹(폴더명)이 변경되었으면 Files 컬렉션 업데이트
                       final String oldGroup = existingData?['SubName'] ?? '';
                       if (oldGroup != subItemName) {
-                        final String oldFolder = 'uploads/${widget.item?.itemName}/$oldGroup';
-                        final String newFolder = 'uploads/${widget.item?.itemName}/$subItemName';
+                        final String oldFolder =
+                            'uploads/${widget.item?.itemName}/$oldGroup';
+                        final String newFolder =
+                            'uploads/${widget.item?.itemName}/$subItemName';
 
                         QuerySnapshot filesSnapshot = await FirebaseFirestore
                             .instance
@@ -955,14 +957,12 @@ class RenameGroupDialog extends StatefulWidget {
   final String oldGroupName;
   final List groupItems; // 그룹 내 하위 아이템 목록
   final String itemId;
-  final Function(String newGroupName) onRenameComplete; // 변경 후 부모에 반영할 콜백
 
   const RenameGroupDialog({
     Key? key,
     required this.oldGroupName,
     required this.groupItems,
     required this.itemId,
-    required this.onRenameComplete,
   }) : super(key: key);
 
   @override
@@ -1000,8 +1000,12 @@ class _RenameGroupDialogState extends State<RenameGroupDialog> {
       // WriteBatch 생성
       WriteBatch batch = FirebaseFirestore.instance.batch();
 
-      // 그룹 내 모든 하위 아이템에 대해 배치 업데이트 추가
-      for (var item in widget.groupItems) {
+      // widget.groupItems 에서 실제로 현재 그룹에 해당하는 아이템만 업데이트 처리
+      final List itemsToUpdate = widget.groupItems
+          .where((item) => item["subItem"] == widget.oldGroupName)
+          .toList();
+
+      for (var item in itemsToUpdate) {
         final DocumentReference docRef = FirebaseFirestore.instance
             .collection('Items')
             .doc(widget.itemId)
@@ -1010,11 +1014,10 @@ class _RenameGroupDialogState extends State<RenameGroupDialog> {
         batch.update(docRef, {"SubItem": newGroupName});
       }
 
-      // 배치 커밋(모든 업데이트가 동시에 적용됨)
+      // 배치 커밋: 모든 업데이트가 동시에 적용됨
       await batch.commit();
 
-      // 변경된 그룹명을 부모에 반영
-      widget.onRenameComplete(newGroupName);
+      // 변경된 그룹명을 부모 위젯에 전달하여 UI 업데이트
       Navigator.pop(context);
       showOverlayMessage(context, "그룹명이 변경되었습니다.");
     } catch (error) {

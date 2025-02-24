@@ -248,6 +248,23 @@ firebase.json에서
 flutter build web
 firebase deploy --only "hosting"
 
+
+
+
+com.mp_db.miceplan
+
+
+
+flutter clean
+flutter pub get
+cd android
+./gradlew clean
+cd ..
+flutter run
+
+
+
+
 '
 git init
 git remote add origin https://github.com/HS2949/MP_DB.git

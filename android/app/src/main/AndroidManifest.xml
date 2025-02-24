@@ -1,15 +1,16 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- ✅ 저장소 및 카메라 권한 추가 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.mp_db.miceplan">
 
+    <!-- 인터넷 권한 추가 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    
     <application
         android:label="mp_db"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true"> <!-- ✅ Android 10(Q) 이상을 위한 설정 -->
-
+        tools:replace="android:label">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -19,45 +20,42 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            
+
             <meta-data
-                android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme"
-            />
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <!-- ✅ Firebase reCAPTCHA 및 App Check 설정 추가 -->
-        <meta-data android:name="com.google.firebase.auth" android:value="DEFAULT" />
-        <meta-data android:name="com.google.firebase.appcheck" android:value="playintegrity" />
-
-        <!-- ✅ FileProvider 설정 추가 -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:grantUriPermissions="true"
-            android:exported="false">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"/>
-        </provider>
+        <!-- Flutter 엔진이 필요로 하는 메타데이터 -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
     </application>
 
+    <!-- 외부 앱을 실행할 수 있도록 필요한 인텐트 쿼리 -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- 웹 브라우저에서 링크를 여는 기능 추가 -->
         <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="http" />
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="https"/>
         </intent>
+
+        <!-- http도 허용 (필요한 경우) -->
         <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent> 
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="http"/>
+        </intent>
     </queries>
 </manifest>

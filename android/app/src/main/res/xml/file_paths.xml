@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <!-- 앱의 외부 저장소 내 Pictures 폴더를 공유 -->
-    <external-files-path name="images" path="Pictures" />
-
-    <!-- 캐시 파일 경로 (일반적으로 임시 파일 저장 용도) -->
-    <external-cache-path name="cache" path="."/>
-</paths>
