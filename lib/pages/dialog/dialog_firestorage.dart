@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // MIME 타입을 자동으로 감지하는 라이브러리
 // 로그인 필요시 사용
@@ -146,23 +147,23 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                     Positioned.fill(
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: FadeInImage.assetNetwork(
-                                          placeholder:
-                                              'assets/images/loading.gif',
-                                          placeholderScale: 2,
-                                          placeholderFit: BoxFit.none,
-                                          image: downloadUrl,
-                                          fit: BoxFit.cover,
+                                        child: CachedNetworkImage(
+                                          imageUrl: downloadUrl,
+                                          fit: BoxFit.contain,
                                           fadeInDuration:
-                                              Duration(milliseconds: 500),
-                                          imageErrorBuilder:
-                                              (context, error, stackTrace) {
-                                            return const Text(
-                                              '이미지 로드 실패',
-                                              style:
-                                                  AppTheme.textErrorTextStyle,
-                                            );
-                                          },
+                                              const Duration(milliseconds: 500),
+                                          placeholder: (context, url) =>
+                                              Image.asset(
+                                            'assets/images/loading.gif',
+                                            width: 50, // 너비를 100으로 고정
+                                            fit: BoxFit
+                                                .contain, // placeholderFit 대응
+                                          ),
+                                          errorWidget: (context, url, error) =>
+                                              const Text(
+                                            '이미지 로드 실패',
+                                            style: AppTheme.textErrorTextStyle,
+                                          ),
                                         ),
                                       ),
                                     ),

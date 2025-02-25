@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -48,18 +49,19 @@ dynamic formatValue(BuildContext context, String value) {
           child: Tooltip(
             message:
                 '[${filenameStoragePath(trimmed)}]\n클릭 : 새창에서 열기\n길게 누르기 : 그림파일 주소 클립보드 복사',
-            child: FadeInImage.assetNetwork(
-              placeholder: 'assets/images/loading.gif', // 로딩 중 보여줄 이미지
-              placeholderScale: 2,
-              placeholderFit: BoxFit.none, // 플레이스홀더의 크기 맞춤 방식 설정
-              image: trimmed,
-              fit: BoxFit.cover,
-              fadeInDuration:
-                  Duration(milliseconds: 500), // 페이드인 지속 시간 (기본값 700ms)
-              imageErrorBuilder: (context, error, stackTrace) {
-                return const Text('이미지 로드 실패',
-                    style: AppTheme.textErrorTextStyle);
-              },
+            child: CachedNetworkImage(
+              imageUrl: trimmed,
+              fit: BoxFit.contain,
+              fadeInDuration: const Duration(milliseconds: 500),
+              placeholder: (context, url) => Image.asset(
+                'assets/images/loading.gif',
+                width: 50, // 너비를 100으로 고정
+                fit: BoxFit.contain, // placeholderFit 대응
+              ),
+              errorWidget: (context, url, error) => const Text(
+                '이미지 로드 실패',
+                style: AppTheme.textErrorTextStyle,
+              ),
             ),
           ),
         ),

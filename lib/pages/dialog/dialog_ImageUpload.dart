@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mime/mime.dart';
 import 'package:mp_db/constants/styles.dart';
 
 // 추가: 그리드뷰 UI 및 관련 모델/함수
@@ -44,11 +43,11 @@ class UploadImage {
       SelectedImageInfo imageInfo = finalImages[i];
       File file = File(imageInfo.imageFile.path);
 
-      // 수정된 파일명 사용
+      // 기존 파일명 (예: image.jpg)
       String fileName = imageInfo.fileName;
 
       try {
-        // 이미지 압축/리사이즈 (ImageCompressor.compress 내부에서 targetWidth, targetHeight 사용)
+        // 이미지 압축/리사이즈 (ImageCompressor.compressAndResize 내부에서 targetWidth, targetHeight 사용)
         File? processedFile = await ImageCompressor.compressAndResize(
           inputFile: file,
           quality: imageInfo.imageQuality, // 예: 80
@@ -61,13 +60,19 @@ class UploadImage {
           print("이미지 처리 실패: $fileName");
           continue;
         }
+        
+        // 파일 확장자를 webp로 변경
+        String newFileName = fileName.replaceAll(
+          RegExp(r'\.(jpg|jpeg|png)$', caseSensitive: false),
+          '.webp',
+        );
 
         // 처리된 파일의 바이트 읽기
         Uint8List fileBytes = await processedFile.readAsBytes();
 
-        // Firebase Storage 업로드 준비
+        // Firebase Storage 업로드 준비 (새로운 파일명 사용)
         Reference storageRef =
-            FirebaseStorage.instance.ref().child('$folder/$fileName');
+            FirebaseStorage.instance.ref().child('$folder/$newFileName');
 
         bool loadingShown = false;
         showDialog(
@@ -93,7 +98,7 @@ class UploadImage {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '$fileName 업로드 중..',
+                      '$newFileName 업로드 중..',
                       style: AppTheme.fieldLabelTextStyle
                           .copyWith(decoration: TextDecoration.none),
                     ),
@@ -106,12 +111,13 @@ class UploadImage {
           },
         );
 
-        String? mimeType = lookupMimeType(fileName);
+        // 명시적으로 webp MIME 타입 사용
+        String mimeType = 'image/webp';
         UploadTask uploadTask = storageRef.putData(
           fileBytes,
           SettableMetadata(
             contentDisposition: 'inline',
-            contentType: mimeType ?? 'application/octet-stream',
+            contentType: mimeType,
           ),
         );
         TaskSnapshot snapshot = await uploadTask;
@@ -125,7 +131,7 @@ class UploadImage {
         // Firestore에 파일 메타데이터 저장
         await FirebaseFirestore.instance.collection('files').add({
           'folder': folder,
-          'fileName': fileName,
+          'fileName': newFileName,
           'downloadUrl': downloadUrl,
           'uploadedAt': FieldValue.serverTimestamp(),
         });

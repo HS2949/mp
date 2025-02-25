@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/dialog/dialog_ImageFullView.dart';
@@ -57,7 +58,8 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
     return Scaffold(
       appBar: AppBar(
           title: Text(formatTitle(widget.folderName),
-              style: AppTheme.appbarTitleTextStyle.copyWith(color: AppTheme.text5Color))),
+              style: AppTheme.appbarTitleTextStyle
+                  .copyWith(color: AppTheme.text4Color))),
       body: LayoutBuilder(builder: (context, constraints) {
         double screenWidth = constraints.maxWidth; // 화면 너비
         double screenHeight = constraints.maxHeight; // 화면 높이
@@ -80,7 +82,12 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
                     ),
                   ),
                   files.isEmpty
-                      ? Center(child: Text("저장된 파일이 없습니다.", style: AppTheme.bodySmallTextStyle.copyWith(color: AppTheme.text4Color),))
+                      ? Center(
+                          child: Text(
+                          "저장된 파일이 없습니다.",
+                          style: AppTheme.bodySmallTextStyle
+                              .copyWith(color: AppTheme.text4Color),
+                        ))
                       : Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: GridView.builder(
@@ -126,25 +133,28 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
                                       child: ClipRRect(
                                         borderRadius:
                                             BorderRadius.circular(8.0),
-                                        child: FadeInImage.assetNetwork(
-                                          placeholder:
-                                              'assets/images/loading.gif',
-                                          placeholderScale: 2,
-                                          placeholderFit: BoxFit.none,
-                                          image: downloadUrl,
-                                          fit: BoxFit.cover,
+                                        child: CachedNetworkImage(
+                                          imageUrl: downloadUrl,
+                                          fit: BoxFit.contain,
                                           fadeInDuration:
-                                              Duration(milliseconds: 500),
-                                          imageErrorBuilder:
-                                              (context, error, stackTrace) {
-                                            return Center(
-                                              child: const Text(
-                                                '이미지 로드 실패',
-                                                style:
-                                                    AppTheme.textErrorTextStyle,
-                                              ),
-                                            );
-                                          },
+                                              const Duration(milliseconds: 500),
+                                          placeholder: (context, url) => Align(
+                                            alignment:
+                                                Alignment.center, // 중앙 정렬
+                                            child: Image.asset(
+                                              'assets/images/loading.gif',
+                                              width: 50, // 너비 고정
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) =>
+                                              const Center(
+                                            child: Text(
+                                              '이미지 로드 실패',
+                                              style:
+                                                  AppTheme.textErrorTextStyle,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),

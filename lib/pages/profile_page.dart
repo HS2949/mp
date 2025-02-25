@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:provider/provider.dart';
@@ -32,13 +33,25 @@ class _ProfilePageState extends State<ProfilePage> {
                   if (user.profileImage.isNotEmpty)
                     Column(
                       children: [
-                        FadeInImage.assetNetwork(
-                          placeholder: 'assets/images/loading.gif',
-                          placeholderScale: 2,
-                          placeholderFit: BoxFit.none, // 플레이스홀더의 크기 맞춤 방식 설정
-                          image: user.profileImage,
+                        // FadeInImage.assetNetwork(
+                        //   placeholder: 'assets/images/loading.gif',
+                        //   placeholderScale: 2,
+                        //   placeholderFit: BoxFit.none, // 플레이스홀더의 크기 맞춤 방식 설정
+                        //   image: user.profileImage,
+                        //   width: 350,
+                        //   fit: BoxFit.cover,
+                        // ),
+                        CachedNetworkImage(
+                          imageUrl: user.profileImage,
                           width: 350,
                           fit: BoxFit.cover,
+                          placeholder: (context, url) => Image.asset(
+                            'assets/images/loading.gif',
+                            width: 50, // 너비를 100으로 고정
+                            fit: BoxFit.contain, // placeholderFit 대응
+                          ),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.error),
                         ),
                         SizedBox(height: 10.0),
                       ],
