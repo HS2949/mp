@@ -249,6 +249,8 @@ flutter build web
 firebase deploy --only "hosting"
 
 
+gsutil cors set cors.json gs://mice-plan-bc6ae.firebasestorage.app
+gsutil cors get gs://mice-plan-bc6ae.firebasestorage.app
 
 
 com.mp_db.miceplan

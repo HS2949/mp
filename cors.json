@@ -5,7 +5,7 @@
       "origin": [
         "https://mice-plan-bc6ae.firebaseapp.com",
         "https://mice-plan-bc6ae.web.app",
-        "http://localhost:61523"
+        "http://localhost:*"
       ],
       "responseHeader": ["Content-Type"]
     }

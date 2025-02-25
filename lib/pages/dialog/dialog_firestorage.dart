@@ -317,8 +317,6 @@ Future<String?> showImageSelectionDialog(BuildContext context,
                           context,
                           multiple: false,
                           folder: folder,
-                          imageQuality: 100,
-                          targetWidth: 1000,
                         );
 
                         String? url =

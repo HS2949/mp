@@ -73,5 +73,6 @@
         "xtree": "cpp",
         "xutility": "cpp"
     },
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "cmake.sourceDirectory": "D:/Code/mp_db/linux"
 }

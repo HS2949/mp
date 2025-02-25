@@ -10,8 +10,6 @@ import 'package:mp_db/constants/styles.dart';
 // 추가: 그리드뷰 UI 및 관련 모델/함수
 import 'compression/image_compression.dart';
 import 'dialog_ImagePick.dart';
-// 추가: FFmpeg를 통한 이미지 압축/리사이징 및 webp 변환 기능 호출
-
 
 class UploadImage {
   /// 파일 선택 후 그리드뷰로 선택한 이미지와 정보를 보여주고,
@@ -21,13 +19,11 @@ class UploadImage {
     BuildContext context, {
     bool multiple = false,
     String folder = 'uploads',
-    int targetWidth = 0, // 현재는 내부에서 사용하지 않음
-    int imageQuality = 100, // 현재는 내부에서 사용하지 않음
   }) async {
-    final List<XFile> imageFiles = [];
-    // (파일 선택 관련 기존 코드 생략)
+    // 파일 선택 관련 코드는 생략합니다.
+    final List<XFile> imageFiles = []; // 실제 파일 선택 구현 필요
 
-    // 선택한 각 이미지의 정보 취합
+    // 선택한 각 이미지의 정보 취합 (예시로 getImageInfo 함수 사용)
     List<SelectedImageInfo> imagesInfo = await Future.wait(
       imageFiles.map((xfile) => getImageInfo(xfile)),
     );
@@ -52,16 +48,15 @@ class UploadImage {
       String fileName = imageInfo.fileName;
 
       try {
-        // FFmpeg를 사용하여 이미지 압축, 리사이징, webp 변환
-        // 여기서 imageInfo에는 imageQuality, width, height 속성이 포함되어 있다고 가정합니다.
+        // 이미지 압축/리사이즈 (ImageCompressor.compress 내부에서 targetWidth, targetHeight 사용)
         File? processedFile = await ImageCompressor.compressAndResize(
           inputFile: file,
           quality: imageInfo.imageQuality, // 예: 80
-          width: imageInfo.width,          // 예: 800
-          height: imageInfo.height,        // 예: 600
+          targetWidth: imageInfo.width,     // 필요한 경우
+          targetHeight: imageInfo.height,   // 필요한 경우
         );
 
-        // 변환 실패 시 예외 처리 또는 continue 처리
+        // 변환 실패 시 건너뜁니다.
         if (processedFile == null) {
           print("이미지 처리 실패: $fileName");
           continue;

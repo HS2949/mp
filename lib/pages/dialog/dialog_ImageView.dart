@@ -250,8 +250,6 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
               context,
               multiple: true,
               folder: widget.folderName,
-              imageQuality: 100,
-              targetWidth: 800,
             );
 
             // 업로드 후 이미지 목록 즉시 새로고침
