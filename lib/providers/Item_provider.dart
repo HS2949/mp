@@ -128,8 +128,8 @@ class ItemProvider extends ChangeNotifier {
   }
 
   void filterItems(String query, {String? selectedCategory}) {
-    // 검색어를 소문자로 변환
-    query = query.toLowerCase();
+    // 🔥 검색어에서 모든 공백 제거 후 소문자로 변환
+    query = query.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
 
     // 선택된 카테고리에 해당하는 itemID 가져오기
     final selectedCategoryID = _categories.firstWhere(
@@ -142,18 +142,17 @@ class ItemProvider extends ChangeNotifier {
       final itemCategory = itemData['CategoryID'] ?? -1;
 
       bool matchesSearch;
-      // 검색어의 첫 글자가 '#'이면 keyword 필드로 검색
       if (query.startsWith('#')) {
-        final searchQuery = query.substring(1); // '#'를 제외한 검색어
-        final itemKeyword = (itemData['keyword']?.toLowerCase() ?? '');
+        final searchQuery = query.substring(1); // 🔥 '#' 제거 후 검색
+        final itemKeyword = (itemData['keyword']?.toLowerCase() ?? '')
+            .replaceAll(RegExp(r'\s+'), ''); // 🔥 공백 제거
         matchesSearch = itemKeyword.contains(searchQuery);
       } else {
-        // 그렇지 않으면 ItemName 필드로 검색
-        final itemName = itemData['ItemName']?.toLowerCase() ?? '';
+        final itemName = (itemData['ItemName']?.toLowerCase() ?? '')
+            .replaceAll(RegExp(r'\s+'), ''); // 🔥 공백 제거
         matchesSearch = itemName.contains(query);
       }
 
-      // 카테고리 일치 여부 확인
       final matchesCategory = selectedCategory == null ||
           selectedCategory == '전체' ||
           itemCategory == selectedCategoryID;
@@ -268,6 +267,15 @@ class ItemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateTabName(String oldName, String newName) {
+    for (var tab in _tabTitles) {
+      if (tab.text == oldName) {
+        tab.text = newName;
+      }
+    }
+    notifyListeners();
+  }
+
   // searchController 설정정
 
   final TextEditingController searchController = TextEditingController();
@@ -275,7 +283,7 @@ class ItemProvider extends ChangeNotifier {
 
   // 검색어가 변경될 때 알림
   void setSearchText(String text) {
-    searchController.text = text;
+    searchController.text = text.trim();
     notifyListeners();
   }
 

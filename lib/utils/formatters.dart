@@ -50,6 +50,7 @@ dynamic formatValue(BuildContext context, String value) {
             message:
                 '[${filenameStoragePath(trimmed)}]\n클릭 : 새창에서 열기\n길게 누르기 : 그림파일 주소 클립보드 복사',
             child: CachedNetworkImage(
+              height: 300,
               imageUrl: trimmed,
               fit: BoxFit.contain,
               fadeInDuration: const Duration(milliseconds: 500),
@@ -82,7 +83,7 @@ dynamic formatValue(BuildContext context, String value) {
 
       final String remainingText = trimmed
           .replaceFirst(urlPart, '')
-          .replaceFirst(displayMatch?.group(0) ?? '', '');
+          .replaceFirst(displayMatch?.group(0) ?? '', '').trim();
 
       String href = urlPart.startsWith('www.') ? 'http://$urlPart' : urlPart;
 
@@ -105,7 +106,7 @@ dynamic formatValue(BuildContext context, String value) {
                 }
               },
               child: Text(
-                remainingText.isNotEmpty ? '[링크]' : displayText,
+                remainingText.isNotEmpty ? '[링크]' : '$displayText',
                 style: AppTheme.bodySmallTextStyle.copyWith(
                   fontSize: 13,
                   color: AppTheme.text9Color,
@@ -134,7 +135,7 @@ dynamic formatValue(BuildContext context, String value) {
       if (item is Widget) {
         return item;
       } else if (item is String) {
-        return Text(item, style: AppTheme.bodySmallTextStyle);
+        return SelectableText(item, style: AppTheme.bodySmallTextStyle);
       }
       return const SizedBox.shrink();
     }).toList();

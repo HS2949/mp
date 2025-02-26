@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/dialog/dialog_ImageUpload.dart';
+import 'package:mp_db/pages/dialog/dialog_ImageView.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 /// 파일 삭제 함수: Storage와 Firestore에서 모두 삭제
@@ -304,16 +305,6 @@ Future<String?> showImageSelectionDialog(BuildContext context,
                   children: [
                     TextButton(
                       onPressed: () async {
-                        // List<String>? imageUrls = await UploadImage.uploadNewImage(context, multiple: true, folder: 'uploads/test');
-                        // String? url = (await UploadImage.uploadNewImage(
-                        //   context,
-                        //   multiple: false,
-                        //   folder: folder,
-                        //   imageQuality: 80,
-                        //   targetWidth: 800,
-                        // ))
-                        // ?.first;
-
                         List<String>? urls = await UploadImage.uploadNewImage(
                           context,
                           multiple: false,
@@ -324,15 +315,29 @@ Future<String?> showImageSelectionDialog(BuildContext context,
                             urls?.isNotEmpty == true ? urls!.first : null;
                         Navigator.of(context).pop(url);
                       },
-                      child: Text("새 이미지 업로드"),
+                      child: Text("새 이미지"),
                     ),
-                    TextButton(
-                      onPressed: () async {
-                        String? url =
-                            await selectExistingImage(context, folder: folder);
-                        Navigator.of(context).pop(url);
-                      },
-                      child: Text("기존 파일 선택"),
+
+                    Tooltip(
+                      message: '길게 누르기 : 파일 편집 모드',
+                      child: TextButton(
+                        onPressed: () async {
+                          String? url =
+                              await selectExistingImage(context, folder: folder);
+                          Navigator.of(context).pop(url);
+                        },
+                        onLongPress: () {
+                          //창림
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ImageGridScreen(folderName: folder),
+                            ),
+                          );
+                        },
+                        child: Text("기존 파일 선택"),
+                      ),
                     ),
                     TextButton(
                       onPressed: () {

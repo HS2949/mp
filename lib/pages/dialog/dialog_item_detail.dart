@@ -76,10 +76,16 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                         true)
                     .toList();
                 sortedKeys.sort((a, b) {
-                  final orderA =
-                      widget.itemProvider.fieldMappings[a]?['FieldOrder'] ?? 0;
-                  final orderB =
-                      widget.itemProvider.fieldMappings[b]?['FieldOrder'] ?? 0;
+                  final orderA = int.tryParse(widget
+                              .itemProvider.fieldMappings[a]?['FieldOrder']
+                              ?.toString() ??
+                          "0") ??
+                      0;
+                  final orderB = int.tryParse(widget
+                              .itemProvider.fieldMappings[b]?['FieldOrder']
+                              ?.toString() ??
+                          "0") ??
+                      0;
                   return orderA.compareTo(orderB);
                 });
                 return sortedKeys
@@ -578,16 +584,17 @@ class _EditDialogContentState extends State<EditDialogContent> {
   void initState() {
     super.initState();
     // fieldMappings에서, 'FieldName'이 widget.fieldName과 같은 key를 찾음
-    final foundKey = widget.itemProvider.fieldMappings.keys.firstWhere(
-      (key) {
-        final mapping = widget.itemProvider.fieldMappings[key];
-        if (mapping == null) return false;
-        return mapping['FieldName'] == widget.fieldName;
-      },
-      orElse: () => '',
-    );
+    // final foundKey = widget.itemProvider.fieldMappings.keys.firstWhere(
+    //   (key) {
+    //     final mapping = widget.itemProvider.fieldMappings[key];
+    //     if (mapping == null) return false;
+    //     return mapping['FieldName'] == widget.fieldName;
+    //   },
+    //   orElse: () => '',
+    // );
 
-    selectedKey = foundKey.isNotEmpty ? foundKey : widget.keyField;
+    // selectedKey = foundKey.isNotEmpty ? foundKey : widget.keyField;
+    selectedKey = widget.keyField;
     labelKo = widget.itemProvider.fieldMappings[selectedKey]?['FieldName'] ??
         selectedKey;
     textController = TextEditingController(text: widget.fieldValue);

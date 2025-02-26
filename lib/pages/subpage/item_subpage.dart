@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, library_private_types_in_public_api, use_super_parameters, non_constant_identifier_names, camel_case_types
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/pages/subpage/item_detail_subpage.dart';
@@ -48,10 +49,12 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // build가 완료된 후에 상태를 변경하도록 post frame callback 사용
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _provider.searchController.text = '';
-      _provider.filterItems('', selectedCategory: '전체');
+      if (_provider.searchController.text.isEmpty) {
+        // 기존 값이 비어 있을 경우에만 초기화
+        _provider.searchController.text = '';
+        _provider.filterItems('', selectedCategory: '전체');
+      }
     });
   }
 
@@ -159,6 +162,7 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
     ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data != null && data.text != null) {
       setState(() {
+        _provider.selectTab(0);
         _provider.searchController.text = data.text!;
       });
     }
@@ -386,16 +390,18 @@ int koreanCompare(String a, String b) {
 
 void showAddItem(BuildContext context, String? itemId) async {
   final TextEditingController nameController = TextEditingController();
+  final FocusNode nameFocusNode = FocusNode(); // FocusNode 추가
   IconLabel selectedIcon = IconLabel.smile;
   ColorLabel selectedColor = ColorLabel.grey;
   final firestoreService = FirestoreService();
   final categories =
       context.read<ItemProvider>().categories.skip(1).toList(); // '전체' 제외
   Map<String, dynamic>? selectedCategory; // 선택되지 않았을 경우 null 가능
+  late final itemData;
 
   // 편집 모드일 경우 기존 데이터 불러오기
   if (itemId != null && itemId.isNotEmpty) {
-    final itemData = await firestoreService.getItemById(
+    itemData = await firestoreService.getItemById(
         collectionName: 'Items', documentId: itemId);
     nameController.text = itemData['ItemName'] ?? '';
     selectedCategory = categories.firstWhere(
@@ -419,154 +425,196 @@ void showAddItem(BuildContext context, String? itemId) async {
     ),
     builder: (context) {
       return StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 250),
-                child: TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(13),
-                    suffixIcon: ClearButton(controller: nameController),
-                    labelText: '등록할 상호명',
-                    hintText: '예) OO관광지, OO식당, OO호텔, OO차량 ...',
-                    filled: true,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    selectedIcon.icon,
-                    color: selectedColor.color,
-                    size: 40,
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: SizedBox(
-                      width: 200,
-                      child: DropdownMenu<String>(
-                        requestFocusOnTap: false,
-                        expandedInsets: EdgeInsets.zero,
-                        label: const Text('카테고리 선택'),
-                        initialSelection: selectedCategory?['Name'],
-                        dropdownMenuEntries: categories
-                            .map(
-                              (category) => DropdownMenuEntry<String>(
-                                labelWidget: Text(
-                                  category['Name'] ?? '-',
-                                  style: AppTheme.textLabelStyle,
-                                ),
-                                value: category['Name'],
-                                leadingIcon: Icon(
-                                  IconLabel.values
-                                      .firstWhere(
-                                          (e) => e.label == category['Icon'],
-                                          orElse: () => IconLabel.smile)
-                                      .icon,
-                                  color: ColorLabel.values
-                                      .firstWhere(
-                                          (e) => e.label == category['Color'],
-                                          orElse: () => ColorLabel.silver)
-                                      .color,
-                                  size: 20,
-                                ),
-                                label: category['Name'] ?? '-',
-                              ),
-                            )
-                            .toList(),
-                        onSelected: (value) {
-                          setState(() {
-                            selectedCategory = categories.firstWhere(
-                                (category) => category['Name'] == value);
+        builder: (context, setState) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            FocusScope.of(context).requestFocus(nameFocusNode); // 자동 포커스 설정
+          });
 
-                            selectedIcon = IconLabel.values.firstWhere(
-                                (e) => e.label == selectedCategory!['Icon'],
-                                orElse: () => IconLabel.smile);
-                            selectedColor = ColorLabel.values.firstWhere(
-                                (e) => e.label == selectedCategory!['Color'],
-                                orElse: () => ColorLabel.silver);
-                          });
-                        },
-                      ),
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 250),
+                  child: TextField(
+                    controller: nameController,
+                    focusNode: nameFocusNode, // FocusNode 적용
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.all(13),
+                      suffixIcon: ClearButton(controller: nameController),
+                      labelText: '등록할 상호명',
+                      hintText: '예) OO관광지, OO식당, OO호텔, OO차량 ...',
+                      filled: true,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text("Cancel"),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (nameController.text.trim().isEmpty) {
-                        showOverlayMessage(context, '상호명을 입력해주세요!');
-                        return;
-                      }
-                      if (selectedCategory == null) {
-                        showOverlayMessage(context, '카테고리를 선택해주세요!');
-                        return;
-                      }
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      selectedIcon.icon,
+                      color: selectedColor.color,
+                      size: 40,
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: SizedBox(
+                        width: 200,
+                        child: DropdownMenu<String>(
+                          requestFocusOnTap: false,
+                          expandedInsets: EdgeInsets.zero,
+                          label: const Text('카테고리 선택'),
+                          initialSelection: selectedCategory?['Name'],
+                          dropdownMenuEntries: categories
+                              .map(
+                                (category) => DropdownMenuEntry<String>(
+                                  labelWidget: Text(
+                                    category['Name'] ?? '-',
+                                    style: AppTheme.textLabelStyle,
+                                  ),
+                                  value: category['Name'],
+                                  leadingIcon: Icon(
+                                    IconLabel.values
+                                        .firstWhere(
+                                            (e) => e.label == category['Icon'],
+                                            orElse: () => IconLabel.smile)
+                                        .icon,
+                                    color: ColorLabel.values
+                                        .firstWhere(
+                                            (e) => e.label == category['Color'],
+                                            orElse: () => ColorLabel.silver)
+                                        .color,
+                                    size: 20,
+                                  ),
+                                  label: category['Name'] ?? '-',
+                                ),
+                              )
+                              .toList(),
+                          onSelected: (value) {
+                            setState(() {
+                              selectedCategory = categories.firstWhere(
+                                  (category) => category['Name'] == value);
 
-                      if (itemId != null && itemId.isNotEmpty) {
-                        await firestoreService.updateItem(
-                          collectionName: 'Items',
-                          documentId: itemId,
-                          updatedData: {
-                            'ItemName': nameController.text.trim(),
-                            'CategoryID': selectedCategory!['itemID'],
-                            'keyword': ''
+                              selectedIcon = IconLabel.values.firstWhere(
+                                  (e) => e.label == selectedCategory!['Icon'],
+                                  orElse: () => IconLabel.smile);
+                              selectedColor = ColorLabel.values.firstWhere(
+                                  (e) => e.label == selectedCategory!['Color'],
+                                  orElse: () => ColorLabel.silver);
+                            });
                           },
-                        );
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text("Cancel"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (nameController.text.trim().isEmpty) {
+                          showOverlayMessage(context, '상호명을 입력해주세요!');
+                          return;
+                        }
+                        if (selectedCategory == null) {
+                          showOverlayMessage(context, '카테고리를 선택해주세요!');
+                          return;
+                        }
 
-                        showOverlayMessage(
-                            context, '${nameController.text}을 수정하였습니다.');
-                      } else {
-                        await firestoreService.addItem(
-                          collectionName: 'Items',
-                          data: {
-                            'ItemName': nameController.text.trim(),
-                            'CategoryID': selectedCategory!['itemID']
-                          },
-                        );
+                        if (itemId != null && itemId.isNotEmpty) {
+                          await firestoreService.updateItem(
+                            collectionName: 'Items',
+                            documentId: itemId,
+                            updatedData: {
+                              'ItemName': nameController.text.trim(),
+                              'CategoryID': selectedCategory!['itemID'],
+                              'keyword': ''
+                            },
+                          );
 
-                        showOverlayMessage(
-                            context, '${nameController.text}을 추가하였습니다.');
+                          final String oldName = itemData['ItemName'];
+                          final String newName = nameController.text.trim();
 
-                        // 검색창에 입력값을 설정
-                        context.read<ItemProvider>().searchController.text =
-                            nameController.text;
-                      }
+                          if (oldName != newName) {
+                            // ✅ 변경된 이름을 탭에도 반영
+                            context
+                                .read<ItemProvider>()
+                                .updateTabName(oldName, newName);
 
-                      Navigator.of(context).pop();
-                    },
-                    child:
-                        Text(itemId == null || itemId.isEmpty ? "Add" : "Edit"),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+                            QuerySnapshot filesSnapshot = await FirebaseFirestore
+                                .instance
+                                .collection('files')
+                                .where('folder',
+                                    isGreaterThanOrEqualTo:
+                                        "uploads/${oldName}/")
+                                .where('folder',
+                                    isLessThan:
+                                        "uploads/${oldName}/\uf8ff") // 같은 prefix를 가진 값 필터링
+                                .get();
+
+                            WriteBatch batch =
+                                FirebaseFirestore.instance.batch();
+
+                            for (var doc in filesSnapshot.docs) {
+                              String oldFolderPath = doc['folder'];
+                              String newFolderPath = oldFolderPath.replaceFirst(
+                                  "uploads/${oldName}/", "uploads/${newName}/");
+
+                              batch.update(
+                                  doc.reference, {'folder': newFolderPath});
+                            }
+
+                            await batch.commit();
+                          }
+
+                          showOverlayMessage(
+                              context, '${nameController.text}을 수정하였습니다.');
+                        } else {
+                          await firestoreService.addItem(
+                            collectionName: 'Items',
+                            data: {
+                              'ItemName': nameController.text.trim(),
+                              'CategoryID': selectedCategory!['itemID']
+                            },
+                          );
+
+                          showOverlayMessage(
+                              context, '${nameController.text}을 추가하였습니다.');
+
+                          // 검색창에 입력값을 설정
+                          context.read<ItemProvider>().searchController.text =
+                              nameController.text;
+                        }
+
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                          itemId == null || itemId.isEmpty ? "Add" : "Edit"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       );
     },
   );

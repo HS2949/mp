@@ -21,7 +21,7 @@ class SelectedImageInfo {
   final String extension;
   final int originalWidth; // 원본 너비 추가
   final int originalHeight; // 원본 높이 추가
-  final String originalfilename;
+  String originalfilename;
   final double fileSize;
 
   SelectedImageInfo(
@@ -230,8 +230,8 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
 
   void _editImage(int index) async {
     final imageInfo = images[index];
-    TextEditingController fileNameController =
-        TextEditingController(text: imageInfo.fileName);
+    TextEditingController fileNameController = TextEditingController(
+        text: path.basenameWithoutExtension(imageInfo.fileName));
 
     double imageQuality = imageInfo.imageQuality.toDouble();
     double sizeFactor =
@@ -301,7 +301,8 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                 TextButton(
                   onPressed: () async {
                     // 파일명 편집 후 새 파일명에 대해 중복 체크 실행
-                    imageInfo.fileName = fileNameController.text;
+                    imageInfo.originalfilename =
+                        "${fileNameController.text}${imageInfo.extension}";
                     await updateUniqueFileName(
                         imageInfo, widget.folder, images);
                     setState(() {
