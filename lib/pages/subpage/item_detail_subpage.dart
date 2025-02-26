@@ -128,7 +128,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           "subOrder": subItem['SubOrder'],
           "subItem": subItem['SubItem'],
           "title": title,
-          "isExpanded": true,
+          "isExpanded": false,
           "attributes": attributes,
         };
       }).toList();
@@ -219,10 +219,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     String value,
     String itemId,
     String subItemId,
+    bool isDefault,
   ) async {
-    final newValue = await showDialog<String>(
+    final result = await showDialog(
       context: context,
       builder: (context) => EditDialogContent(
+        itemProvider: provider,
         keyField: key,
         itemName:
             provider.items.firstWhere((item) => item.id == itemId)['ItemName'],
@@ -230,24 +232,46 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         fieldValue: value,
         itemId: itemId,
         subItemId: subItemId,
+        isDefault: isDefault,
       ),
     );
 
-    if (newValue != null && newValue != value) {
+    if (result != null) {
+      String newKey = result['key']; // 사용자가 입력한 새로운 키
+      String newValue = result['value']; // 사용자가 입력한 새로운 값
+
       try {
-        if (subItemId == '') {
-          await FirebaseFirestore.instance
+        if (subItemId.isEmpty) {
+          DocumentReference docRef =
+              FirebaseFirestore.instance.collection('Items').doc(itemId);
+
+          if (newKey != key) {
+            // 새 키가 기존 키와 다르면 새로운 키로 추가하고 기존 키 삭제
+            await docRef.update({
+              newKey: newValue,
+              key: FieldValue.delete(), // 기존 키 삭제
+            });
+          } else {
+            // 동일 키이면 값만 업데이트
+            await docRef.update({key: newValue});
+          }
+        } else {
+          DocumentReference docRef = FirebaseFirestore.instance
               .collection('Items')
               .doc(itemId)
-              .update({key: newValue});
-        } else {
-          await FirebaseFirestore.instance
-              .collection('Items') // 부모 컬렉션
-              .doc(itemId) // 부모 문서 (itemId 기준)
-              .collection('Sub_Items') // 하위 컬렉션
-              .doc(subItemId) // 하위 문서 ID
-              .update({key: newValue}); // 특정 필드값 변경
+              .collection('Sub_Items')
+              .doc(subItemId);
+
+          if (newKey != key) {
+            await docRef.update({
+              newKey: newValue,
+              key: FieldValue.delete(),
+            });
+          } else {
+            await docRef.update({key: newValue});
+          }
         }
+
         showOverlayMessage(context, '수정되었습니다.');
       } catch (error) {
         showOverlayMessage(context, '업데이트 중 오류가 발생했습니다.');
@@ -306,11 +330,19 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     }
 
     if (state.itemDetailStatus == ItemDetailStatus.error) {
+      // 에러 메시지가 "아이템을 찾을 수 없습니다."인 경우 "삭제 완료"로 변경
+      bool isItemNotFound = state.error.message == "아이템을 찾을 수 없습니다.";
+      String displayMessage =
+          isItemNotFound ? "삭제 완료" : "에러 발생: ${state.error.message}";
+      Color textColor = isItemNotFound ? AppTheme.text8Color : Colors.red;
+
       return widget.viewSelect < 2
           ? Padding(
               padding: const EdgeInsets.all(50.0),
-              child: Text('에러 발생: ${state.error.message}',
-                  style: const TextStyle(color: Colors.red)),
+              child: Text(
+                displayMessage,
+                style: TextStyle(color: textColor),
+              ),
             )
           : const SizedBox.shrink();
     }
@@ -397,7 +429,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                   leadingIcon: const Icon(Icons.delete_forever_outlined),
                   child: const Text('Delete', style: AppTheme.textLabelStyle),
                   onPressed: () async {
-                    FiDeleteDialog(
+                    await FiDeleteDialog(
                         context: context,
                         deleteFunction: () async => firestoreService.deleteItem(
                             collectionName: 'Items', documentId: widget.itemId),
@@ -536,7 +568,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                     icon: Icon(Icons.edit, size: 10, color: AppTheme.toolColor),
                     onPressed: () {
                       _showEditDialog(context, 'keyword', '태그',
-                          itemData.itemTag, itemData.id, '');
+                          itemData.itemTag, itemData.id, '', true);
                     },
                   ),
                 ],
@@ -599,6 +631,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 entry.value,
                                                 itemData.id,
                                                 '',
+                                                true,
                                               );
                                             },
                                           ),
@@ -1079,6 +1112,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                               attribute['FieldValue'],
                                                                               widget.itemId,
                                                                               itemData['id'],
+                                                                              false,
                                                                             );
                                                                           },
                                                                         ),

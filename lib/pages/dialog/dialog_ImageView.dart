@@ -249,6 +249,7 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
         width: 150,
         height: 50,
         child: FloatingActionButton.extended(
+          heroTag: null,
           onPressed: () async {
             // 업로드 시작 전 로딩 상태로 변경 및 로딩 다이얼로그 표시 (옵션)
             setState(() {

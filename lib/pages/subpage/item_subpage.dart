@@ -219,6 +219,16 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                   child: ElevatedButton(
                       onPressed: () {
                         _provider.removeAllTabs();
+                        // 첫 번째 카테고리를 자동으로 선택
+                        if (_provider.categories.isNotEmpty) {
+                          final firstCategory = _provider.categories.first;
+                          final name = firstCategory['Name'] ?? '전체';
+                          _selectCategory(name);
+                        }
+                        _provider.searchController.clear();
+                        // 검색창에 포커스를 줌
+                        FocusScope.of(context)
+                            .requestFocus(_provider.searchFocusNode);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isHovered
@@ -541,6 +551,10 @@ void showAddItem(BuildContext context, String? itemId) async {
 
                         showOverlayMessage(
                             context, '${nameController.text}을 추가하였습니다.');
+
+                        // 검색창에 입력값을 설정
+                        context.read<ItemProvider>().searchController.text =
+                            nameController.text;
                       }
 
                       Navigator.of(context).pop();

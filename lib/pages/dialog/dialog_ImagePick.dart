@@ -331,8 +331,12 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
         title: Wrap(
           spacing: 10,
           children: [
-            Text("파일 선택기", style: AppTheme.appbarTitleTextStyle.copyWith(color: AppTheme.text2Color, fontWeight: FontWeight.w600),),
-            Text("추가할 이미지를 선택해주세요",style: AppTheme.appbarTitleTextStyle)
+            Text(
+              "파일 선택기",
+              style: AppTheme.appbarTitleTextStyle.copyWith(
+                  color: AppTheme.text2Color, fontWeight: FontWeight.w600),
+            ),
+            Text("추가할 이미지를 선택해주세요", style: AppTheme.appbarTitleTextStyle)
           ],
         ),
         actions: [
@@ -347,6 +351,7 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                     width: 130,
                     height: 36,
                     child: FloatingActionButton.extended(
+                      heroTag: null,
                       onPressed: _addImages,
                       label: Text('파일 선택'),
                       icon: Icon(Icons.add_to_photos_outlined),
@@ -356,6 +361,7 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                     width: 130,
                     height: 36,
                     child: FloatingActionButton.extended(
+                      heroTag: null,
                       backgroundColor: AppTheme.backgroundColor,
                       hoverColor: AppTheme.text3Color.withOpacity(0.1),
                       onPressed: () {
@@ -382,13 +388,15 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
               child: Opacity(
                 opacity: 0.5,
                 child: Container(
-                    width: min(screenWidth * 0.5, 300), // 화면 너비의 50%
-                    decoration: BoxDecoration(
-                        image: DecorationImage(
+                  width: min(screenWidth * 0.5, 300), // 화면 너비의 50%
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
                       image: AssetImage(
                           'assets/images/miceplan_font.png'), // 배경 이미지 경로
                       fit: BoxFit.contain, // 화면 전체 채우기
-                    ))),
+                    ),
+                  ),
+                ),
               ),
             ),
             LayoutBuilder(

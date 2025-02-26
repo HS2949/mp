@@ -545,34 +545,51 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
 }
 
 class EditDialogContent extends StatefulWidget {
+  final ItemProvider itemProvider;
   final String keyField; // 예: 'keyword'
   final String itemName;
   final String fieldName;
   final String fieldValue;
   final String itemId;
   final String subItemId;
+  final bool isDefault;
 
-  const EditDialogContent({
-    Key? key,
-    required this.keyField,
-    required this.itemName,
-    required this.fieldName,
-    required this.fieldValue,
-    required this.itemId,
-    required this.subItemId,
-  }) : super(key: key);
+  EditDialogContent(
+      {required this.itemProvider,
+      required this.keyField,
+      required this.itemName,
+      required this.fieldName,
+      required this.fieldValue,
+      required this.itemId,
+      required this.subItemId,
+      required this.isDefault});
 
   @override
   _EditDialogContentState createState() => _EditDialogContentState();
 }
 
 class _EditDialogContentState extends State<EditDialogContent> {
+  String? selectedKey;
+  String? labelKo;
   late TextEditingController textController;
   final firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
+    // fieldMappings에서, 'FieldName'이 widget.fieldName과 같은 key를 찾음
+    final foundKey = widget.itemProvider.fieldMappings.keys.firstWhere(
+      (key) {
+        final mapping = widget.itemProvider.fieldMappings[key];
+        if (mapping == null) return false;
+        return mapping['FieldName'] == widget.fieldName;
+      },
+      orElse: () => '',
+    );
+
+    selectedKey = foundKey.isNotEmpty ? foundKey : widget.keyField;
+    labelKo = widget.itemProvider.fieldMappings[selectedKey]?['FieldName'] ??
+        selectedKey;
     textController = TextEditingController(text: widget.fieldValue);
   }
 
@@ -625,20 +642,90 @@ class _EditDialogContentState extends State<EditDialogContent> {
                     tooltip: "삭제",
                   ),
                 ),
-                TextFormField(
-                  initialValue: widget.fieldName,
-                  decoration: InputDecoration(
-                    labelText: 'Edit Field',
-                    labelStyle: AppTheme.textLabelStyle,
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: AppTheme.buttonlightbackgroundColor),
-                      borderRadius: BorderRadius.circular(8),
+                if (widget.fieldName == '태그') ...[
+                  TextFormField(
+                    initialValue: widget.fieldName,
+                    decoration: InputDecoration(
+                      labelText: 'Edit Field',
+                      labelStyle: AppTheme.textLabelStyle,
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: AppTheme.buttonlightbackgroundColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                  style: AppTheme.fieldLabelTextStyle,
-                  readOnly: true,
-                ),
+                    style: AppTheme.fieldLabelTextStyle,
+                    readOnly: true,
+                  )
+                ] else ...[
+                  DropdownMenu<String>(
+                    initialSelection: selectedKey,
+                    requestFocusOnTap: false,
+                    expandedInsets: const EdgeInsets.all(0),
+                    label: const Text('항목 선택'),
+                    dropdownMenuEntries: () {
+                      // 1) dynamic 타입이 될 수 있는 keys를 문자열 리스트로 변환
+                      final allKeys = widget.itemProvider.fieldMappings.keys
+                          .map<String>((key) => key.toString())
+                          .toList();
+
+                      // 2) 원하는 조건(특정 key 제외 등)에 맞춰 필터링
+                      final filteredKeys = allKeys.where((key) {
+                        // 예시) IsDefault == false, key != 'SubItem' 등
+                        final mapping = widget.itemProvider.fieldMappings[key];
+                        if (mapping == null) return false;
+                        if (mapping['IsDefault'] != widget.isDefault)
+                          return false;
+                        if (key == 'SubItem' ||
+                            key == 'SubName' ||
+                            key == 'SubOrder') return false;
+                        return true;
+                      }).toList();
+
+                      // 3) 정렬
+                      filteredKeys.sort((a, b) {
+                        final orderA = int.tryParse(
+                              widget.itemProvider
+                                      .fieldMappings[a]?['FieldOrder']
+                                      ?.toString() ??
+                                  "0",
+                            ) ??
+                            0;
+                        final orderB = int.tryParse(
+                              widget.itemProvider
+                                      .fieldMappings[b]?['FieldOrder']
+                                      ?.toString() ??
+                                  "0",
+                            ) ??
+                            0;
+                        return orderA.compareTo(orderB);
+                      });
+
+                      // 4) DropdownMenuEntry<String> 리스트로 변환
+                      return filteredKeys.map<DropdownMenuEntry<String>>((key) {
+                        final fieldName = widget.itemProvider.fieldMappings[key]
+                                ?['FieldName'] ??
+                            key;
+                        return DropdownMenuEntry<String>(
+                          value: key, // onSelected로 넘겨줄 실제 값
+                          label: fieldName, // 일반적으로 표시되는 텍스트
+                          labelWidget: Text(
+                            fieldName,
+                            style: AppTheme.textLabelStyle,
+                          ),
+                        );
+                      }).toList();
+                    }(),
+                    onSelected: (String? newValue) {
+                      setState(() {
+                        selectedKey = newValue;
+                        labelKo = widget.itemProvider.fieldMappings[selectedKey]
+                                ?['FieldName'] ??
+                            selectedKey;
+                      });
+                    },
+                  )
+                ],
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerRight,
@@ -707,9 +794,33 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         child: const Text("Cancel"),
                       ),
                       ElevatedButton(
-                        onPressed: () {
-                          // 저장 시 입력한 값을 반환합니다.
-                          Navigator.pop(context, textController.text);
+                        onPressed: () async {
+                          bool canProceed = true;
+
+                          if (selectedKey != widget.keyField) {
+                            final String collectionPath = 'Items';
+                            final String documentId = widget.itemId;
+                            final docRef = FirebaseFirestore.instance
+                                .collection(collectionPath)
+                                .doc(documentId);
+                            final docSnapshot = await docRef.get();
+
+                            if (docSnapshot.exists) {
+                              final existingData = docSnapshot.data() ?? {};
+                              if (existingData.containsKey(selectedKey)) {
+                                showOverlayMessage(
+                                    context, "'$labelKo' 항목이 이미 존재합니다.");
+                                canProceed = false;
+                              }
+                            }
+                          }
+
+                          if (canProceed) {
+                            Navigator.pop(context, {
+                              'key': selectedKey,
+                              'value': textController.text,
+                            });
+                          }
                         },
                         child: const Text("Edit"),
                       ),

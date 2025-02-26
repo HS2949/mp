@@ -91,7 +91,8 @@ class Category_Widget extends StatelessWidget {
                               'Add',
                               style: TextStyle(color: AppTheme.primaryColor),
                             ),
-                            backgroundColor: AppTheme.buttonlightbackgroundColor,
+                            backgroundColor:
+                                AppTheme.buttonlightbackgroundColor,
                           ),
                         ),
                       ],
@@ -425,9 +426,11 @@ class _Item_WidgetState extends State<Item_Widget>
                 builder: (context, child) {
                   return (tabProvider.controller?.index ?? -1) ==
                           0 // 탭 인덱스가 1일 때만 표시
-                      ? FloatingActionButton(
+                      ? FloatingActionButton.extended(
+                          tooltip: 'Add Item',
+                          label: Text('장소 추가', style: AppTheme.bodySmallTextStyle.copyWith(color: Colors.white)),
                           onPressed: () => showAddItem(context, ''),
-                          child: const Icon(Icons.add),
+                          icon: const Icon(Icons.add),
                         )
                       : SizedBox.shrink(); // 빈 공간 반환 (플로팅 버튼 숨김)
                 },

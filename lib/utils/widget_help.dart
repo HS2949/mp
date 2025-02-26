@@ -31,22 +31,21 @@ class ClearButton extends StatelessWidget {
 }
 
 //삭제 버튼 onpressd
-void FiDeleteDialog({
+Future<void> FiDeleteDialog({
   required BuildContext context,
   required Future<void> Function() deleteFunction,
-  bool shouldCloseScreen = false, // 창을 닫을지 여부 선택 가능
-}) {
-  showDialog(
+  bool shouldCloseScreen = false,
+}) async {
+  return showDialog(
     context: context,
     builder: (BuildContext dialogContext) {
-      // 다이얼로그 내부 컨텍스트
       return AlertDialog(
         title: Text('삭제 확인'),
         content: Text('정말로 이 항목을 삭제하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(dialogContext).pop(); // 다이얼로그만 닫기
+              Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
             },
             child: Text('취소'),
           ),
@@ -54,12 +53,12 @@ void FiDeleteDialog({
             onPressed: () async {
               try {
                 await deleteFunction(); // 삭제 함수 실행
-
                 Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
 
                 if (shouldCloseScreen) {
                   Navigator.of(context).pop(); // 이전 화면도 닫기
                 }
+
                 showOverlayMessage(context, "삭제 완료");
               } catch (e) {
                 showOverlayMessage(context, "삭제 중 오류 발생: ${e.toString()}");
@@ -72,6 +71,7 @@ void FiDeleteDialog({
     },
   );
 }
+
 
 // ScaffoldMessenger.of(context)
 //     .showSnackBar(
