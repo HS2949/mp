@@ -1,10 +1,11 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, deprecated_member_use
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
+//import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore import
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 
@@ -202,12 +203,22 @@ class SelectedImagesGridView extends StatefulWidget {
 class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
   late List<SelectedImageInfo> images;
   final ImagePicker picker = ImagePicker();
+  final FocusNode _focusNode = FocusNode(); // FocusNode 선언
 
   @override
   void initState() {
     super.initState();
     images = List.from(widget.initialImages);
     _addImages();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).requestFocus(_focusNode); // 포커스 설정
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _addImages() async {
@@ -326,316 +337,329 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.buttonlightbackgroundColor,
-      appBar: AppBar(
-        title: Wrap(
-          spacing: 10,
-          children: [
-            Text(
-              "파일 선택기",
-              style: AppTheme.appbarTitleTextStyle.copyWith(
-                  color: AppTheme.text2Color, fontWeight: FontWeight.w600),
-            ),
-            Text("추가할 이미지를 선택해주세요", style: AppTheme.appbarTitleTextStyle)
-          ],
-        ),
-        actions: [
-          Flexible(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 20),
-              child: Wrap(
-                spacing: 20,
-                runSpacing: 5,
-                children: [
-                  Container(
-                    width: 130,
-                    height: 36,
-                    child: FloatingActionButton.extended(
-                      heroTag: null,
-                      onPressed: _addImages,
-                      label: Text('파일 선택'),
-                      icon: Icon(Icons.add_to_photos_outlined),
+    return KeyboardListener(
+      focusNode: _focusNode, // FocusNode 할당
+      onKeyEvent: (KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          Navigator.of(context).pop(); // Esc 키를 누르면 이전 화면으로 이동
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.buttonlightbackgroundColor,
+        appBar: AppBar(
+          title: Wrap(
+            spacing: 10,
+            children: [
+              Text(
+                "파일 선택기",
+                style: AppTheme.appbarTitleTextStyle.copyWith(
+                    color: AppTheme.text2Color, fontWeight: FontWeight.w600),
+              ),
+              Text("추가할 이미지를 선택해주세요", style: AppTheme.appbarTitleTextStyle)
+            ],
+          ),
+          actions: [
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 5,
+                  children: [
+                    Container(
+                      width: 130,
+                      height: 36,
+                      child: FloatingActionButton.extended(
+                        heroTag: null,
+                        onPressed: _addImages,
+                        label: Text('파일 선택'),
+                        icon: Icon(Icons.add_to_photos_outlined),
+                      ),
                     ),
-                  ),
-                  Container(
-                    width: 130,
-                    height: 36,
-                    child: FloatingActionButton.extended(
-                      heroTag: null,
-                      backgroundColor: AppTheme.backgroundColor,
-                      hoverColor: AppTheme.text3Color.withOpacity(0.1),
-                      onPressed: () {
-                        Navigator.of(context).pop(images);
-                      },
-                      label: Text("사진 업로드",
-                          style: TextStyle(color: AppTheme.text5Color)),
-                      icon:
-                          Icon(Icons.cloud_upload, color: AppTheme.text5Color),
-                      tooltip: "사진을 업로드 합니다.",
+                    Container(
+                      width: 130,
+                      height: 36,
+                      child: FloatingActionButton.extended(
+                        heroTag: null,
+                        backgroundColor: AppTheme.backgroundColor,
+                        hoverColor: AppTheme.text3Color.withOpacity(0.1),
+                        onPressed: () {
+                          Navigator.of(context).pop(images);
+                        },
+                        label: Text("사진 업로드",
+                            style: TextStyle(color: AppTheme.text5Color)),
+                        icon: Icon(Icons.cloud_upload,
+                            color: AppTheme.text5Color),
+                        tooltip: "사진을 업로드 합니다.",
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: LayoutBuilder(builder: (context, constraints) {
-        double screenWidth = constraints.maxWidth; // 화면 너비
-        return Stack(
-          children: [
-            Center(
-              child: Opacity(
-                opacity: 0.5,
-                child: Container(
-                  width: min(screenWidth * 0.5, 300), // 화면 너비의 50%
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage(
-                          'assets/images/miceplan_font.png'), // 배경 이미지 경로
-                      fit: BoxFit.contain, // 화면 전체 채우기
+          ],
+        ),
+        body: LayoutBuilder(builder: (context, constraints) {
+          double screenWidth = constraints.maxWidth; // 화면 너비
+          return Stack(
+            children: [
+              Center(
+                child: Opacity(
+                  opacity: 0.5,
+                  child: Container(
+                    width: min(screenWidth * 0.5, 300), // 화면 너비의 50%
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage(
+                            'assets/images/miceplan_font.png'), // 배경 이미지 경로
+                        fit: BoxFit.contain, // 화면 전체 채우기
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                int crossAxisCount =
-                    (constraints.maxWidth / 150).floor().clamp(1, 5);
-                return GridView.builder(
-                  padding: EdgeInsets.all(8),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: images.length,
-                  itemBuilder: (context, index) {
-                    final imageInfo = images[index];
-                    return GestureDetector(
-                      onLongPress: () async {
-                        final action = await showModalBottomSheet<String>(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return Wrap(
-                              children: <Widget>[
-                                ListTile(
-                                  leading: Icon(Icons.add),
-                                  title: Text('추가'),
-                                  onTap: () => Navigator.pop(context, 'add'),
-                                ),
-                                ListTile(
-                                  leading: Icon(Icons.delete),
-                                  title: Text('삭제'),
-                                  onTap: () async {
-                                    bool? result = await showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: Text("제거"),
-                                          content: Text("목록에서 제거하시겠습니까?"),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(false),
-                                              child: Text("취소"),
-                                            ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(true),
-                                              child: Text("제거거"),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  int crossAxisCount =
+                      (constraints.maxWidth / 150).floor().clamp(1, 5);
+                  return GridView.builder(
+                    padding: EdgeInsets.all(8),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: images.length,
+                    itemBuilder: (context, index) {
+                      final imageInfo = images[index];
+                      return GestureDetector(
+                        onLongPress: () async {
+                          final action = await showModalBottomSheet<String>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return Wrap(
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: Icon(Icons.add),
+                                    title: Text('추가'),
+                                    onTap: () => Navigator.pop(context, 'add'),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.delete),
+                                    title: Text('삭제'),
+                                    onTap: () async {
+                                      bool? result = await showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: Text("제거"),
+                                            content: Text("목록에서 제거하시겠습니까?"),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(context)
+                                                        .pop(false),
+                                                child: Text("취소"),
+                                              ),
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(context)
+                                                        .pop(true),
+                                                child: Text("제거거"),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
 
-                                    if (result == true) {
-                                      Navigator.pop(context, 'delete');
-                                    }
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                        if (action == 'delete') {
-                          setState(() {
-                            images.removeAt(index);
-                          });
-                        } else if (action == 'add') {
-                          await _addImages();
-                        }
-                      },
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image.file(
-                              File(imageInfo.imageFile.path),
-                              fit: BoxFit.cover,
+                                      if (result == true) {
+                                        Navigator.pop(context, 'delete');
+                                      }
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          if (action == 'delete') {
+                            setState(() {
+                              images.removeAt(index);
+                            });
+                          } else if (action == 'add') {
+                            await _addImages();
+                          }
+                        },
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: Image.file(
+                                File(imageInfo.imageFile.path),
+                                fit: BoxFit.cover,
+                              ),
                             ),
-                          ),
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: IconButton(
-                              icon: Icon(Icons.delete,
-                                  color: Colors.red, size: 16),
-                              padding: EdgeInsets.all(2.0),
-                              constraints: BoxConstraints(),
-                              onPressed: () async {
-                                bool? confirmDelete = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: Text("제거"),
-                                      content: Text("목록에서 제거하시겠습니까?"),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(false),
-                                          child: Text("취소"),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(true),
-                                          child: Text("제거"),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                                if (confirmDelete == true) {
-                                  setState(() {
-                                    images.removeAt(index);
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              child: Container(
-                                color: Colors.black54,
-                                padding: const EdgeInsets.all(4),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Flexible(
-                                      child: RichText(
-                                        text: TextSpan(
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12),
-                                          children: [
-                                            TextSpan(
-                                              text:
-                                                  '${imageInfo.fileSize} MB - (',
-                                            ),
-                                            TextSpan(
-                                              text: '${imageInfo.width}',
-                                              style: TextStyle(
-                                                color: (imageInfo
-                                                            .originalWidth !=
-                                                        imageInfo.width)
-                                                    ? AppTheme.textStrongColor
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: ' x ',
-                                            ),
-                                            TextSpan(
-                                              text: '${imageInfo.height}',
-                                              style: TextStyle(
-                                                color: (imageInfo
-                                                            .originalHeight !=
-                                                        imageInfo.height)
-                                                    ? AppTheme.textStrongColor
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: ') / ',
-                                            ),
-                                            TextSpan(
-                                              text:
-                                                  '${imageInfo.imageQuality}%',
-                                              style: TextStyle(
-                                                color: (100 !=
-                                                        imageInfo.imageQuality)
-                                                    ? AppTheme.textStrongColor
-                                                    : Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: RichText(
-                                            text: TextSpan(
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 12),
-                                              children: [
-                                                TextSpan(
-                                                  text: '${imageInfo.fileName}',
-                                                  style: TextStyle(
-                                                    color: (imageInfo
-                                                                .fileName !=
-                                                            imageInfo
-                                                                .originalfilename)
-                                                        ? AppTheme
-                                                            .textStrongColor
-                                                        : Colors.white,
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      ' (${imageInfo.extension})',
-                                                ),
-                                              ],
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: IconButton(
+                                icon: Icon(Icons.delete,
+                                    color: Colors.red, size: 16),
+                                padding: EdgeInsets.all(2.0),
+                                constraints: BoxConstraints(),
+                                onPressed: () async {
+                                  bool? confirmDelete = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text("제거"),
+                                        content: Text("목록에서 제거하시겠습니까?"),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(context)
+                                                    .pop(false),
+                                            child: Text("취소"),
                                           ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(true),
+                                            child: Text("제거"),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                  if (confirmDelete == true) {
+                                    setState(() {
+                                      images.removeAt(index);
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  color: Colors.black54,
+                                  padding: const EdgeInsets.all(4),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12),
+                                            children: [
+                                              TextSpan(
+                                                text:
+                                                    '${imageInfo.fileSize} MB - (',
+                                              ),
+                                              TextSpan(
+                                                text: '${imageInfo.width}',
+                                                style: TextStyle(
+                                                  color: (imageInfo
+                                                              .originalWidth !=
+                                                          imageInfo.width)
+                                                      ? AppTheme.textStrongColor
+                                                      : Colors.white,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: ' x ',
+                                              ),
+                                              TextSpan(
+                                                text: '${imageInfo.height}',
+                                                style: TextStyle(
+                                                  color: (imageInfo
+                                                              .originalHeight !=
+                                                          imageInfo.height)
+                                                      ? AppTheme.textStrongColor
+                                                      : Colors.white,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: ') / ',
+                                              ),
+                                              TextSpan(
+                                                text:
+                                                    '${imageInfo.imageQuality}%',
+                                                style: TextStyle(
+                                                  color: (100 !=
+                                                          imageInfo
+                                                              .imageQuality)
+                                                      ? AppTheme.textStrongColor
+                                                      : Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        IconButton(
-                                          icon: Icon(Icons.edit,
-                                              color: AppTheme.textStrongColor,
-                                              size: 16),
-                                          padding: EdgeInsets.all(2.0),
-                                          constraints: BoxConstraints(),
-                                          onPressed: () => _editImage(index),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              )),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        );
-      }),
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: RichText(
+                                              text: TextSpan(
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12),
+                                                children: [
+                                                  TextSpan(
+                                                    text:
+                                                        '${imageInfo.fileName}',
+                                                    style: TextStyle(
+                                                      color: (imageInfo
+                                                                  .fileName !=
+                                                              imageInfo
+                                                                  .originalfilename)
+                                                          ? AppTheme
+                                                              .textStrongColor
+                                                          : Colors.white,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        ' (${imageInfo.extension})',
+                                                  ),
+                                                ],
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.edit,
+                                                color: AppTheme.textStrongColor,
+                                                size: 16),
+                                            padding: EdgeInsets.all(2.0),
+                                            constraints: BoxConstraints(),
+                                            onPressed: () => _editImage(index),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          );
+        }),
+      ),
     );
   }
 }

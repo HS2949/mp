@@ -372,6 +372,7 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                           viewSelect: 0,
                         ),
                       );
+                     provider.focusKeyboard();
                     },
                   ),
                 );

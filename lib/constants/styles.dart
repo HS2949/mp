@@ -173,19 +173,38 @@ class AppTheme {
           color: Colors.white, // 글자 색상 변경
           fontSize: 11,
         ),
-        waitDuration: Duration(milliseconds: 500), // 툴팁 표시까지 걸리는 시간
+        waitDuration: Duration(milliseconds: 100), // 툴팁 표시까지 걸리는 시간
         showDuration: Duration(seconds: 2), // 툴팁이 유지되는 시간
       ),
       // ========================================================  ElevatedButton 테마
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: textHintColor.withOpacity(0.3), // 버튼 배경색
-          padding: EdgeInsets.symmetric(vertical: 0.0), // 버튼 내부 패딩
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(textfieldRadious), // 테두리 반경
+        style: ButtonStyle(
+          animationDuration: Duration(milliseconds: 200), // 애니메이션 지속 시간
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return AppTheme.backgroundColor; // 클릭 시 색상
+            }
+            if (states.contains(MaterialState.hovered)) {
+              return AppTheme.buttonbackgroundColor; // 마우스 오버 시 색상
+            }
+            return AppTheme.buttonlightbackgroundColor; // 기본 색상
+          }),
+          foregroundColor: MaterialStateProperty.all(Colors.white), // 텍스트 색상
+          padding: MaterialStateProperty.all(
+              EdgeInsets.symmetric(vertical: 0.0)), // 내부 패딩
+          shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(textfieldRadious), // 테두리 반경
+            ),
           ),
-          foregroundColor: Colors.white, // 텍스트 색상 설정
-          textStyle: buttonTextTextStyle,
+          textStyle: MaterialStateProperty.all(buttonTextTextStyle), // 텍스트 스타일
+          overlayColor: MaterialStateProperty.resolveWith<Color?>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return AppTheme.buttonbackgroundColor
+                  .withOpacity(0.5); // 마우스 오버 시 효과
+            }
+            return null;
+          }),
         ),
       ),
     );

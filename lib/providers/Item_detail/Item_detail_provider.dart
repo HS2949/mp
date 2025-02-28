@@ -7,8 +7,9 @@ import 'Item_detail_state.dart';
 
 class ItemDetailProvider with ChangeNotifier {
   final ItemDetailRepository itemDetailRepository;
-  
-  final Map<String, StreamSubscription<Item?>> _subscriptions = {}; // 🔹 itemId별 Stream 관리
+
+  final Map<String, StreamSubscription<Item?>> _subscriptions =
+      {}; // 🔹 itemId별 Stream 관리
   final Map<String, Item?> _items = {}; // 🔹 itemId별 데이터 저장
   final Map<String, ItemDetailState> _states = {}; // 🔹 itemId별 상태 관리
 
@@ -17,6 +18,27 @@ class ItemDetailProvider with ChangeNotifier {
   /// 🔹 특정 itemId의 상태 가져오기
   ItemDetailState getState(String itemId) {
     return _states[itemId] ?? ItemDetailState.initial();
+  }
+
+  bool _isToggleAllGroup = false;
+  bool get isToggleAllGroup => _isToggleAllGroup;
+
+  bool _isToggleAllItem = false;
+  bool get isToggleAllItem => _isToggleAllItem;
+
+  void toggleAllGroup() {
+    _isToggleAllGroup = !_isToggleAllGroup;
+    notifyListeners();
+  }
+
+  void setToggleAllGroup(bool value) {
+    _isToggleAllGroup = value;
+    notifyListeners();
+  }
+
+  void toggleAllItem() {
+    _isToggleAllItem = !_isToggleAllItem;
+    notifyListeners();
   }
 
   /// 🔹 특정 itemId의 데이터 가져오기
@@ -28,21 +50,23 @@ class ItemDetailProvider with ChangeNotifier {
   void listenToItemDetail({required String itemId}) {
     if (_subscriptions.containsKey(itemId)) return; // 이미 구독 중이면 재구독 방지
 
-    _states[itemId] = ItemDetailState.initial().copyWith(itemDetailStatus: ItemDetailStatus.loading);
+    _states[itemId] = ItemDetailState.initial()
+        .copyWith(itemDetailStatus: ItemDetailStatus.loading);
     notifyListeners();
 
     try {
       // 🔹 Firestore 아이템 + subItems 함께 구독
       _subscriptions[itemId] = itemDetailRepository
           .streamItemWithSubItems(
-            collectionName: 'Items',
-            subcollectionName: 'Sub_Items',
-            itemId: itemId,
-          )
+        collectionName: 'Items',
+        subcollectionName: 'Sub_Items',
+        itemId: itemId,
+      )
           .listen((Item? item) {
         if (item != null) {
           _items[itemId] = item;
-          _states[itemId] = _states[itemId]!.copyWith(itemDetailStatus: ItemDetailStatus.loaded);
+          _states[itemId] = _states[itemId]!
+              .copyWith(itemDetailStatus: ItemDetailStatus.loaded);
         } else {
           _states[itemId] = _states[itemId]!.copyWith(
             itemDetailStatus: ItemDetailStatus.error,

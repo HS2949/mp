@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/pages/dialog/dialog_field.dart';
 import 'package:mp_db/pages/home.dart';
+import 'package:mp_db/pages/subpage/item_detail_subpage.dart';
 import 'package:mp_db/pages/subpage/settings/item_category_subpage.dart';
 import 'package:mp_db/pages/subpage/settings/item_field_subpage.dart';
 import 'package:mp_db/pages/subpage/item_subpage.dart';
+import 'package:mp_db/providers/Item_detail/Item_detail_provider.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/two_line.dart';
 import 'package:mp_db/utils/widget_help.dart';
@@ -111,34 +113,6 @@ class Category_Widget extends StatelessWidget {
                     scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
                   ), // 두 번째 구성 요소 리스트.
                 ),
-                // floatingActionButton: SizedBox(
-                //   width: 80,
-                //   height: 35,
-                //   child: FloatingActionButton.extended(
-                //     onPressed: () {
-                //       showDialog(
-                //         context: context,
-                //         builder: (BuildContext context) {
-                //           return DialogField(
-                //             isDefault:
-                //                 false, // 필요한 경우 기본 정보(true) 또는 추가 정보(false)로 설정
-                //             document:
-                //                 null, // 추가 시 새 항목을 위한 null, 편집 시 해당 DocumentSnapshot 전달
-                //             firestoreService:
-                //                 FirestoreService(), // FirestoreService 인스턴스 전달
-                //           );
-                //         },
-                //       );
-                //     },
-                //     tooltip: '필드명 추가',
-                //     icon: const Icon(Icons.add, color: AppTheme.primaryColor),
-                //     label: const Text(
-                //       'Add',
-                //       style: TextStyle(color: AppTheme.primaryColor),
-                //     ),
-                //     backgroundColor: AppTheme.buttonlightbackgroundColor,
-                //   ),
-                // ),
               ),
             ),
           ],
@@ -259,8 +233,6 @@ class Item_Widget extends StatefulWidget {
 
 class _Item_WidgetState extends State<Item_Widget>
     with SingleTickerProviderStateMixin {
-  final FocusNode _focusNode = FocusNode(); // 키보드 이벤트 감지를 위한 FocusNode 생성
-
   @override
   void initState() {
     super.initState();
@@ -348,12 +320,22 @@ class _Item_WidgetState extends State<Item_Widget>
     final tabProvider = Provider.of<ItemProvider>(context);
 
     return KeyboardListener(
-      focusNode: _focusNode,
+      focusNode: tabProvider.keyboardFocusNode,
       onKeyEvent: (KeyEvent event) {
         if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.f3) {
+            event.logicalKey == LogicalKeyboardKey.escape) {
           tabProvider.selectTab(0); // 0번 탭 선택
           tabProvider.focusSearchField();
+          print("esc 눌림");
+        }
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.space) {
+          // Provider.of<ItemDetailProvider>(context, listen: false)
+          //     .toggleAllGroup();
+          Provider.of<ItemDetailProvider>(context, listen: false)
+              .toggleAllItem();
+          print(Provider.of<ItemDetailProvider>(context, listen: false)
+              .isToggleAllItem);
         }
       },
       child: Scaffold(
@@ -380,6 +362,7 @@ class _Item_WidgetState extends State<Item_Widget>
                 tabs: tabs,
                 onTap: (index) {
                   tabProvider.selectTab(index);
+                  tabProvider.focusKeyboard();
                 },
               ),
             ),
@@ -407,8 +390,10 @@ class _Item_WidgetState extends State<Item_Widget>
                           widget_all: tabProvider.tabViews[index].all,
                         ),
                         two: Second_Item_Page(
-                            scaffoldKey: widget.scaffoldKey,
-                            widget_second: tabProvider.tabViews[index].second),
+                          scaffoldKey: widget.scaffoldKey,
+                          widget_second: tabProvider.tabViews[index].second,
+                          useScroll: index == 0 ? true : false,
+                        ),
                       ),
                     ),
                   ],
@@ -427,12 +412,39 @@ class _Item_WidgetState extends State<Item_Widget>
                   return (tabProvider.controller?.index ?? -1) ==
                           0 // 탭 인덱스가 1일 때만 표시
                       ? FloatingActionButton.extended(
+                          heroTag: null,
                           tooltip: 'Add Item',
-                          label: Text('장소 추가', style: AppTheme.bodySmallTextStyle.copyWith(color: Colors.white)),
+                          label: Text('장소 추가',
+                              style: AppTheme.bodySmallTextStyle
+                                  .copyWith(color: Colors.white)),
                           onPressed: () => showAddItem(context, ''),
                           icon: const Icon(Icons.add),
                         )
-                      : SizedBox.shrink(); // 빈 공간 반환 (플로팅 버튼 숨김)
+                      : SizedBox(
+                          height: 42,
+                          child: FloatingActionButton.extended(
+                            heroTag: null,
+                            label: Text('정보 추가', style: TextStyle(fontSize: 13)),
+                            backgroundColor:
+                                AppTheme.text5Color.withOpacity(0.4),
+                            hoverColor: AppTheme.text5Color.withOpacity(0.8),
+                            tooltip: '추가 정보 입력',
+                            onPressed: () async {
+                              await showAddDialogSubItem(
+                                  context,
+                                  tabProvider,
+                                  (tabProvider
+                                          .tabViews[tabProvider.selectedIndex]
+                                          .second as ItemDetailSubpage)
+                                      .getItemId,
+                                  null);
+                            },
+                            icon: const Icon(
+                              Icons.add,
+                              size: 13,
+                            ),
+                          ),
+                        );
                 },
               ),
       ),
@@ -494,7 +506,8 @@ class First_Item_Page extends StatelessWidget {
         ),
       );
     } else {
-      // 커스톰스크롤 사용시 ===== index = 0  리스트 탭일 땐 아래래
+      // 커스톰스크롤 사용시 ---------------------
+      // Case : index = 0  리스트 탭 ☞ 스크롤 사용
       // Fully traverse this list before moving on.
       return FocusTraversalGroup(
         child: CustomScrollView(
@@ -528,37 +541,61 @@ class Second_Item_Page extends StatelessWidget {
     super.key,
     required this.scaffoldKey,
     required this.widget_second,
+    required this.useScroll,
   });
 
   final GlobalKey<ScaffoldState> scaffoldKey;
   final Widget? widget_second;
+  final bool useScroll;
 
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [widget_second ?? SizedBox.shrink()];
     List<double?> heights = List.filled(children.length, null);
 
-    // Fully traverse this list before moving on.
-    return FocusTraversalGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsetsDirectional.only(end: 0.0), //smallSpacing
-            sliver: SliverList(
-              delegate: BuildSlivers(
+    // CustomScrollView 제거 후 Column으로 변경
+    if (!useScroll) {
+      // 스크롤 없이 사용
+      return FocusTraversalGroup(
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Column의 크기를 children에 맞춤
+          children: List.generate(children.length, (index) {
+            return Expanded(
+              child: CacheHeight(
                 heights: heights,
-                builder: (context, index) {
-                  return CacheHeight(
-                    heights: heights,
-                    index: index,
-                    child: children[index],
-                  );
-                },
+                index: index,
+                child: children[index],
+              ),
+            );
+          }),
+        ),
+      );
+    } else {
+      // 커스톰스크롤 사용시 ---------------------
+      // Case : index = 0  리스트 탭 ☞ 스크롤 사용
+      // Fully traverse this list before moving on.
+      return FocusTraversalGroup(
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding:
+                  const EdgeInsetsDirectional.only(end: 0.0), //smallSpacing
+              sliver: SliverList(
+                delegate: BuildSlivers(
+                  heights: heights,
+                  builder: (context, index) {
+                    return CacheHeight(
+                      heights: heights,
+                      index: index,
+                      child: children[index],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    }
   }
 }

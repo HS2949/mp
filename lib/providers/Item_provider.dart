@@ -289,12 +289,25 @@ class ItemProvider extends ChangeNotifier {
 
   // 포커스를 강제로 부여
   void focusSearchField() {
+    searchController.clear();
     searchFocusNode.requestFocus();
   }
 
   // 포커스 해제
   void unfocusSearchField() {
     searchFocusNode.unfocus();
+  }
+
+  // 키보드 이벤트 감지를 위한 FocusNode 생성
+  final FocusNode keyboardFocusNode = FocusNode();
+  // 포커스를 강제로 부여
+  void focusKeyboard() {
+    keyboardFocusNode.requestFocus();
+  }
+
+  // 포커스 해제
+  void unfocusKeyboard() {
+    keyboardFocusNode.unfocus();
   }
 
   @override

@@ -25,6 +25,7 @@ class ItemDetailSubpage extends StatefulWidget {
       : super(key: key);
 
   final String itemId;
+  String get getItemId => itemId;
   final int viewSelect; // 0,1: fields 표시 / 2: sub_items 표시
 
   @override
@@ -32,20 +33,20 @@ class ItemDetailSubpage extends StatefulWidget {
 }
 
 class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
-  final FocusNode _focusNode = FocusNode();
   final TextEditingController _controller = TextEditingController();
   late final ItemProvider provider;
   final firestoreService = FirestoreService();
 
-  /// 각 subItem 별 파일 개수를 저장 (subItem id를 키로 사용)
-  Map<String, int> _fileCounts = {};
-
   /// Firebase의 subItems 데이터를 그룹화한 결과를 저장하는 상태 변수
   List<Map<String, dynamic>> _computedGroups = [];
   bool _allGroupsExpanded = true;
+  Map<String, bool> _fileExistsMap = {};
 
   // subItems 내용 변경 감지를 위한 해시값 저장
   String _lastSubItemsHash = '';
+
+  // Provider의 isToggleAllItem 변경 감지를 위한 이전 값 저장
+  bool? _prevToggleState;
 
   @override
   void initState() {
@@ -56,15 +57,62 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       Provider.of<ItemDetailProvider>(context, listen: false)
           .listenToItemDetail(itemId: widget.itemId);
     });
+
+    // Provider에서 전달받은 isToggleAllItem 초기값 저장 및 리스너 등록
+    final itemDetailProvider =
+        Provider.of<ItemDetailProvider>(context, listen: false);
+    _prevToggleState = itemDetailProvider.isToggleAllItem;
+    itemDetailProvider.addListener(_onProviderToggleChanged);
   }
 
+  Future<void> _checkFileExistence() async {
+    for (var group in _computedGroups) {
+      for (var item in group["items"]) {
+        String folderName =
+            'uploads/${provider.items.firstWhere((item) => item.id == widget.itemId)['ItemName']}/${item["title"]}';
+        _updateFileExistence(folderName);
+      }
+    }
+  }
+
+  Future<void> _updateFileExistence(String folderName) async {
+    bool exists = await _hasFiles(folderName);
+    setState(() {
+      _fileExistsMap[folderName] = exists;
+    });
+  }
+
+  // 각 subItem 별 파일 여부를 확인하는는 함수
+  Future<bool> _hasFiles(String folderName) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('files')
+          .where('folder', isEqualTo: folderName)
+          .limit(1) // 성능 최적화를 위해 1개만 가져옴
+          .get();
+
+      bool te = querySnapshot.docs.isNotEmpty;
+      return te;
+    } catch (e) {
+      print("Error checking files in $folderName: $e");
+      return false;
+    }
+  }
+
+  bool _isFirstBuild = true;
   @override
   void didUpdateWidget(covariant ItemDetailSubpage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.itemId != widget.itemId) {
       _computedGroups = [];
       _lastSubItemsHash = '';
-      _fileCounts.clear(); // 이전 subItem 파일 개수 초기화
+    }
+
+    if (_isFirstBuild) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<ItemProvider>().focusKeyboard();
+      });
+      _isFirstBuild = false;
     }
   }
 
@@ -72,7 +120,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   void dispose() {
     Provider.of<ItemDetailProvider>(context, listen: false)
         .cancelSubscription(widget.itemId);
-    _focusNode.dispose();
+    Provider.of<ItemDetailProvider>(context, listen: false)
+        .removeListener(_onProviderToggleChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -92,8 +141,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     }
     groupedData.forEach((groupKey, subItems) {
       subItems.sort((a, b) {
-        int orderA = int.tryParse(a['SubOrder']?.toString() ?? "") ?? 9999;
-        int orderB = int.tryParse(b['SubOrder']?.toString() ?? "") ?? 9999;
+        int orderA = int.tryParse(a['SubOrder']?.toString() ?? "9999") ?? 9999;
+        int orderB = int.tryParse(b['SubOrder']?.toString() ?? "9999") ?? 9999;
         return orderA.compareTo(orderB);
       });
     });
@@ -128,7 +177,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           "subOrder": subItem['SubOrder'],
           "subItem": subItem['SubItem'],
           "title": title,
-          "isExpanded": false,
+          //"isExpanded": subItems.length == 1, // 아이템이 1개면 true, 2개 이상이면 false
+          "isExpanded": sortedGroups.length == 1 && subItems.length == 1, // 아이템이 1개면 true, 2개 이상이면 false
           "attributes": attributes,
         };
       }).toList();
@@ -197,6 +247,31 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       bool newState = !_computedGroups[groupIndex]["items"][0]["isExpanded"];
       for (var item in _computedGroups[groupIndex]["items"]) {
         item["isExpanded"] = isToggle ? newState : true;
+      }
+    });
+  }
+
+  // Provider의 isToggleAllItem 값 변경 감지 시 호출될 리스너 함수
+  void _onProviderToggleChanged() {
+    final currentToggle =
+        Provider.of<ItemDetailProvider>(context, listen: false).isToggleAllItem;
+    if (currentToggle != _prevToggleState) {
+      _toggleAllItems();
+      _prevToggleState = currentToggle;
+    }
+  }
+
+  // 전체 그룹의 모든 아이템을 현재 상태에 따라 토글:
+  // 만약 하나라도 열려있다면 모두 닫고, 그렇지 않다면 모두 여는 로직 적용
+  void _toggleAllItems() {
+    bool anyOpen = _computedGroups.any(
+        (group) => group["items"].any((item) => item["isExpanded"] == true));
+    bool newState = anyOpen ? false : true;
+    setState(() {
+      for (var group in _computedGroups) {
+        for (var item in group["items"]) {
+          item["isExpanded"] = newState;
+        }
       }
     });
   }
@@ -290,24 +365,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     }).join('|');
   }
 
-  // 각 subItem 별 파일 개수를 가져오는 함수
-  Future<void> _fetchFileCount(String subItemId, String folderName) async {
-    try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('files')
-          .where('folder', isEqualTo: folderName)
-          .get();
-      setState(() {
-        _fileCounts[subItemId] = querySnapshot.docs.length;
-      });
-    } catch (e) {
-      print("Error fetching file count for $folderName: $e");
-      setState(() {
-        _fileCounts[subItemId] = 0;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ItemDetailProvider>().getState(widget.itemId);
@@ -391,20 +448,28 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                 await _showAddDialogItem(context, provider, widget.itemId);
               },
             ),
-            IconButton(
-              // 기본 정보의 아이콘
-              icon: const Icon(Icons.image_outlined),
-              tooltip: '사진 정보',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ImageGridScreen(
-                        folderName: 'uploads/${itemData.itemName}'),
-                  ),
-                );
-              },
-            ),
+            if (_fileExistsMap['uploads/${itemData.itemName}'] == true) ...[
+              IconButton(
+                // 기본 정보의 아이콘
+                icon: const Icon(
+                  Icons.image_outlined,
+                  color: AppTheme.text5Color,
+                ),
+                tooltip: '사진 정보',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ImageGridScreen(
+                          folderName: 'uploads/${itemData.itemName}'),
+                    ),
+                  ).then((_) {
+                    // 화면이 닫힐 때 _checkFileExistence 실행
+                    _updateFileExistence('uploads/${itemData.itemName}');
+                  });
+                },
+              ),
+            ],
             MenuAnchor(
               builder: (context, controller, child) {
                 return IconButton(
@@ -435,6 +500,22 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                             collectionName: 'Items', documentId: widget.itemId),
                         shouldCloseScreen: false);
                     provider.removeTab(provider.selectedIndex);
+                  },
+                ),
+                MenuItemButton(
+                  leadingIcon: const Icon(Icons.image_outlined),
+                  child: const Text('사진 추가', style: AppTheme.textLabelStyle),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ImageGridScreen(
+                            folderName: 'uploads/${itemData.itemName}'),
+                      ),
+                    ).then((_) {
+                      // 화면이 닫힐 때 _checkFileExistence 실행
+                      _updateFileExistence('uploads/${itemData.itemName}');
+                    });
                   },
                 ),
               ],
@@ -527,12 +608,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     final itemFieldEntries = itemData.fields.entries.toList();
 
     itemFieldEntries.sort((entryA, entryB) {
-      final orderA =
-          int.tryParse(fields[entryA.key]?['FieldOrder']?.toString() ?? '0') ??
-              0;
-      final orderB =
-          int.tryParse(fields[entryB.key]?['FieldOrder']?.toString() ?? '0') ??
-              0;
+      final orderA = int.tryParse(
+              fields[entryA.key]?['FieldOrder']?.toString() ?? '9999') ??
+          9999;
+      final orderB = int.tryParse(
+              fields[entryB.key]?['FieldOrder']?.toString() ?? '9999') ??
+          9999;
       return orderA.compareTo(orderB);
     });
 
@@ -677,520 +758,517 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _updateComputedGroups(item);
+          _checkFileExistence();
         }
       });
     }
 
-    Widget content = Stack(
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(0.0),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '추가 정보',
-                        style: AppTheme.textCGreyStyle.copyWith(
-                          fontSize: 16,
-                          color: AppTheme.text5Color.withOpacity(0.3),
-                        ),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size(0, 0),
-                        ),
-                        onPressed: _toggleAllGroups,
-                        child: Text(
-                          _allGroupsExpanded ? "모두 닫기" : "모두 열기",
-                          style:
-                              AppTheme.textHintTextStyle.copyWith(fontSize: 11),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(color: AppTheme.buttonlightbackgroundColor),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _computedGroups.length,
-                  itemBuilder: (context, groupIndex) {
-                    final group = _computedGroups[groupIndex];
+    Widget subitemList = ListView.builder(
+      shrinkWrap: widget.viewSelect == 0 ? true : false,
+      //  physics: const NeverScrollableScrollPhysics(),
+      itemCount: _computedGroups.length,
+      itemBuilder: (context, groupIndex) {
+        final group = _computedGroups[groupIndex];
 
-                    return Card(
-                      elevation: 0,
-                      child: Column(
-                        children: [
-                          Tooltip(
-                            message: '클릭 : 열기/닫기\n길게 누르기 : 그룹명 변경',
-                            decoration: BoxDecoration(
-                              color: AppTheme.text9Color.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                            ),
-                            child: ListTile(
-                              dense: true,
-                              minVerticalPadding: 0,
-                              visualDensity: VisualDensity(vertical: -4),
-                              title: Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 20, right: 50),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      group["groupTitle"],
-                                      style:
-                                          AppTheme.bodySmallTextStyle.copyWith(
-                                        color: AppTheme.text9Color
-                                            .withOpacity(0.3),
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    const Expanded(
-                                      child: Divider(
-                                        color: AppTheme.text9Color,
-                                        thickness: 0.2,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              onTap: () => _toggleGroupExpansion(groupIndex),
-                              onLongPress: () =>
-                                  _showRenameGroupDialog(groupIndex),
-                            ),
+        ///---------------------------------------------------------------------------------- 아이템 그룹
+        return Card(
+          elevation: 0,
+          child: Column(
+            children: [
+              Tooltip(
+                message: '클릭 : 열기/닫기\n길게 누르기 : 그룹명 변경',
+                decoration: BoxDecoration(
+                  color: AppTheme.text9Color.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                ),
+                child: ListTile(
+                  dense: true,
+                  minVerticalPadding: 0,
+                  visualDensity: VisualDensity(vertical: -4),
+                  title: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Text(
+                          group["groupTitle"],
+                          style: AppTheme.bodySmallTextStyle.copyWith(
+                            color: AppTheme.text9Color.withOpacity(0.3),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
                           ),
-                          AnimatedSize(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.fastOutSlowIn,
-                            child: group["isExpanded"]
-                                ? Column(
-                                    children: group["items"]
-                                        .asMap()
-                                        .entries
-                                        .map<Widget>((entry) {
-                                      int itemIndex = entry.key;
-                                      var itemData = entry.value;
-                                      String subItemId = itemData["id"];
-                                      String folderName =
-                                          'uploads/${item.itemName}/${itemData["title"]}';
-                                      // subItem 별 파일 개수가 없으면 Firestore 쿼리 실행
-                                      if (!_fileCounts.containsKey(subItemId)) {
-                                        _fetchFileCount(subItemId, folderName);
-                                      }
-                                      return Column(
+                        ),
+                        const SizedBox(width: 20),
+                        const Expanded(
+                          child: Divider(
+                            color: AppTheme.text9Color,
+                            thickness: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  onTap: () => _toggleGroupExpansion(groupIndex),
+                  onLongPress: () => _showRenameGroupDialog(groupIndex),
+                ),
+              ),
+
+              ///---------------------------------------------------------------------------------- 아이템
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.fastOutSlowIn,
+                child: group["isExpanded"]
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // TextButton.icon(
+                          //   style: TextButton.styleFrom(
+                          //     minimumSize: Size(0, 30),
+                          //     padding: EdgeInsets.symmetric(horizontal: 8),
+                          //   ),
+                          //   label: Text(
+                          //     '아이템',
+                          //     style:
+                          //         AppTheme.tagTextStyle.copyWith(fontSize: 11),
+                          //   ),
+                          //   onPressed: () {
+                          //     _toggleAllItemsInGroup(groupIndex, true);
+                          //   },
+                          //   icon: Icon(
+                          //     !_computedGroups[groupIndex]["items"]
+                          //             .whereType<
+                          //                 Map<String,
+                          //                     dynamic>>() // 리스트 내 요소의 타입을 확실하게 변환
+                          //             .any((item) => item["isExpanded"] == true)
+                          //         ? Icons.expand_less
+                          //         : Icons.expand_more,
+                          //     size: 20,
+                          //     color: AppTheme.textHintTextStyle.color,
+                          //   ),
+                          // ),
+                          Column(
+                            children: group["items"]
+                                .asMap()
+                                .entries
+                                .map<Widget>((entry) {
+                              int itemIndex = entry.key;
+                              var itemData = entry.value;
+                              String folderName =
+                                  'uploads/${item.itemName}/${itemData["title"]}';
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Tooltip(
+                                    message: '클릭 : 열기/닫기\n길게 누르기 : 아이템 추가',
+                                    child: ListTile(
+                                      tileColor:
+                                          AppTheme.text5Color.withOpacity(0.03),
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          0, 0, 55, 0),
+                                      dense: true,
+                                      minVerticalPadding: 0,
+                                      visualDensity:
+                                          const VisualDensity(vertical: -4),
+                                      title: Row(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
+                                            CrossAxisAlignment.center,
                                         children: [
                                           Tooltip(
-                                            message:
-                                                '클릭 : 열기/닫기\n길게 누르기 : 아이템 전부 열기/닫기',
-                                            child: ListTile(
-                                              tileColor: AppTheme.text5Color
-                                                  .withOpacity(0.03),
-                                              contentPadding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      0, 0, 55, 0),
-                                              dense: true,
-                                              minVerticalPadding: 0,
-                                              visualDensity:
-                                                  const VisualDensity(
-                                                      vertical: -4),
-                                              title: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  Tooltip(
-                                                    message: '아이템 메뉴',
-                                                    child: MenuAnchor(
-                                                      builder: (context,
-                                                          controller, child) {
-                                                        return TextButton.icon(
-                                                          style: TextButton
-                                                              .styleFrom(
-                                                            padding:
-                                                                EdgeInsets.zero,
-                                                            minimumSize:
-                                                                const Size(
-                                                                    50, 30),
-                                                          ),
-                                                          label: Text(
-                                                            itemData[
-                                                                    'subOrder'] ??
-                                                                '-',
-                                                            style: AppTheme
-                                                                .tagTextStyle
-                                                                .copyWith(
-                                                                    fontSize: 8,
-                                                                    color: AppTheme
-                                                                        .buttonlightbackgroundColor),
-                                                          ),
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .label_important_sharp,
-                                                            color: AppTheme
-                                                                .text5Color,
-                                                            size: 10,
-                                                          ),
-                                                          onPressed: () {
-                                                            if (controller
-                                                                .isOpen) {
-                                                              controller
-                                                                  .close();
-                                                            } else {
-                                                              controller.open();
-                                                            }
-                                                          },
-                                                        );
-                                                      },
-                                                      menuChildren: [
-                                                        MenuItemButton(
-                                                          leadingIcon:
-                                                              const Icon(Icons
-                                                                  .edit_note_outlined),
-                                                          child: const Text(
-                                                            'Edit',
-                                                            style: AppTheme
-                                                                .textLabelStyle,
-                                                          ),
-                                                          onPressed: () async {
-                                                            await _showAddDialogSubItem(
-                                                                context,
-                                                                provider,
-                                                                widget.itemId,
-                                                                itemData);
-                                                          },
-                                                        ),
-                                                        MenuItemButton(
-                                                          leadingIcon:
-                                                              const Icon(Icons
-                                                                  .delete_forever_outlined),
-                                                          child: const Text(
-                                                            'Delete',
-                                                            style: AppTheme
-                                                                .textLabelStyle,
-                                                          ),
-                                                          onPressed: () async {
-                                                            FiDeleteDialog(
-                                                              context: context,
-                                                              deleteFunction:
-                                                                  () async {
-                                                                FirebaseFirestore
-                                                                    .instance
-                                                                    .collection(
-                                                                        'Items')
-                                                                    .doc(widget
-                                                                        .itemId)
-                                                                    .collection(
-                                                                        'Sub_Items')
-                                                                    .doc(itemData[
-                                                                        'id'])
-                                                                    .delete();
-                                                              },
-                                                              shouldCloseScreen:
-                                                                  false,
-                                                            );
-                                                          },
-                                                        ),
-                                                        MenuItemButton(
-                                                          leadingIcon:
-                                                              const Icon(Icons
-                                                                  .add_to_photos_outlined),
-                                                          child: const Text(
-                                                            '속성 추가',
-                                                            style: AppTheme
-                                                                .textLabelStyle,
-                                                          ),
-                                                          onPressed: () async {
-                                                            await _showAddAttributeDialog(
-                                                                context,
-                                                                provider,
-                                                                widget.itemId,
-                                                                itemData);
-                                                            _toggleAllItemsInGroup(
-                                                                groupIndex,
-                                                                false);
-                                                          },
-                                                        ),
-                                                      ],
-                                                    ),
+                                            message: '아이템 메뉴',
+                                            child: MenuAnchor(
+                                              // ----------------------------------- 메뉴 버튼
+                                              builder:
+                                                  (context, controller, child) {
+                                                return TextButton.icon(
+                                                  style: TextButton.styleFrom(
+                                                    padding: EdgeInsets.zero,
+                                                    minimumSize:
+                                                        const Size(50, 30),
                                                   ),
-                                                  Text(
-                                                    '${itemData["title"]}',
-                                                    style: AppTheme
-                                                        .fieldLabelTextStyle
+                                                  label: Text(
+                                                    itemData['subOrder'] ?? '-',
+                                                    style: AppTheme.tagTextStyle
                                                         .copyWith(
-                                                      color:
-                                                          AppTheme.primaryColor,
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
+                                                            fontSize: 8,
+                                                            color: AppTheme
+                                                                .buttonlightbackgroundColor),
                                                   ),
-                                                  const SizedBox(width: 16),
-                                                  IconButton(
-                                                      constraints:
-                                                          const BoxConstraints(
-                                                              minWidth: 0,
-                                                              minHeight: 0),
-                                                      onPressed: () async {
-                                                        await _showAddAttributeDialog(
-                                                            context,
-                                                            provider,
-                                                            widget.itemId,
-                                                            itemData);
-                                                        _toggleAllItemsInGroup(
-                                                            groupIndex, false);
-                                                      },
-                                                      tooltip: '속성 추가',
-                                                      icon: Icon(
-                                                          Icons.add_outlined,
-                                                          color: AppTheme
-                                                              .buttonlightbackgroundColor,
-                                                          size: 13)),
-                                                  IconButton(
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                            minWidth: 0,
-                                                            minHeight: 0),
-                                                    icon: Icon(
-                                                        Icons.image_outlined,
-                                                        color: (_fileCounts[
-                                                                        subItemId] ??
-                                                                    -1) >
-                                                                0
-                                                            ? AppTheme
-                                                                .text5Color
-                                                            : AppTheme
-                                                                .buttonlightbackgroundColor,
-                                                        size: 13),
-                                                    tooltip: '사진 정보',
-                                                    onPressed: () {
-                                                      Navigator.push(
+                                                  icon: const Icon(
+                                                    Icons.label_important_sharp,
+                                                    color: AppTheme.text5Color,
+                                                    size: 10,
+                                                  ),
+                                                  onPressed: () {
+                                                    if (controller.isOpen) {
+                                                      controller.close();
+                                                    } else {
+                                                      controller.open();
+                                                    }
+                                                  },
+                                                );
+                                              },
+                                              menuChildren: [
+                                                MenuItemButton(
+                                                  // ----------- 메뉴아이템: 수정
+                                                  leadingIcon: const Icon(
+                                                      Icons.edit_note_outlined),
+                                                  child: const Text(
+                                                    'Edit',
+                                                    style:
+                                                        AppTheme.textLabelStyle,
+                                                  ),
+                                                  onPressed: () async {
+                                                    await showAddDialogSubItem(
                                                         context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              ImageGridScreen(
-                                                                  folderName:
-                                                                      folderName),
+                                                        provider,
+                                                        widget.itemId,
+                                                        itemData);
+                                                  },
+                                                ),
+                                                MenuItemButton(
+                                                  // ----------- 메뉴아이템: 삭제
+                                                  leadingIcon: const Icon(Icons
+                                                      .delete_forever_outlined),
+                                                  child: const Text(
+                                                    'Delete',
+                                                    style:
+                                                        AppTheme.textLabelStyle,
+                                                  ),
+                                                  onPressed: () async {
+                                                    FiDeleteDialog(
+                                                      context: context,
+                                                      deleteFunction: () async {
+                                                        FirebaseFirestore
+                                                            .instance
+                                                            .collection('Items')
+                                                            .doc(widget.itemId)
+                                                            .collection(
+                                                                'Sub_Items')
+                                                            .doc(itemData['id'])
+                                                            .delete();
+                                                      },
+                                                      shouldCloseScreen: false,
+                                                    );
+                                                  },
+                                                ),
+                                                MenuItemButton(
+                                                  // ----------- 메뉴아이템: 속성 추가
+                                                  leadingIcon: const Icon(Icons
+                                                      .add_to_photos_outlined),
+                                                  child: const Text(
+                                                    '속성 추가',
+                                                    style:
+                                                        AppTheme.textLabelStyle,
+                                                  ),
+                                                  onPressed: () async {
+                                                    await _showAddAttributeDialog(
+                                                        context,
+                                                        provider,
+                                                        widget.itemId,
+                                                        itemData);
+                                                    _toggleAllItemsInGroup(
+                                                        groupIndex, false);
+                                                  },
+                                                ),
+                                                MenuItemButton(
+                                                  // ----------- 메뉴아이템: 사진 추가
+                                                  leadingIcon: const Icon(
+                                                      Icons.image_outlined),
+                                                  child: const Text(
+                                                    '사진 추가',
+                                                    style:
+                                                        AppTheme.textLabelStyle,
+                                                  ),
+                                                  onPressed: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            ImageGridScreen(
+                                                                folderName:
+                                                                    folderName),
+                                                      ),
+                                                    ).then((_) {
+                                                      // 화면이 닫힐 때 _checkFileExistence 실행
+                                                      _updateFileExistence(
+                                                          folderName);
+                                                    });
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Text(
+                                            '${itemData["title"]}',
+                                            style: AppTheme.fieldLabelTextStyle
+                                                .copyWith(
+                                              color: _computedGroups[groupIndex]
+                                                                      ["items"]
+                                                                  [itemIndex]
+                                                              ["attributes"]
+                                                          .length >
+                                                      0
+                                                  ? const Color.fromARGB(255, 128, 46, 46) // 아이템 색상
+                                                  : const Color.fromARGB(122, 128, 46, 46),
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          if (_fileExistsMap[folderName] ==
+                                              true) ...[
+                                            IconButton(
+                                              constraints: const BoxConstraints(
+                                                  minWidth: 0, minHeight: 0),
+                                              icon: Icon(Icons.image_outlined,
+                                                  color: AppTheme.text5Color,
+                                                  size: 13),
+                                              tooltip: '사진 정보',
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        ImageGridScreen(
+                                                            folderName:
+                                                                folderName),
+                                                  ),
+                                                ).then((_) {
+                                                  // 화면이 닫힐 때 _checkFileExistence 실행
+                                                  _updateFileExistence(
+                                                      folderName);
+                                                });
+                                              },
+                                            )
+                                          ],
+                                        ],
+                                      ),
+                                      onTap: () => _toggleItemExpansion(
+                                          groupIndex, itemIndex),
+                                      onLongPress: () async {
+                                        await _showAddAttributeDialog(context,
+                                            provider, widget.itemId, itemData);
+                                        _toggleAllItemsInGroup(
+                                            groupIndex, false);
+                                      },
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // 필요에 따라 trailing 버튼 추가
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  ///------------------------------------------------------------- 아이템 속성
+                                  AnimatedSize(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.fastOutSlowIn,
+                                    child: itemData["isExpanded"]
+                                        ? SingleChildScrollView(
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 40, right: 16),
+                                              child: Wrap(
+                                                spacing: 50.0,
+                                                runSpacing: 10.0,
+                                                children: (List.from(
+                                                        itemData["attributes"])
+                                                      ..sort((a, b) {
+                                                        final aOrder = (a[
+                                                                    'FieldOrder']
+                                                                ?.toString() ??
+                                                            '9999');
+                                                        final bOrder = (b[
+                                                                    'FieldOrder']
+                                                                ?.toString() ??
+                                                            '9999');
+                                                        return int.parse(aOrder)
+                                                            .compareTo(
+                                                                int.parse(
+                                                                    bOrder));
+                                                      }))
+                                                    .map<Widget>((attribute) {
+                                                  return LayoutBuilder(
+                                                    builder:
+                                                        (context, constraints) {
+                                                      final dynamic result =
+                                                          formatValue(
+                                                              context,
+                                                              attribute[
+                                                                  'FieldValue']);
+                                                      return Card(
+                                                        elevation: 0,
+                                                        margin: const EdgeInsets
+                                                            .all(0),
+                                                        child: IntrinsicWidth(
+                                                          child: Container(
+                                                            child: Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .start,
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                copyTextWidget(
+                                                                  context,
+                                                                  text:
+                                                                      "${attribute['FieldName']}",
+                                                                  widgetType:
+                                                                      TextWidgetType
+                                                                          .selectable,
+                                                                  style: AppTheme
+                                                                      .bodySmallTextStyle
+                                                                      .copyWith(
+                                                                    fontSize:
+                                                                        13,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    color: AppTheme
+                                                                        .text4Color,
+                                                                  ),
+                                                                ),
+                                                                IconButton(
+                                                                  padding:
+                                                                      EdgeInsets
+                                                                          .zero,
+                                                                  visualDensity:
+                                                                      const VisualDensity(
+                                                                          horizontal:
+                                                                              -4,
+                                                                          vertical:
+                                                                              -4),
+                                                                  constraints: const BoxConstraints(
+                                                                      minWidth:
+                                                                          10,
+                                                                      minHeight:
+                                                                          10),
+                                                                  tooltip:
+                                                                      "Edit",
+                                                                  icon: Icon(
+                                                                    Icons.edit,
+                                                                    size: 10,
+                                                                    color: AppTheme
+                                                                        .toolColor,
+                                                                  ),
+                                                                  onPressed:
+                                                                      () {
+                                                                    _showEditDialog(
+                                                                      context,
+                                                                      attribute[
+                                                                          'FieldKey'],
+                                                                      attribute[
+                                                                          'FieldName'],
+                                                                      attribute[
+                                                                          'FieldValue'],
+                                                                      widget
+                                                                          .itemId,
+                                                                      itemData[
+                                                                          'id'],
+                                                                      false,
+                                                                    );
+                                                                  },
+                                                                ),
+                                                                const SizedBox(
+                                                                    width: 5),
+                                                                Flexible(
+                                                                  child: result
+                                                                          is Widget
+                                                                      ? result
+                                                                      : copyTextWidget(
+                                                                          context,
+                                                                          text:
+                                                                              result,
+                                                                          widgetType:
+                                                                              TextWidgetType.textField,
+                                                                          controller:
+                                                                              TextEditingController(text: result),
+                                                                          style: AppTheme
+                                                                              .bodySmallTextStyle
+                                                                              .copyWith(fontSize: 13),
+                                                                          maxLines:
+                                                                              0,
+                                                                        ),
+                                                                ),
+                                                                const SizedBox(
+                                                                    width: 5),
+                                                              ],
+                                                            ),
+                                                          ),
                                                         ),
                                                       );
                                                     },
-                                                  ),
-                                                ],
-                                              ),
-                                              onTap: () => _toggleItemExpansion(
-                                                  groupIndex, itemIndex),
-                                              onLongPress: () =>
-                                                  _toggleAllItemsInGroup(
-                                                      groupIndex, true),
-                                              trailing: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  // 필요에 따라 trailing 버튼 추가
-                                                ],
+                                                  );
+                                                }).toList(),
                                               ),
                                             ),
-                                          ),
-                                          AnimatedSize(
-                                            duration: const Duration(
-                                                milliseconds: 300),
-                                            curve: Curves.fastOutSlowIn,
-                                            child: itemData["isExpanded"]
-                                                ? SingleChildScrollView(
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              left: 40,
-                                                              right: 16),
-                                                      child: Wrap(
-                                                        spacing: 50.0,
-                                                        runSpacing: 10.0,
-                                                        children: (List.from(
-                                                                itemData[
-                                                                    "attributes"])
-                                                              ..sort((a, b) {
-                                                                final aOrder =
-                                                                    (a['FieldOrder']
-                                                                            ?.toString() ??
-                                                                        '9999');
-                                                                final bOrder =
-                                                                    (b['FieldOrder']
-                                                                            ?.toString() ??
-                                                                        '9999');
-                                                                return int.parse(
-                                                                        aOrder)
-                                                                    .compareTo(
-                                                                        int.parse(
-                                                                            bOrder));
-                                                              }))
-                                                            .map<Widget>(
-                                                                (attribute) {
-                                                          return LayoutBuilder(
-                                                            builder: (context,
-                                                                constraints) {
-                                                              final dynamic
-                                                                  result =
-                                                                  formatValue(
-                                                                      context,
-                                                                      attribute[
-                                                                          'FieldValue']);
-                                                              return Card(
-                                                                elevation: 0,
-                                                                margin:
-                                                                    const EdgeInsets
-                                                                        .all(0),
-                                                                child:
-                                                                    IntrinsicWidth(
-                                                                  child:
-                                                                      Container(
-                                                                    child: Row(
-                                                                      mainAxisAlignment:
-                                                                          MainAxisAlignment
-                                                                              .start,
-                                                                      mainAxisSize:
-                                                                          MainAxisSize
-                                                                              .min,
-                                                                      crossAxisAlignment:
-                                                                          CrossAxisAlignment
-                                                                              .center,
-                                                                      children: [
-                                                                        copyTextWidget(
-                                                                          context,
-                                                                          text:
-                                                                              "${attribute['FieldName']}",
-                                                                          widgetType:
-                                                                              TextWidgetType.selectable,
-                                                                          style: AppTheme
-                                                                              .bodySmallTextStyle
-                                                                              .copyWith(
-                                                                            fontSize:
-                                                                                13,
-                                                                            fontWeight:
-                                                                                FontWeight.w600,
-                                                                            color:
-                                                                                AppTheme.text4Color,
-                                                                          ),
-                                                                        ),
-                                                                        IconButton(
-                                                                          padding:
-                                                                              EdgeInsets.zero,
-                                                                          visualDensity: const VisualDensity(
-                                                                              horizontal: -4,
-                                                                              vertical: -4),
-                                                                          constraints: const BoxConstraints(
-                                                                              minWidth: 10,
-                                                                              minHeight: 10),
-                                                                          tooltip:
-                                                                              "Edit",
-                                                                          icon:
-                                                                              Icon(
-                                                                            Icons.edit,
-                                                                            size:
-                                                                                10,
-                                                                            color:
-                                                                                AppTheme.toolColor,
-                                                                          ),
-                                                                          onPressed:
-                                                                              () {
-                                                                            _showEditDialog(
-                                                                              context,
-                                                                              attribute['FieldKey'],
-                                                                              attribute['FieldName'],
-                                                                              attribute['FieldValue'],
-                                                                              widget.itemId,
-                                                                              itemData['id'],
-                                                                              false,
-                                                                            );
-                                                                          },
-                                                                        ),
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                5),
-                                                                        Flexible(
-                                                                          child: result is Widget
-                                                                              ? result
-                                                                              : copyTextWidget(
-                                                                                  context,
-                                                                                  text: result,
-                                                                                  widgetType: TextWidgetType.textField,
-                                                                                  controller: TextEditingController(text: result),
-                                                                                  style: AppTheme.bodySmallTextStyle.copyWith(fontSize: 13),
-                                                                                  maxLines: 0,
-                                                                                ),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                5),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            },
-                                                          );
-                                                        }).toList(),
-                                                      ),
-                                                    ),
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
-                                          const SizedBox(height: 10),
-                                        ],
-                                      );
-                                    }).toList(),
-                                  )
-                                : const SizedBox.shrink(),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
+                              );
+                            }).toList(),
                           ),
-                          const SizedBox(height: 5),
                         ],
-                      ),
-                    );
-                  },
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 5),
+            ],
+          ),
+        );
+      },
+    );
+
+//----------------------------------------------------------------- SubItem 상단 제목
+    Widget content = Card(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '추가 정보',
+                  style: AppTheme.textCGreyStyle.copyWith(
+                    fontSize: 16,
+                    color: AppTheme.text5Color.withOpacity(0.3),
+                  ),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size(0, 0),
+                  ),
+                  onPressed: _toggleAllGroups,
+                  child: Text(
+                    _allGroupsExpanded ? "모두 닫기" : "모두 열기",
+                    style: AppTheme.textHintTextStyle.copyWith(fontSize: 11),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-        // 플로팅 버튼 (Stack 내 Positioned로 배치)
-        Positioned(
-          bottom: 16,
-          right: 16,
-          width: 40,
-          height: 40,
-          child: FloatingActionButton(
-            elevation: 2,
-            backgroundColor: AppTheme.text5Color.withOpacity(0.4),
-            hoverColor: AppTheme.text5Color.withOpacity(0.8),
-            tooltip: '추가 정보 입력',
-            onPressed: () async {
-              await _showAddDialogSubItem(
-                  context, provider, widget.itemId, null);
-            },
-            child: const Icon(
-              Icons.add,
-              color: AppTheme.buttonlightbackgroundColor,
-            ),
-          ),
-        ),
-      ],
+          Divider(color: AppTheme.buttonlightbackgroundColor),
+          widget.viewSelect == 0 ? subitemList : Expanded(child: subitemList)
+        ],
+      ),
     );
 
-    return widget.viewSelect < 2
-        ? content
-        : SingleChildScrollView(child: content);
+    return content;
   }
 
   Future<void> _showRenameGroupDialog(int groupIndex) async {
@@ -1234,7 +1312,7 @@ Future<void> _showAddDialogItem(
   );
 }
 
-Future<void> _showAddDialogSubItem(BuildContext context,
+Future<void> showAddDialogSubItem(BuildContext context,
     ItemProvider itemProvider, String itemId, var itemData) async {
   final item = context.read<ItemDetailProvider>().getItemData(itemId);
   await showDialog(
