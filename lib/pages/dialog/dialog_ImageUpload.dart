@@ -10,6 +10,45 @@ import 'package:mp_db/constants/styles.dart';
 import 'compression/image_compression.dart';
 import 'dialog_ImagePick.dart';
 
+/// 진행 상태 다이얼로그를 표시하는 함수 (반환값 없음)
+void showProgressDialog(BuildContext context, String message) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (innerContext) {
+      return Center(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message,
+                style: AppTheme.fieldLabelTextStyle.copyWith(
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              SizedBox(height: 16),
+              CircularProgressIndicator(),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class UploadImage {
   /// 파일 선택 후 그리드뷰로 선택한 이미지와 정보를 보여주고,
   /// 상단 업로드 버튼을 누르면 수정된 정보와 함께 이미지 파일들을 반환하여
@@ -19,8 +58,7 @@ class UploadImage {
     bool multiple = false,
     String folder = 'uploads',
   }) async {
-    // 파일 선택 관련 코드는 생략합니다.
-    final List<XFile> imageFiles = []; // 실제 파일 선택 구현 필요
+    final List<XFile> imageFiles = [];
 
     // 선택한 각 이미지의 정보 취합 (예시로 getImageInfo 함수 사용)
     List<SelectedImageInfo> imagesInfo = await Future.wait(
@@ -42,30 +80,35 @@ class UploadImage {
     for (int i = 0; i < finalImages.length; i++) {
       SelectedImageInfo imageInfo = finalImages[i];
       File file = File(imageInfo.imageFile.path);
+      String fileName = imageInfo.fileName; // 기존 파일명 (예: image.jpg)
 
-      // 기존 파일명 (예: image.jpg)
-      String fileName = imageInfo.fileName;
+      // 미리 새 파일명 생성 (extension을 webp로 변경)
+      String newFileName = fileName.replaceAll(
+        RegExp(r'\.(jpg|jpeg|png)$', caseSensitive: false),
+        '.webp',
+      );
 
       try {
-        // 이미지 압축/리사이즈 (ImageCompressor.compressAndResize 내부에서 targetWidth, targetHeight 사용)
+        // 변환 단계 진행 메시지 생성
+        String transformMessage = finalImages.length > 1
+            ? "$newFileName 변환 중..\n(${i + 1}/${finalImages.length})"
+            : "$newFileName 변환 중..";
+        showProgressDialog(context, transformMessage);
+
         File? processedFile = await ImageCompressor.compressAndResize(
           inputFile: file,
           quality: imageInfo.imageQuality, // 예: 80
-          targetWidth: imageInfo.width,     // 필요한 경우
-          targetHeight: imageInfo.height,   // 필요한 경우
+          targetWidth: imageInfo.width, // 필요한 경우
+          targetHeight: imageInfo.height, // 필요한 경우
         );
+        // 변환 완료 후 다이얼로그 닫기
+        Navigator.of(context, rootNavigator: true).pop();
 
         // 변환 실패 시 건너뜁니다.
         if (processedFile == null) {
           print("이미지 처리 실패: $fileName");
           continue;
         }
-        
-        // 파일 확장자를 webp로 변경
-        String newFileName = fileName.replaceAll(
-          RegExp(r'\.(jpg|jpeg|png)$', caseSensitive: false),
-          '.webp',
-        );
 
         // 처리된 파일의 바이트 읽기
         Uint8List fileBytes = await processedFile.readAsBytes();
@@ -74,42 +117,11 @@ class UploadImage {
         Reference storageRef =
             FirebaseStorage.instance.ref().child('$folder/$newFileName');
 
-        bool loadingShown = false;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (innerContext) {
-            loadingShown = true;
-            return Center(
-              child: Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$newFileName 업로드 중..',
-                      style: AppTheme.fieldLabelTextStyle
-                          .copyWith(decoration: TextDecoration.none),
-                    ),
-                    SizedBox(height: 16),
-                    CircularProgressIndicator(),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+        // 업로드 진행 메시지 생성 (파일이 여러 개일 경우 진행 상황 표시)
+        String uploadMessage = finalImages.length > 1
+            ? "$newFileName 업로드 중..\n(${i + 1}/${finalImages.length})"
+            : "$newFileName 업로드 중..";
+        showProgressDialog(context, uploadMessage);
 
         // 명시적으로 webp MIME 타입 사용
         String mimeType = 'image/webp';
@@ -124,9 +136,8 @@ class UploadImage {
         String downloadUrl = await snapshot.ref.getDownloadURL();
         downloadUrls.add(downloadUrl);
 
-        if (loadingShown) {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
+        // 업로드 완료 후 다이얼로그 닫기
+        Navigator.of(context, rootNavigator: true).pop();
 
         // Firestore에 파일 메타데이터 저장
         await FirebaseFirestore.instance.collection('files').add({

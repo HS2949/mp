@@ -96,7 +96,7 @@ flutter:
     - assets/images/miceplan_font.png
     - assets/images/mp_logo.png
     - assets/images/loading.gif
-    - assets/images/mp.jpg
+    - assets/images/mp.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -138,5 +138,5 @@ flutter:
 flutter_icons:
   android: true
   ios: false  # iOS는 개발하지 않으므로 false
-  image_path: "assets/images/mp.jpg"  # 아이콘 이미지 경로
+  image_path: "assets/images/mp.png"  # 아이콘 이미지 경로
 

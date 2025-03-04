@@ -1,8 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, deprecated_member_use
 import 'dart:io';
 import 'dart:math';
-//import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore import
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,18 +23,19 @@ class SelectedImageInfo {
   String originalfilename;
   final double fileSize;
 
-  SelectedImageInfo(
-      {required this.imageFile,
-      required this.fileName,
-      required this.sizeInBytes,
-      required this.width,
-      required this.height,
-      required this.imageQuality,
-      required this.extension,
-      required this.originalWidth,
-      required this.originalHeight,
-      required this.originalfilename,
-      required this.fileSize});
+  SelectedImageInfo({
+    required this.imageFile,
+    required this.fileName,
+    required this.sizeInBytes,
+    required this.width,
+    required this.height,
+    required this.imageQuality,
+    required this.extension,
+    required this.originalWidth,
+    required this.originalHeight,
+    required this.originalfilename,
+    required this.fileSize,
+  });
 }
 
 // Firestore에서 파일명 중복 확인 및 고유 파일명 생성 함수
@@ -54,13 +53,11 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
 
   for (var img in images) {
     if (img == imageInfo) continue; // 자기 자신은 제외
-    // fileName이 이미 설정되어 있다면 사용, 없으면 원본 파일명 사용
     final existingName = img.fileName;
     // 원본과 정확히 동일한 경우
     if (existingName == original) {
       localDuplicateFound = true;
-      highestLocalSequence =
-          highestLocalSequence < 1 ? 1 : highestLocalSequence;
+      highestLocalSequence = highestLocalSequence < 1 ? 1 : highestLocalSequence;
     } else {
       // "baseName_###extension" 형식인지 정규표현식으로 확인
       final regex = RegExp('^' +
@@ -101,13 +98,10 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
     final data = doc.data();
     if (!data.containsKey('fileName')) continue;
     final existingFileName = data['fileName'] as String;
-    // 로컬에서 결정한 candidate와 정확히 일치하는 경우
     if (existingFileName == candidateFileName) {
       firestoreDuplicateFound = true;
-      highestFirestoreSequence =
-          highestFirestoreSequence < 1 ? 1 : highestFirestoreSequence;
+      highestFirestoreSequence = highestFirestoreSequence < 1 ? 1 : highestFirestoreSequence;
     } else {
-      // "baseName_###extension" 형식인 경우 정규표현식으로 일련번호 추출
       final regex = RegExp('^' +
           RegExp.escape(baseName) +
           r'_(\d{3})' +
@@ -125,8 +119,7 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
   }
 
   if (firestoreDuplicateFound) {
-    final newSequence =
-        (highestFirestoreSequence + 1).toString().padLeft(3, '0');
+    final newSequence = (highestFirestoreSequence + 1).toString().padLeft(3, '0');
     candidateFileName = '${baseName}_$newSequence$extension';
   }
 
@@ -243,14 +236,25 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
     final imageInfo = images[index];
     TextEditingController fileNameController = TextEditingController(
         text: path.basenameWithoutExtension(imageInfo.fileName));
-
     double imageQuality = imageInfo.imageQuality.toDouble();
     double sizeFactor =
         (imageInfo.width / imageInfo.originalWidth) * 100; // 원본 크기 기준 비율
 
+    // 텍스트 필드에 포커스와 전체 선택을 위한 FocusNode 생성
+    FocusNode textFieldFocusNode = FocusNode();
     await showDialog(
       context: context,
       builder: (context) {
+        // 다이얼로그 렌더링 후 포커스 요청 및 전체 선택 실행
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!textFieldFocusNode.hasFocus) {
+            textFieldFocusNode.requestFocus();
+            fileNameController.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: fileNameController.text.length,
+            );
+          }
+        });
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -263,6 +267,8 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                       Expanded(
                         child: TextField(
                           controller: fileNameController,
+                          focusNode: textFieldFocusNode,
+                          autofocus: true,
                           decoration: InputDecoration(labelText: "파일명"),
                         ),
                       ),
@@ -306,12 +312,14 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    textFieldFocusNode.dispose();
+                    Navigator.pop(context);
+                  },
                   child: Text("취소"),
                 ),
                 TextButton(
                   onPressed: () async {
-                    // 파일명 편집 후 새 파일명에 대해 중복 체크 실행
                     imageInfo.originalfilename =
                         "${fileNameController.text}${imageInfo.extension}";
                     await updateUniqueFileName(
@@ -323,6 +331,7 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                       imageInfo.height =
                           (imageInfo.originalHeight * sizeFactor / 100).toInt();
                     });
+                    textFieldFocusNode.dispose();
                     Navigator.pop(context);
                   },
                   child: Text("편집"),
@@ -413,7 +422,7 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                       image: DecorationImage(
                         image: AssetImage(
                             'assets/images/miceplan_font.png'), // 배경 이미지 경로
-                        fit: BoxFit.contain, // 화면 전체 채우기
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
@@ -473,7 +482,6 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                           );
                                         },
                                       );
-
                                       if (result == true) {
                                         Navigator.pop(context, 'delete');
                                       }
@@ -539,116 +547,101 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                               ),
                             ),
                             Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  color: Colors.black54,
-                                  padding: const EdgeInsets.all(4),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: RichText(
-                                          text: TextSpan(
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12),
-                                            children: [
-                                              TextSpan(
-                                                text:
-                                                    '${imageInfo.fileSize} MB - (',
-                                              ),
-                                              TextSpan(
-                                                text: '${imageInfo.width}',
-                                                style: TextStyle(
-                                                  color: (imageInfo
-                                                              .originalWidth !=
-                                                          imageInfo.width)
-                                                      ? AppTheme.textStrongColor
-                                                      : Colors.white,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text: ' x ',
-                                              ),
-                                              TextSpan(
-                                                text: '${imageInfo.height}',
-                                                style: TextStyle(
-                                                  color: (imageInfo
-                                                              .originalHeight !=
-                                                          imageInfo.height)
-                                                      ? AppTheme.textStrongColor
-                                                      : Colors.white,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text: ') / ',
-                                              ),
-                                              TextSpan(
-                                                text:
-                                                    '${imageInfo.imageQuality}%',
-                                                style: TextStyle(
-                                                  color: (100 !=
-                                                          imageInfo
-                                                              .imageQuality)
-                                                      ? AppTheme.textStrongColor
-                                                      : Colors.white,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: RichText(
-                                              text: TextSpan(
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12),
-                                                children: [
-                                                  TextSpan(
-                                                    text:
-                                                        '${imageInfo.fileName}',
-                                                    style: TextStyle(
-                                                      color: (imageInfo
-                                                                  .fileName !=
-                                                              imageInfo
-                                                                  .originalfilename)
-                                                          ? AppTheme
-                                                              .textStrongColor
-                                                          : Colors.white,
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text:
-                                                        ' (${imageInfo.extension})',
-                                                  ),
-                                                ],
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                color: Colors.black54,
+                                padding: const EdgeInsets.all(4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12),
+                                          children: [
+                                            TextSpan(
+                                              text: '${imageInfo.fileSize} MB - (',
                                             ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(Icons.edit,
-                                                color: AppTheme.textStrongColor,
-                                                size: 16),
-                                            padding: EdgeInsets.all(2.0),
-                                            constraints: BoxConstraints(),
-                                            onPressed: () => _editImage(index),
-                                          ),
-                                        ],
+                                            TextSpan(
+                                              text: '${imageInfo.width}',
+                                              style: TextStyle(
+                                                color: (imageInfo.originalWidth != imageInfo.width)
+                                                    ? AppTheme.textStrongColor
+                                                    : Colors.white,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text: ' x ',
+                                            ),
+                                            TextSpan(
+                                              text: '${imageInfo.height}',
+                                              style: TextStyle(
+                                                color: (imageInfo.originalHeight != imageInfo.height)
+                                                    ? AppTheme.textStrongColor
+                                                    : Colors.white,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text: ') / ',
+                                            ),
+                                            TextSpan(
+                                              text: '${imageInfo.imageQuality}%',
+                                              style: TextStyle(
+                                                color: (100 != imageInfo.imageQuality)
+                                                    ? AppTheme.textStrongColor
+                                                    : Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ],
-                                  ),
-                                )),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12),
+                                              children: [
+                                                TextSpan(
+                                                  text: '${imageInfo.fileName}',
+                                                  style: TextStyle(
+                                                    color: (imageInfo.fileName != imageInfo.originalfilename)
+                                                        ? AppTheme.textStrongColor
+                                                        : Colors.white,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: ' (${imageInfo.extension})',
+                                                ),
+                                              ],
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.edit,
+                                              color: AppTheme.textStrongColor,
+                                              size: 16),
+                                          padding: EdgeInsets.all(2.0),
+                                          constraints: BoxConstraints(),
+                                          onPressed: () => _editImage(index),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       );

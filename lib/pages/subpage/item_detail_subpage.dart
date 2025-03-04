@@ -178,7 +178,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           "subItem": subItem['SubItem'],
           "title": title,
           //"isExpanded": subItems.length == 1, // 아이템이 1개면 true, 2개 이상이면 false
-          "isExpanded": sortedGroups.length == 1 && subItems.length == 1, // 아이템이 1개면 true, 2개 이상이면 false
+          "isExpanded": sortedGroups.length == 1 &&
+              subItems.length == 1, // 아이템이 1개면 true, 2개 이상이면 false
           "attributes": attributes,
         };
       }).toList();
@@ -569,7 +570,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                     Flexible(
                       child: GestureDetector(
                         onDoubleTap: () => _launchURL(
-                            "https://map.naver.com/p/search/${itemData.itemName}"),
+                            "https://map.naver.com/p/search/${itemData.itemName} 제주"),
                         child: Tooltip(
                           message: "길게 누르기 : 클립보드 복사\n더블 클릭 : 네이버 지도 검색",
                           child: copyTextWidget(
@@ -619,6 +620,17 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
     final sortedItemFields = Map<String, dynamic>.fromEntries(itemFieldEntries);
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        String folderName = 'uploads/${itemData.itemName}';
+
+        // 파일 존재 여부가 변경될 때만 업데이트 실행
+        if (_fileExistsMap[folderName] == null) {
+          _updateFileExistence(folderName);
+        }
+      }
+    });
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -660,8 +672,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               child: Padding(
                 padding: const EdgeInsets.all(5.0),
                 child: Wrap(
-                  spacing: 40.0,
-                  runSpacing: 50.0,
+                  spacing: 50.0,
+                  runSpacing: 20.0,
                   children: [
                     for (var entry in sortedItemFields.entries)
                       LayoutBuilder(
@@ -722,7 +734,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                     const SizedBox(height: 5),
                                     Flexible(
                                       child: result is Widget
-                                          ? result
+                                          ? Container(
+                                              alignment: Alignment.centerLeft,
+                                              child: result,
+                                            )
                                           : copyTextWidget(context,
                                               text: result,
                                               widgetType:
@@ -765,7 +780,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
     Widget subitemList = ListView.builder(
       shrinkWrap: widget.viewSelect == 0 ? true : false,
-      //  physics: const NeverScrollableScrollPhysics(),
+      // physics: widget.viewSelect == 0
+      //     ? BouncingScrollPhysics()
+      //     : NeverScrollableScrollPhysics(),
+      physics: BouncingScrollPhysics(),
+
       itemCount: _computedGroups.length,
       itemBuilder: (context, groupIndex) {
         final group = _computedGroups[groupIndex];
@@ -1013,8 +1032,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                               ["attributes"]
                                                           .length >
                                                       0
-                                                  ? const Color.fromARGB(255, 128, 46, 46) // 아이템 색상
-                                                  : const Color.fromARGB(122, 128, 46, 46),
+                                                  ? const Color.fromARGB(255,
+                                                      128, 46, 46) // 아이템 색상
+                                                  : const Color.fromARGB(
+                                                      122, 128, 46, 46),
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -1076,7 +1097,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                   left: 40, right: 16),
                                               child: Wrap(
                                                 spacing: 50.0,
-                                                runSpacing: 10.0,
+                                                runSpacing: 20.0,
                                                 children: (List.from(
                                                         itemData["attributes"])
                                                       ..sort((a, b) {

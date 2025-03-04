@@ -12,7 +12,7 @@ dynamic formatValue(BuildContext context, String value) {
   final List<dynamic> items = []; // String 또는 Widget을 담을 수 있음
 
   for (String line in lines) {
-    final String trimmed = line.trim();
+    String trimmed = line.trim();
 
     // 1. 숫자 처리: 숫자(콤마 포함) + 선택적 괄호가 있는 경우
     final RegExp numberRegExp = RegExp(r'^([\d,]+)(\s*\(.*\))?$');
@@ -37,8 +37,21 @@ dynamic formatValue(BuildContext context, String value) {
       }
     }
 
-    // 2. Firestorage 링크 처리: 링크에 "firebasestorage"라는 단어가 포함되면 이미지로 간주
     if (trimmed.contains('firebasestorage')) {
+      // 정규 표현식을 사용하여 "[@숫자]" 패턴을 찾습니다. 앞뒤 공백 허용
+      final RegExp regExp = RegExp(r'\s*\[@(\d+)\]\s*$');
+      double maxHeight = 300; // 기본 최대 높이 값
+
+      if (regExp.hasMatch(trimmed)) {
+        final match = regExp.firstMatch(trimmed);
+        if (match != null) {
+          // 그룹 1에서 숫자 값을 추출합니다.
+          maxHeight = double.parse(match.group(1)!);
+          // 태그 부분과 태그 앞뒤의 공백 제거 후 다시 trim()
+          trimmed = trimmed.replaceAll(regExp, '').trim();
+        }
+      }
+
       items.add(
         GestureDetector(
           onTap: () => _launchURL(context, trimmed), // 클릭 시 브라우저로 URL 오픈
@@ -49,19 +62,23 @@ dynamic formatValue(BuildContext context, String value) {
           child: Tooltip(
             message:
                 '[${filenameStoragePath(trimmed)}]\n클릭 : 새창에서 열기\n길게 누르기 : 그림파일 주소 클립보드 복사',
-            child: CachedNetworkImage(
-              height: 300,
-              imageUrl: trimmed,
-              fit: BoxFit.contain,
-              fadeInDuration: const Duration(milliseconds: 500),
-              placeholder: (context, url) => Image.asset(
-                'assets/images/loading.gif',
-                width: 50, // 너비를 100으로 고정
-                fit: BoxFit.contain, // placeholderFit 대응
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: maxHeight, // 동적으로 설정된 최대 높이 사용
               ),
-              errorWidget: (context, url, error) => const Text(
-                '이미지 로드 실패',
-                style: AppTheme.textErrorTextStyle,
+              child: CachedNetworkImage(
+                imageUrl: trimmed,
+                fit: BoxFit.contain,
+                fadeInDuration: const Duration(milliseconds: 500),
+                placeholder: (context, url) => Image.asset(
+                  'assets/images/loading.gif',
+                  width: 50,
+                  fit: BoxFit.contain,
+                ),
+                errorWidget: (context, url, error) => const Text(
+                  '이미지 로드 실패',
+                  style: AppTheme.textErrorTextStyle,
+                ),
               ),
             ),
           ),
@@ -83,7 +100,8 @@ dynamic formatValue(BuildContext context, String value) {
 
       final String remainingText = trimmed
           .replaceFirst(urlPart, '')
-          .replaceFirst(displayMatch?.group(0) ?? '', '').trim();
+          .replaceFirst(displayMatch?.group(0) ?? '', '')
+          .trim();
 
       String href = urlPart.startsWith('www.') ? 'http://$urlPart' : urlPart;
 
@@ -92,24 +110,26 @@ dynamic formatValue(BuildContext context, String value) {
         children: [
           Tooltip(
             message: href,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-              ),
-              onPressed: () async {
-                final Uri url = Uri.parse(href);
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url);
-                } else {
-                  print('Could not launch $href');
-                }
-              },
-              child: Text(
-                remainingText.isNotEmpty ? '[링크]' : '$displayText',
-                style: AppTheme.bodySmallTextStyle.copyWith(
-                  fontSize: 13,
-                  color: AppTheme.text9Color,
+            child: Container(
+              height: 30,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                ),
+                onPressed: () async {
+                  final Uri url = Uri.parse(href);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  } else {
+                    print('Could not launch $href');
+                  }
+                },
+                child: Text(
+                  remainingText.isNotEmpty ? '[링크]' : '$displayText',
+                  style: AppTheme.bodySmallTextStyle.copyWith(
+                    fontSize: 13,
+                    color: AppTheme.text9Color,
+                  ),
                 ),
               ),
             ),

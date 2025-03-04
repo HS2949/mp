@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "mp_db" "\0"
+            VALUE "FileDescription", "MICE PLAN" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mp_db" "\0"
+            VALUE "InternalName", "MICE PLAN" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "mp_db.exe" "\0"
-            VALUE "ProductName", "mp_db" "\0"
+            VALUE "OriginalFilename", "MICE_PLAN.exe" "\0"
+            VALUE "ProductName", "MICE PLAN" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

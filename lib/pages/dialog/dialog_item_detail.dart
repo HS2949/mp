@@ -4,6 +4,8 @@
 // ============================================================================
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -134,7 +136,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
               Align(
                 alignment: Alignment.centerRight,
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 20),
+                  padding: const EdgeInsets.only(left: 20, right: 20),
                   child: TextButton.icon(
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -143,8 +145,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                     label: Text(
                       'Image Upload',
                       style: AppTheme.tagTextStyle.copyWith(
-                        fontSize: 15,
-                      ),
+                          fontSize: 15, overflow: TextOverflow.ellipsis),
                     ),
                     icon: const Icon(
                       Icons.upload,
@@ -187,6 +188,18 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                         maxLines: null,
                       ),
                     ),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 20),
+                  child: Text(
+                    '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
+                    style: AppTheme.textHintTextStyle.copyWith(fontSize: 9),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -761,7 +774,7 @@ class _EditDialogContentState extends State<EditDialogContent> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.only(left: 10, right: 10),
                     child: TextButton.icon(
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
@@ -770,8 +783,7 @@ class _EditDialogContentState extends State<EditDialogContent> {
                       label: Text(
                         'Image Upload',
                         style: AppTheme.tagTextStyle.copyWith(
-                          fontSize: 15,
-                        ),
+                            fontSize: 15, overflow: TextOverflow.ellipsis),
                       ),
                       icon: const Icon(
                         Icons.upload,
@@ -808,6 +820,18 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         textInputAction: TextInputAction.newline,
                         maxLines: null,
                       ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 10, right: 10),
+                    child: Text(
+                      '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
+                      style: AppTheme.textHintTextStyle.copyWith(fontSize: 9),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -1022,7 +1046,7 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 20),
+                    padding: const EdgeInsets.only(left: 20, right: 20),
                     child: TextButton.icon(
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
@@ -1031,8 +1055,7 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                       label: Text(
                         'Image Upload',
                         style: AppTheme.tagTextStyle.copyWith(
-                          fontSize: 15,
-                        ),
+                            fontSize: 15, overflow: TextOverflow.ellipsis),
                       ),
                       icon: const Icon(
                         Icons.upload,
@@ -1079,6 +1102,18 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                           maxLines: null,
                         ),
                       ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20),
+                    child: Text(
+                      '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
+                      style: AppTheme.textHintTextStyle.copyWith(fontSize: 9),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

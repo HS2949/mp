@@ -146,6 +146,7 @@ class AppTheme {
         filled: true,
         fillColor: appbarbackgroundColor,
       ),
+      
       cardTheme: CardTheme(
         // ========================================================  카드 테마
         shape: RoundedRectangleBorder(
@@ -426,6 +427,14 @@ class AppTheme {
   // );
 
   static const EdgeInsets popupPadding = EdgeInsets.all(16); // 팝업 기본 패딩
+}
+
+// ✅ 커스텀 ScrollBehavior를 정의하여 앱 전체에 적용
+class CustomScrollBehavior extends MaterialScrollBehavior {
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return BouncingScrollPhysics(); // 모든 스크롤이 바운싱 효과를 가지도록 설정
+  }
 }
 
 // IconData getIconFromString(String iconName) {

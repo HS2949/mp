@@ -29,7 +29,6 @@ import 'package:mp_db/pages/splash_page.dart';
 // Firebase 초기화 옵션이 정의된 파일 임포트
 import 'firebase_options.dart';
 
-
 // main 함수는 Flutter 앱의 진입점입니다.
 void main() async {
   // Flutter의 위젯 바인딩을 초기화합니다. 비동기 작업 전에 반드시 호출해야 합니다.
@@ -106,7 +105,6 @@ class MyApp extends StatelessWidget {
             return authProvider!;
           },
         ),
-
         ChangeNotifierProvider(
           create: (_) => ItemDetailProvider(
             itemDetailRepository: ItemDetailRepository(),
@@ -117,7 +115,8 @@ class MyApp extends StatelessWidget {
         // 앱의 제목을 정의합니다. iOS에서는 표시되지 않을 수 있습니다.
 
         title: '마이스플랜 MICE PLAN',
-
+        scrollBehavior:
+            CustomScrollBehavior(), // ✅ Apply global scroll behavior here
         // 앱의 테마를 설정합니다.
         theme: AppTheme.mpTheme,
         debugShowCheckedModeBanner: false,
