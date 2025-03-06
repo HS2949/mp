@@ -65,6 +65,8 @@ class AppTheme {
       Color(0xFF8E8E93); // CupertinoColors.systemGrey
   static const Color textHintColor = Color(0xFFBDBDBD); //grey[400]
   static const Color errorColor = Color(0xFF8B0000); // 빨간색
+  static const Color itemListColor = Color.fromARGB(255, 128, 46, 46);
+  static const Color itemList0Color = Color.fromARGB(122, 128, 46, 46);
   static const Color buttonbackgroundColor = Colors.grey; // 연한 회색
   static const Color buttonlightbackgroundColor =
       Color(0xFFE0E0E0); // grey[300]
@@ -146,7 +148,7 @@ class AppTheme {
         filled: true,
         fillColor: appbarbackgroundColor,
       ),
-      
+
       cardTheme: CardTheme(
         // ========================================================  카드 테마
         shape: RoundedRectangleBorder(

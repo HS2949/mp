@@ -72,6 +72,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
 
   flutter_launcher_icons: ^0.13.1
+  syncfusion_flutter_pdfviewer: ^28.2.9
 
 
 dev_dependencies:

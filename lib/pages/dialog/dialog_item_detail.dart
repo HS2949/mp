@@ -154,7 +154,8 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                     onPressed: () async {
                       // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
                       String? imageUrl = await showImageSelectionDialog(context,
-                          folder: 'uploads/${widget.item?.itemName}/default');
+                          folder: 'uploads/${widget.item?.itemName}/default',
+                          addFolder: '');
                       if (imageUrl != null) {
                         // 받아온 URL을 value1Controller에 할당
                         value1Controller.text = imageUrl;
@@ -191,19 +192,21 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 20),
-                  child: Text(
-                    '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
-                    style: AppTheme.textHintTextStyle.copyWith(fontSize: 9),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+
+              if (value1Controller.text.contains('firebasestorage')) ...[
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20),
+                    child: Text(
+                      '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
+                      style: AppTheme.textHintTextStyle.copyWith(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
-              ),
-
+              ],
               const SizedBox(height: 20),
               // 버튼 영역
               Row(
@@ -308,6 +311,10 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
       value2Controller.text = widget.itemData['title'] ?? '';
       orderController.text = widget.itemData['subOrder'] ?? '';
     }
+
+    if (widget.itemData != null && widget.itemData.length == 1)
+      isAddmode = true; // 그룹명만 전달 받았을 경우 add 모드
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FocusScope.of(context).requestFocus(_focusNode); // 포커스 설정
     });
@@ -326,8 +333,14 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
         return orderA.compareTo(orderB);
       });
     });
+
+    // 아이템 개수에 따른 정렬
+    // final sortedGroups = groupedData.entries.toList()
+    //   ..sort((a, b) => b.value.length.compareTo(a.value.length));
+
+    // 그룹명 오름차순 정렬렬
     final sortedGroups = groupedData.entries.toList()
-      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+      ..sort((a, b) => a.key.compareTo(b.key)); // 여기서 b.key → a.key로 가면 내림차순
     List<Map<String, dynamic>> groups = sortedGroups.map((entry) {
       return {
         "groupTitle": entry.key,
@@ -377,7 +390,8 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
               DropdownMenu<String>(
                 requestFocusOnTap: false,
                 expandedInsets: const EdgeInsets.all(15),
-                label: const Text('그룹 미지정'),
+                textStyle: TextStyle(color: AppTheme.text9Color),
+                label: const Text('그룹명'),
                 initialSelection: selectedGroup,
                 dropdownMenuEntries: [
                   DropdownMenuEntry<String>(
@@ -413,6 +427,8 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                         controller: addScrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 15),
                         child: TextField(
+                          style: AppTheme.textLabelStyle
+                              .copyWith(color: AppTheme.text9Color),
                           controller: groupController,
                           decoration: InputDecoration(
                             suffixIcon:
@@ -420,10 +436,12 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                             contentPadding: const EdgeInsets.all(15),
                             labelText: '새 그룹명',
                             hintText: "예) 음식메뉴, 객실, 이용권, 기타..",
+                            hintStyle: AppTheme.textLabelStyle
+                                .copyWith(color: AppTheme.text9Color),
                             border: const OutlineInputBorder(),
                           ),
                           maxLines: 1,
-                        ),
+                        ), //
                       ),
                     ),
                   ),
@@ -445,14 +463,18 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                         const SizedBox(width: 8), // 아이콘과 텍스트 필드 사이 간격
                         Flexible(
                           child: TextField(
+                            style: AppTheme.textLabelStyle
+                                .copyWith(color: AppTheme.itemListColor),
                             controller: value2Controller,
                             decoration: InputDecoration(
-                              fillColor: AppTheme.text5Color.withOpacity(0.1),
+                              fillColor: AppTheme.text5Color.withOpacity(0.05),
                               suffixIcon:
                                   ClearButton(controller: value2Controller),
                               contentPadding: const EdgeInsets.all(15),
                               labelText: '서브 아이템명',
                               hintText: "예) 메뉴명, 객실명, 서비스명",
+                              hintStyle: AppTheme.textLabelStyle
+                                  .copyWith(color: AppTheme.itemListColor),
                               border: const OutlineInputBorder(),
                             ),
                             maxLines: 1,
@@ -605,6 +627,7 @@ class EditDialogContent extends StatefulWidget {
   final String fieldValue;
   final String itemId;
   final String subItemId;
+  final String subTitle;
   final bool isDefault;
 
   EditDialogContent(
@@ -615,6 +638,7 @@ class EditDialogContent extends StatefulWidget {
       required this.fieldValue,
       required this.itemId,
       required this.subItemId,
+      required this.subTitle,
       required this.isDefault});
 
   @override
@@ -793,7 +817,9 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
                         String? imageUrl = await showImageSelectionDialog(
                             context,
-                            folder: 'uploads/${widget.itemName}/default');
+                            folder: 'uploads/${widget.itemName}/default',
+                            addFolder:
+                                'uploads/${widget.itemName}/${widget.subTitle}');
 
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
@@ -823,18 +849,20 @@ class _EditDialogContentState extends State<EditDialogContent> {
                     ),
                   ),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 10, right: 10),
-                    child: Text(
-                      '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
-                      style: AppTheme.textHintTextStyle.copyWith(fontSize: 9),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                if (textController.text.contains('firebasestorage')) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10, right: 10),
+                      child: Text(
+                        '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
+                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerRight,
@@ -1067,7 +1095,8 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                             (item) => item.id == widget.itemId)['ItemName'];
                         String? imageUrl = await showImageSelectionDialog(
                             context,
-                            folder: 'uploads/${title}/default');
+                            folder: 'uploads/${title}/default',
+                            addFolder: '');
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
                           _valueController.text = imageUrl;
@@ -1105,18 +1134,20 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                     ),
                   ),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20),
-                    child: Text(
-                      '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
-                      style: AppTheme.textHintTextStyle.copyWith(fontSize: 9),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                if (_valueController.text.contains('firebasestorage')) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 20),
+                      child: Text(
+                        '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
+                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

@@ -127,8 +127,129 @@ class ItemProvider extends ChangeNotifier {
     });
   }
 
+  // 한글 음절을 기본 자모로 분해하는 함수
+  String decomposeHangul(String text) {
+    const List<String> initials = [
+      'ㄱ',
+      'ㄲ',
+      'ㄴ',
+      'ㄷ',
+      'ㄸ',
+      'ㄹ',
+      'ㅁ',
+      'ㅂ',
+      'ㅃ',
+      'ㅅ',
+      'ㅆ',
+      'ㅇ',
+      'ㅈ',
+      'ㅉ',
+      'ㅊ',
+      'ㅋ',
+      'ㅌ',
+      'ㅍ',
+      'ㅎ'
+    ];
+    const List<String> medials = [
+      'ㅏ',
+      'ㅐ',
+      'ㅑ',
+      'ㅒ',
+      'ㅓ',
+      'ㅔ',
+      'ㅕ',
+      'ㅖ',
+      'ㅗ',
+      'ㅘ',
+      'ㅙ',
+      'ㅚ',
+      'ㅛ',
+      'ㅜ',
+      'ㅝ',
+      'ㅞ',
+      'ㅟ',
+      'ㅠ',
+      'ㅡ',
+      'ㅢ',
+      'ㅣ'
+    ];
+    const List<String> finals = [
+      '',
+      'ㄱ',
+      'ㄲ',
+      'ㄳ',
+      'ㄴ',
+      'ㄵ',
+      'ㄶ',
+      'ㄷ',
+      'ㄹ',
+      'ㄺ',
+      'ㄻ',
+      'ㄼ',
+      'ㄽ',
+      'ㄾ',
+      'ㄿ',
+      'ㅀ',
+      'ㅁ',
+      'ㅂ',
+      'ㅄ',
+      'ㅅ',
+      'ㅆ',
+      'ㅇ',
+      'ㅈ',
+      'ㅊ',
+      'ㅋ',
+      'ㅌ',
+      'ㅍ',
+      'ㅎ'
+    ];
+
+    // 합성 모음이 있을 경우 분해 (예: ㅘ -> ㅗ, ㅏ)
+    const Map<String, List<String>> compoundMedials = {
+      'ㅘ': ['ㅗ', 'ㅏ'],
+      'ㅙ': ['ㅗ', 'ㅐ'],
+      'ㅚ': ['ㅗ', 'ㅣ'],
+      'ㅝ': ['ㅜ', 'ㅓ'],
+      'ㅞ': ['ㅜ', 'ㅔ'],
+      'ㅟ': ['ㅜ', 'ㅣ'],
+      'ㅢ': ['ㅡ', 'ㅣ'],
+    };
+
+    StringBuffer buffer = StringBuffer();
+
+    for (int i = 0; i < text.length; i++) {
+      int code = text.codeUnitAt(i);
+      // 한글 음절인지 체크
+      if (code >= 0xAC00 && code <= 0xD7A3) {
+        int syllableIndex = code - 0xAC00;
+        int jong = syllableIndex % 28;
+        int jung = ((syllableIndex - jong) ~/ 28) % 21;
+        int cho = ((syllableIndex - jong) ~/ 28) ~/ 21;
+
+        String initial = initials[cho];
+        String medial = medials[jung];
+        String finalConsonant = (jong > 0) ? finals[jong] : '';
+
+        buffer.write(initial);
+        // 분해된 중성이 합성 모음이면 기본 자모로 다시 분해
+        if (compoundMedials.containsKey(medial)) {
+          buffer.writeAll(compoundMedials[medial]!);
+        } else {
+          buffer.write(medial);
+        }
+        if (finalConsonant.isNotEmpty) {
+          buffer.write(finalConsonant);
+        }
+      } else {
+        // 한글이 아닐 경우 그대로 추가 (공백 등)
+        buffer.write(text[i]);
+      }
+    }
+    return buffer.toString();
+  }
+
   void filterItems(String query, {String? selectedCategory}) {
-    // 🔥 검색어에서 모든 공백 제거 후 소문자로 변환
+    // 검색어의 공백 제거 및 소문자 변환
     query = query.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
 
     // 선택된 카테고리에 해당하는 itemID 가져오기
@@ -137,20 +258,33 @@ class ItemProvider extends ChangeNotifier {
       orElse: () => {'itemID': null},
     )['itemID'];
 
+    // 검색어가 '#'로 시작할 경우와 아닌 경우를 분기하여 처리
     _filteredItem = _items.where((item) {
       final itemData = item.data() as Map<String, dynamic>;
       final itemCategory = itemData['CategoryID'] ?? -1;
 
       bool matchesSearch;
       if (query.startsWith('#')) {
-        final searchQuery = query.substring(1); // 🔥 '#' 제거 후 검색
+        // '#' 제거 후 검색어 분해
+        final searchQuery = query.substring(1);
+        final decomposedSearchQuery = decomposeHangul(searchQuery);
+
+        // 키워드 필드에 대해서 소문자, 공백 제거 후 한글 분해
         final itemKeyword = (itemData['keyword']?.toLowerCase() ?? '')
-            .replaceAll(RegExp(r'\s+'), ''); // 🔥 공백 제거
-        matchesSearch = itemKeyword.contains(searchQuery);
+            .replaceAll(RegExp(r'\s+'), '');
+        final decomposedItemKeyword = decomposeHangul(itemKeyword);
+
+        matchesSearch = decomposedItemKeyword.contains(decomposedSearchQuery);
       } else {
+        // ItemName의 경우 소문자, 공백 제거 후 한글 분해
         final itemName = (itemData['ItemName']?.toLowerCase() ?? '')
-            .replaceAll(RegExp(r'\s+'), ''); // 🔥 공백 제거
-        matchesSearch = itemName.contains(query);
+            .replaceAll(RegExp(r'\s+'), '');
+        final decomposedName = decomposeHangul(itemName);
+
+        // 검색어 역시 한글 분해하여 순차 검색 적용
+        final decomposedQuery = decomposeHangul(query);
+
+        matchesSearch = decomposedName.contains(decomposedQuery);
       }
 
       final matchesCategory = selectedCategory == null ||

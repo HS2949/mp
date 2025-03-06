@@ -67,11 +67,16 @@ Future<List<Map<String, dynamic>>> fetchFileListFromFirestore({
       .toList();
 }
 
-/// 기존 이미지 선택 다이얼로그 (그리드 형태 썸네일 및 파일명, 삭제 아이콘 포함)
+//// 기존 이미지 선택 다이얼로그 (그리드 형태 썸네일 및 파일명, 삭제 아이콘 포함)
 class ExistingImagesDialog extends StatefulWidget {
   final String folder;
-  const ExistingImagesDialog({Key? key, required this.folder})
-      : super(key: key);
+  final String addFolder; // 추가된 폴더
+
+  const ExistingImagesDialog({
+    Key? key,
+    required this.folder,
+    required this.addFolder, // 새로운 폴더 인수 추가
+  }) : super(key: key);
 
   @override
   _ExistingImagesDialogState createState() => _ExistingImagesDialogState();
@@ -88,8 +93,19 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
   }
 
   Future<void> loadFiles() async {
-    // 전달받은 폴더명을 인자로 넘겨줍니다.
-    files = await fetchFileListFromFirestore(folder: widget.folder);
+    setState(() {
+      loading = true;
+    });
+
+    // 두 개의 폴더에서 파일 리스트 가져오기
+    List<Map<String, dynamic>> filesFromMainFolder =
+        await fetchFileListFromFirestore(folder: widget.folder);
+    List<Map<String, dynamic>> filesFromAddFolder =
+        await fetchFileListFromFirestore(folder: widget.addFolder);
+
+    // 파일 리스트 병합
+    files = [...filesFromMainFolder, ...filesFromAddFolder];
+
     setState(() {
       loading = false;
     });
@@ -137,6 +153,7 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                               final fileName =
                                   fileData['fileName'] as String? ?? "No Name";
                               final docId = fileData['docId'] as String? ?? "";
+
                               return GestureDetector(
                                 onTap: () {
                                   // 파일 선택 시 다이얼로그 종료하고 선택한 URL 반환
@@ -157,8 +174,7 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                               Image.asset(
                                             'assets/images/loading.gif',
                                             width: 50, // 너비를 100으로 고정
-                                            fit: BoxFit
-                                                .contain, // placeholderFit 대응
+                                            fit: BoxFit.contain,
                                           ),
                                           errorWidget: (context, url, error) =>
                                               const Text(
@@ -227,8 +243,7 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                             // 로딩 다이얼로그 표시
                                             showDialog(
                                               context: context,
-                                              barrierDismissible:
-                                                  false, // 사용자가 다이얼로그를 닫지 못하게 함
+                                              barrierDismissible: false,
                                               builder: (context) => Center(
                                                   child:
                                                       CircularProgressIndicator()),
@@ -270,18 +285,18 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
 
 /// 기존 이미지 선택: 그리드 다이얼로그 호출
 Future<String?> selectExistingImage(BuildContext context,
-    {required String folder}) async {
+    {required String folder, required String addFolder}) async {
   return await showDialog<String>(
     context: context,
     builder: (context) {
-      return ExistingImagesDialog(folder: folder);
+      return ExistingImagesDialog(folder: folder, addFolder: addFolder);
     },
   );
 }
 
 /// 📌 다이얼로그를 통해 새 이미지 업로드 또는 기존 이미지 선택 제공
 Future<String?> showImageSelectionDialog(BuildContext context,
-    {required String folder}) async {
+    {required String folder, required String addFolder}) async {
   return showDialog<String>(
     context: context,
     builder: (context) {
@@ -317,13 +332,12 @@ Future<String?> showImageSelectionDialog(BuildContext context,
                       },
                       child: Text("새 이미지"),
                     ),
-
                     Tooltip(
                       message: '길게 누르기 : 파일 편집 모드',
                       child: TextButton(
                         onPressed: () async {
-                          String? url =
-                              await selectExistingImage(context, folder: folder);
+                          String? url = await selectExistingImage(context,
+                              folder: folder, addFolder: addFolder);
                           Navigator.of(context).pop(url);
                         },
                         onLongPress: () {

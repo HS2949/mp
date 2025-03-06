@@ -3,6 +3,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:mp_db/pages/dialog/dialog_FileView.dart';
 import 'package:mp_db/pages/dialog/dialog_ImageView.dart';
 import 'package:mp_db/pages/dialog/dialog_item_detail.dart';
 import 'package:mp_db/utils/formatters.dart';
@@ -289,14 +290,15 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   /// Firestore의 값을 수정한 후 실시간 반영을 위해 EditDialogContent에서 값이 변경되면
   /// Firestore 업데이트 후 Overlay 메시지를 띄워줍니다.
   Future<void> _showEditDialog(
-    BuildContext context,
-    String key,
-    String name,
-    String value,
-    String itemId,
-    String subItemId,
-    bool isDefault,
-  ) async {
+    BuildContext context, {
+    required String key,
+    required String name,
+    required String value,
+    required String itemId,
+    required String subItemId,
+    required String subTitle,
+    required bool isDefault,
+  }) async {
     final result = await showDialog(
       context: context,
       builder: (context) => EditDialogContent(
@@ -308,6 +310,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         fieldValue: value,
         itemId: itemId,
         subItemId: subItemId,
+        subTitle: subTitle,
         isDefault: isDefault,
       ),
     );
@@ -471,6 +474,30 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                 },
               ),
             ],
+            if (_fileExistsMap['uploads/${itemData.itemName}/files'] ==
+                true) ...[
+              IconButton(
+                // 기본 정보의 아이콘
+                icon: const Icon(
+                  Icons.attach_file_outlined,
+                  color: AppTheme.text8Color,
+                ),
+                tooltip: '파일 목록',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FileListScreen(
+                        folderName: 'uploads/${itemData.itemName}/files',
+                      ),
+                    ),
+                  ).then((_) {
+                    // 화면이 닫힐 때 _updateFileExistence 실행
+                    _updateFileExistence('uploads/${itemData.itemName}/files');
+                  });
+                },
+              ),
+            ],
             MenuAnchor(
               builder: (context, controller, child) {
                 return IconButton(
@@ -516,6 +543,24 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                     ).then((_) {
                       // 화면이 닫힐 때 _checkFileExistence 실행
                       _updateFileExistence('uploads/${itemData.itemName}');
+                    });
+                  },
+                ),
+                MenuItemButton(
+                  leadingIcon: const Icon(Icons.insert_drive_file_outlined),
+                  child: const Text('파일 목록', style: AppTheme.textLabelStyle),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FileListScreen(
+                          folderName: 'uploads/${itemData.itemName}/files',
+                        ),
+                      ),
+                    ).then((_) {
+                      // 화면이 닫힐 때 _updateFileExistence 실행
+                      _updateFileExistence(
+                          'uploads/${itemData.itemName}/files');
                     });
                   },
                 ),
@@ -627,6 +672,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         // 파일 존재 여부가 변경될 때만 업데이트 실행
         if (_fileExistsMap[folderName] == null) {
           _updateFileExistence(folderName);
+          _updateFileExistence('${folderName}/files');
         }
       }
     });
@@ -660,8 +706,14 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                         const BoxConstraints(minWidth: 16, minHeight: 16),
                     icon: Icon(Icons.edit, size: 10, color: AppTheme.toolColor),
                     onPressed: () {
-                      _showEditDialog(context, 'keyword', '태그',
-                          itemData.itemTag, itemData.id, '', true);
+                      _showEditDialog(context,
+                          key: 'keyword',
+                          name: '태그',
+                          value: itemData.itemTag,
+                          itemId: itemData.id,
+                          subItemId: '',
+                          subTitle: '',
+                          isDefault: true);
                     },
                   ),
                 ],
@@ -717,14 +769,17 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                             onPressed: () {
                                               _showEditDialog(
                                                 context,
-                                                entry.key,
-                                                itemProvider.fieldMappings[entry
-                                                        .key]?['FieldName'] ??
-                                                    entry.key,
-                                                entry.value,
-                                                itemData.id,
-                                                '',
-                                                true,
+                                                key: entry.key,
+                                                name:
+                                                    itemProvider.fieldMappings[
+                                                                entry.key]
+                                                            ?['FieldName'] ??
+                                                        entry.key,
+                                                value: entry.value,
+                                                itemId: itemData.id,
+                                                subItemId: '',
+                                                subTitle: '',
+                                                isDefault: true,
                                               );
                                             },
                                           ),
@@ -785,9 +840,27 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       //     : NeverScrollableScrollPhysics(),
       physics: BouncingScrollPhysics(),
 
-      itemCount: _computedGroups.length,
+      itemCount: _computedGroups.length + 1, // 마지막 공간을 위해 +1
       itemBuilder: (context, groupIndex) {
+        if (groupIndex == _computedGroups.length) {
+          // 마지막 여백 추가
+          return SizedBox(height: 50);
+        }
+
         final group = _computedGroups[groupIndex];
+
+        final Map<String, Color> fieldLabelColors = {
+          //키워드
+          '입금가': AppTheme.text7Color.withOpacity(0.3),
+          '청구가': AppTheme.text5Color.withOpacity(0.5),
+          '정상가': AppTheme.primaryColor
+        };
+        final Map<String, Color> fieldColors = {
+          //값
+          '입금가': AppTheme.text7Color.withOpacity(0.7),
+          '청구가': const Color.fromARGB(255, 81, 34, 117),
+          '정상가': AppTheme.primaryColor
+        };
 
         ///---------------------------------------------------------------------------------- 아이템 그룹
         return Card(
@@ -795,7 +868,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           child: Column(
             children: [
               Tooltip(
-                message: '클릭 : 열기/닫기\n길게 누르기 : 그룹명 변경',
+                message: '클릭 : 열기/닫기\n길게 누르기 : 아이템 추가\n더블클릭 or 오른쪽 버튼 : 그룹명 변경',
                 decoration: BoxDecoration(
                   color: AppTheme.text9Color.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
@@ -804,36 +877,52 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                   color: Colors.white,
                   fontSize: 11,
                 ),
-                child: ListTile(
-                  dense: true,
-                  minVerticalPadding: 0,
-                  visualDensity: VisualDensity(vertical: -4),
-                  title: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Text(
-                          group["groupTitle"],
-                          style: AppTheme.bodySmallTextStyle.copyWith(
-                            color: AppTheme.text9Color.withOpacity(0.3),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                child: GestureDetector(
+                  onTap: () => _toggleGroupExpansion(groupIndex), // 단일 클릭
+                  onDoubleTap: () =>
+                      _showRenameGroupDialog(groupIndex), // 이름 변경
+                  onSecondaryTap: () =>
+                      _showRenameGroupDialog(groupIndex), // 이름 변경
+                  onLongPress: () async {
+                    // 우클릭 이벤트
+                    await showAddDialogSubItem(
+                      context,
+                      provider,
+                      (provider.tabViews[provider.selectedIndex].second
+                              as ItemDetailSubpage)
+                          .getItemId,
+                      {"subItem": group["groupTitle"]}, // Map 형식으로 전달
+                    );
+                  },
+                  child: ListTile(
+                    dense: true,
+                    minVerticalPadding: 0,
+                    visualDensity: VisualDensity(vertical: -4),
+                    title: Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text(
+                            group["groupTitle"],
+                            style: AppTheme.bodySmallTextStyle.copyWith(
+                              color: AppTheme.text9Color.withOpacity(0.3),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 20),
-                        const Expanded(
-                          child: Divider(
-                            color: AppTheme.text9Color,
-                            thickness: 0.2,
+                          const SizedBox(width: 20),
+                          const Expanded(
+                            child: Divider(
+                              color: AppTheme.text9Color,
+                              thickness: 0.2,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  onTap: () => _toggleGroupExpansion(groupIndex),
-                  onLongPress: () => _showRenameGroupDialog(groupIndex),
                 ),
               ),
 
@@ -883,7 +972,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Tooltip(
-                                    message: '클릭 : 열기/닫기\n길게 누르기 : 아이템 추가',
+                                    message: '클릭 : 열기/닫기\n길게 누르기 : 속성 추가',
                                     child: ListTile(
                                       tileColor:
                                           AppTheme.text5Color.withOpacity(0.03),
@@ -1032,10 +1121,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                               ["attributes"]
                                                           .length >
                                                       0
-                                                  ? const Color.fromARGB(255,
-                                                      128, 46, 46) // 아이템 색상
-                                                  : const Color.fromARGB(
-                                                      122, 128, 46, 46),
+                                                  ? AppTheme.itemListColor
+                                                  : AppTheme.itemList0Color,
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -1155,8 +1242,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                     fontWeight:
                                                                         FontWeight
                                                                             .w600,
-                                                                    color: AppTheme
-                                                                        .text4Color,
+                                                                    color: fieldLabelColors[attribute[
+                                                                            'FieldName']] ??
+                                                                        AppTheme
+                                                                            .text4Color,
                                                                   ),
                                                                 ),
                                                                 IconButton(
@@ -1186,17 +1275,22 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                       () {
                                                                     _showEditDialog(
                                                                       context,
-                                                                      attribute[
+                                                                      key: attribute[
                                                                           'FieldKey'],
-                                                                      attribute[
+                                                                      name: attribute[
                                                                           'FieldName'],
-                                                                      attribute[
+                                                                      value: attribute[
                                                                           'FieldValue'],
-                                                                      widget
+                                                                      itemId: widget
                                                                           .itemId,
-                                                                      itemData[
-                                                                          'id'],
-                                                                      false,
+                                                                      subItemId:
+                                                                          itemData[
+                                                                              'id'],
+                                                                      subTitle:
+                                                                          itemData[
+                                                                              'title'],
+                                                                      isDefault:
+                                                                          false,
                                                                     );
                                                                   },
                                                                 ),
@@ -1214,9 +1308,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                               TextWidgetType.textField,
                                                                           controller:
                                                                               TextEditingController(text: result),
-                                                                          style: AppTheme
-                                                                              .bodySmallTextStyle
-                                                                              .copyWith(fontSize: 13),
+                                                                          style: AppTheme.bodySmallTextStyle.copyWith(
+                                                                              fontSize: 13,
+                                                                              color: fieldColors[attribute['FieldName']] ?? AppTheme.primaryColor),
                                                                           maxLines:
                                                                               0,
                                                                         ),
