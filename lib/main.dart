@@ -1,6 +1,7 @@
 // Flutter의 Cupertino 스타일 위젯 라이브러리 임포트
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:mp_db/constants/styles.dart';
 
 import 'package:mp_db/pages/home.dart';
@@ -33,6 +34,7 @@ import 'firebase_options.dart';
 void main() async {
   // Flutter의 위젯 바인딩을 초기화합니다. 비동기 작업 전에 반드시 호출해야 합니다.
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ko_KR', null);
 
   // Firebase를 초기화합니다. Firebase를 사용하려면 앱 실행 전에 반드시 초기화해야 합니다.
   await Firebase.initializeApp(
@@ -61,17 +63,17 @@ class MyApp extends StatelessWidget {
             firebaseAuth: fbAuth.FirebaseAuth.instance,
           ),
         ),
-        Provider<ProfileRepository>(
-          create: (context) => ProfileRepository(
-            firebaseFirestore: FirebaseFirestore.instance,
-          ),
-        ),
         StreamProvider<fbAuth.User?>(
           create: (context) => context.read<AuthRepository>().user,
           initialData: null,
         ),
         ChangeNotifierProvider(
           create: (_) => ItemProvider()..loadSnapshot(),
+        ),
+        Provider<ProfileRepository>(
+          create: (context) => ProfileRepository(
+            firebaseFirestore: FirebaseFirestore.instance,
+          ),
         ),
         ChangeNotifierProvider<SigninProvider>(
           create: (context) => SigninProvider(

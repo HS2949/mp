@@ -148,7 +148,12 @@ class AppTheme {
         filled: true,
         fillColor: appbarbackgroundColor,
       ),
-
+      
+      // ========================================================  카드 테마
+      textTheme: TextTheme(
+        bodyMedium:
+            TextStyle(overflow: TextOverflow.ellipsis), // 기본 overflow 설정
+      ),
       cardTheme: CardTheme(
         // ========================================================  카드 테마
         shape: RoundedRectangleBorder(

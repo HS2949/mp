@@ -10,7 +10,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// 기존 import 외에 recordHistory 함수가 정의된 파일 im port (실제 경로로 수정)
+
 import 'package:mp_db/Functions/firestore.dart';
+import 'package:mp_db/Functions/value_history.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/models/item_model.dart';
 import 'package:mp_db/pages/dialog/dialog_firestorage.dart';
@@ -164,7 +167,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                   ),
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Flexible(
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 200),
@@ -218,7 +221,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                     },
                     child: const Text("Cancel"),
                   ),
-                  SizedBox(width: 5),
+                  const SizedBox(width: 5),
                   ElevatedButton(
                     onPressed: () async {
                       if (selectedKey == null) {
@@ -246,6 +249,16 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                       }
                       await docRef.set({selectedKey!: defaultValue},
                           SetOptions(merge: true));
+
+                      // recordHistory: 새 필드 추가 (이전값은 null)
+                      await recordHistory(
+                        context: context,
+                        itemId: widget.itemId,
+                        field: selectedKey!,
+                        before: null,
+                        after: defaultValue,
+                      );
+
                       Navigator.of(context).pop();
                       showOverlayMessage(context, '항목을 추가하였습니다.');
                     },
@@ -264,6 +277,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
 // ============================================================================
 // 2. 추가 정보(서브 아이템) 추가 다이얼로그
 // ============================================================================
+
 class AddDialogSubItemField extends StatefulWidget {
   final String itemId;
   final Item? item;
@@ -334,7 +348,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
       });
     });
 
-    // 아이템 개수에 따른 정렬
+// 아이템 개수에 따른 정렬
     // final sortedGroups = groupedData.entries.toList()
     //   ..sort((a, b) => b.value.length.compareTo(a.value.length));
 
@@ -441,7 +455,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                             border: const OutlineInputBorder(),
                           ),
                           maxLines: 1,
-                        ), //
+                        ),
                       ),
                     ),
                   ),
@@ -455,11 +469,8 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.label_important_sharp,
-                          color: AppTheme.text5Color,
-                          size: 15,
-                        ),
+                        const Icon(Icons.label_important_sharp,
+                            color: AppTheme.text5Color, size: 15),
                         const SizedBox(width: 8), // 아이콘과 텍스트 필드 사이 간격
                         Flexible(
                           child: TextField(
@@ -508,7 +519,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                     },
                     child: const Text("Cancel"),
                   ),
-                  SizedBox(width: 5),
+                  const SizedBox(width: 5),
                   ElevatedButton(
                     onPressed: () async {
                       final String subItemName = value2Controller.text.trim();
@@ -530,7 +541,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                         }
                         finalGroup = groupName;
                       } else {
-                        finalGroup = selectedGroup ?? '(미지정)';
+                        finalGroup = selectedGroup ?? '(미분류)';
                       }
 
                       // 3️⃣ Firestore 경로 설정
@@ -564,6 +575,17 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       if (isAddmode) {
                         // 6️⃣ 추가 모드: 새로운 문서 생성
                         await docRef.set(newSubItemData);
+                        // recordHistory: 서브 아이템 추가 시 각 필드 기록 (이전값 null)
+                        newSubItemData.forEach((key, value) async {
+                          await recordHistory(
+                            context: context,
+                            itemId: widget.itemId,
+                            subItemId: documentId,
+                            field: key,
+                            before: null,
+                            after: value,
+                          );
+                        });
                       } else {
                         // 7️⃣ 수정 모드: 변경된 필드만 업데이트
                         final Map<String, dynamic> updatedFields = {};
@@ -576,8 +598,18 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
 
                         if (updatedFields.isNotEmpty) {
                           await docRef.update(updatedFields);
+                          // recordHistory: 수정된 필드별로 기록
+                          updatedFields.forEach((key, newValue) async {
+                            await recordHistory(
+                              context: context,
+                              itemId: widget.itemId,
+                              subItemId: widget.itemData["id"],
+                              field: key,
+                              before: existingData?[key],
+                              after: newValue,
+                            );
+                          });
                         }
-
                         // 8️⃣ 편집 모드에서 그룹(폴더명)이 변경되었으면 Files 컬렉션 업데이트
                         final String oldGroup = existingData?['SubName'] ?? '';
                         if (oldGroup != subItemName) {
@@ -619,6 +651,10 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
   }
 }
 
+// ============================================================================
+// 3. 항목 편집 다이얼로그 (EditDialogContent)
+// ============================================================================
+
 class EditDialogContent extends StatefulWidget {
   final ItemProvider itemProvider;
   final String keyField; // 예: 'keyword'
@@ -630,16 +666,17 @@ class EditDialogContent extends StatefulWidget {
   final String subTitle;
   final bool isDefault;
 
-  EditDialogContent(
-      {required this.itemProvider,
-      required this.keyField,
-      required this.itemName,
-      required this.fieldName,
-      required this.fieldValue,
-      required this.itemId,
-      required this.subItemId,
-      required this.subTitle,
-      required this.isDefault});
+  EditDialogContent({
+    required this.itemProvider,
+    required this.keyField,
+    required this.itemName,
+    required this.fieldName,
+    required this.fieldValue,
+    required this.itemId,
+    required this.subItemId,
+    required this.subTitle,
+    required this.isDefault,
+  });
 
   @override
   _EditDialogContentState createState() => _EditDialogContentState();
@@ -654,7 +691,7 @@ class _EditDialogContentState extends State<EditDialogContent> {
   @override
   void initState() {
     super.initState();
-    // selectedKey = foundKey.isNotEmpty ? foundKey : widget.keyField;
+// selectedKey = foundKey.isNotEmpty ? foundKey : widget.keyField;
     selectedKey = widget.keyField;
     labelKo = widget.itemProvider.fieldMappings[selectedKey]?['FieldName'] ??
         selectedKey;
@@ -694,6 +731,15 @@ class _EditDialogContentState extends State<EditDialogContent> {
                                 .collection('Items')
                                 .doc(widget.itemId)
                                 .update({widget.keyField: FieldValue.delete()});
+
+                            // recordHistory: 아이템 필드 삭제 (before: 기존 값, after: null)
+                            await recordHistory(
+                              context: context,
+                              itemId: widget.itemId,
+                              field: widget.keyField,
+                              before: widget.fieldValue,
+                              after: null,
+                            );
                           } else {
                             await FirebaseFirestore.instance
                                 .collection('Items') // 부모 컬렉션
@@ -701,6 +747,16 @@ class _EditDialogContentState extends State<EditDialogContent> {
                                 .collection('Sub_Items') // 하위 컬렉션
                                 .doc(widget.subItemId) // 하위 문서 ID
                                 .update({widget.keyField: FieldValue.delete()});
+
+                            // recordHistory: 서브 아이템 필드 삭제
+                            await recordHistory(
+                              context: context,
+                              itemId: widget.itemId,
+                              subItemId: widget.subItemId,
+                              field: widget.keyField,
+                              before: widget.fieldValue,
+                              after: null,
+                            );
                           }
                         },
                         shouldCloseScreen: true,
@@ -752,19 +808,15 @@ class _EditDialogContentState extends State<EditDialogContent> {
 
                       // 3) 정렬
                       filteredKeys.sort((a, b) {
-                        final orderA = int.tryParse(
-                              widget.itemProvider
-                                      .fieldMappings[a]?['FieldOrder']
-                                      ?.toString() ??
-                                  "9999",
-                            ) ??
+                        final orderA = int.tryParse(widget.itemProvider
+                                    .fieldMappings[a]?['FieldOrder']
+                                    ?.toString() ??
+                                "9999") ??
                             9999;
-                        final orderB = int.tryParse(
-                              widget.itemProvider
-                                      .fieldMappings[b]?['FieldOrder']
-                                      ?.toString() ??
-                                  "9999",
-                            ) ??
+                        final orderB = int.tryParse(widget.itemProvider
+                                    .fieldMappings[b]?['FieldOrder']
+                                    ?.toString() ??
+                                "9999") ??
                             9999;
                         return orderA.compareTo(orderB);
                       });
@@ -777,10 +829,8 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         return DropdownMenuEntry<String>(
                           value: key, // onSelected로 넘겨줄 실제 값
                           label: fieldName, // 일반적으로 표시되는 텍스트
-                          labelWidget: Text(
-                            fieldName,
-                            style: AppTheme.textLabelStyle,
-                          ),
+                          labelWidget:
+                              Text(fieldName, style: AppTheme.textLabelStyle),
                         );
                       }).toList();
                     }(),
@@ -809,18 +859,16 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         style: AppTheme.tagTextStyle.copyWith(
                             fontSize: 15, overflow: TextOverflow.ellipsis),
                       ),
-                      icon: const Icon(
-                        Icons.upload,
-                        color: AppTheme.text6Color,
-                      ),
+                      icon:
+                          const Icon(Icons.upload, color: AppTheme.text6Color),
                       onPressed: () async {
                         // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
                         String? imageUrl = await showImageSelectionDialog(
-                            context,
-                            folder: 'uploads/${widget.itemName}/default',
-                            addFolder:
-                                'uploads/${widget.itemName}/${widget.subTitle}');
-
+                          context,
+                          folder: 'uploads/${widget.itemName}/default',
+                          addFolder:
+                              'uploads/${widget.itemName}/${widget.subTitle}',
+                        );
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
                           textController.text = imageUrl;
@@ -829,7 +877,7 @@ class _EditDialogContentState extends State<EditDialogContent> {
                     ),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Container(
                   constraints: const BoxConstraints(maxHeight: 200),
                   child: Scrollbar(
@@ -840,7 +888,7 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         decoration: InputDecoration(
                           suffixIcon: ClearButton(controller: textController),
                           labelText: 'Field Value',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
@@ -856,7 +904,8 @@ class _EditDialogContentState extends State<EditDialogContent> {
                       padding: const EdgeInsets.only(left: 10, right: 10),
                       child: Text(
                         '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
-                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 11),
+                        style:
+                            AppTheme.textHintTextStyle.copyWith(fontSize: 11),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -876,10 +925,10 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         },
                         child: const Text("Cancel"),
                       ),
+                      const SizedBox(width: 5),
                       ElevatedButton(
                         onPressed: () async {
                           bool canProceed = true;
-
                           if (selectedKey != widget.keyField) {
                             final String collectionPath = 'Items';
                             final String documentId = widget.itemId;
@@ -887,7 +936,6 @@ class _EditDialogContentState extends State<EditDialogContent> {
                                 .collection(collectionPath)
                                 .doc(documentId);
                             final docSnapshot = await docRef.get();
-
                             if (docSnapshot.exists) {
                               final existingData = docSnapshot.data() ?? {};
                               if (existingData.containsKey(selectedKey)) {
@@ -897,16 +945,29 @@ class _EditDialogContentState extends State<EditDialogContent> {
                               }
                             }
                           }
-
                           if (canProceed) {
+                            final newValue = textController.text.trim();
+                            // 기존 값과 새 값이 다르면 history 기록
+                            if (newValue != widget.fieldValue) {
+                              await recordHistory(
+                                context: context,
+                                itemId: widget.itemId,
+                                subItemId: widget.subItemId.isEmpty
+                                    ? null
+                                    : widget.subItemId,
+                                field: selectedKey!,
+                                before: widget.fieldValue,
+                                after: newValue,
+                              );
+                            }
                             Navigator.pop(context, {
                               'key': selectedKey,
-                              'value': textController.text,
+                              'value': newValue,
                             });
                           }
                         },
                         child: const Text("Edit"),
-                      ),
+                      )
                     ],
                   ),
                 ),
@@ -918,6 +979,10 @@ class _EditDialogContentState extends State<EditDialogContent> {
     );
   }
 }
+
+// ============================================================================
+// 4. 속성 추가 다이얼로그 (AddAttributeDialog)
+// ============================================================================
 
 class AddAttributeDialog extends StatefulWidget {
   final ItemProvider itemProvider;
@@ -936,7 +1001,6 @@ class AddAttributeDialog extends StatefulWidget {
 }
 
 class _AddAttributeDialogState extends State<AddAttributeDialog> {
-  // _keyController는 사용하지 않으므로 제거했습니다.
   late TextEditingController _valueController;
   late ScrollController defaultScrollController;
   String? selectedKey;
@@ -963,7 +1027,7 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
   @override
   Widget build(BuildContext context) {
     return KeyboardListener(
-      focusNode: _focusNode, // FocusNode 할당
+      focusNode: _focusNode,
       onKeyEvent: (KeyEvent event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
@@ -1085,18 +1149,17 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                         style: AppTheme.tagTextStyle.copyWith(
                             fontSize: 15, overflow: TextOverflow.ellipsis),
                       ),
-                      icon: const Icon(
-                        Icons.upload,
-                        color: AppTheme.text6Color,
-                      ),
+                      icon:
+                          const Icon(Icons.upload, color: AppTheme.text6Color),
                       onPressed: () async {
                         // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
                         String title = widget.itemProvider.items.firstWhere(
                             (item) => item.id == widget.itemId)['ItemName'];
                         String? imageUrl = await showImageSelectionDialog(
-                            context,
-                            folder: 'uploads/${title}/default',
-                            addFolder: '');
+                          context,
+                          folder: 'uploads/${title}/default',
+                          addFolder: '',
+                        );
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
                           _valueController.text = imageUrl;
@@ -1105,7 +1168,7 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                     ),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Flexible(
                   child: Container(
                     constraints: const BoxConstraints(maxHeight: 200),
@@ -1141,7 +1204,8 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                       padding: const EdgeInsets.only(left: 20, right: 20),
                       child: Text(
                         '그림 경우 : [@200] 형식 추가해서 높이 지정 가능',
-                        style: AppTheme.textHintTextStyle.copyWith(fontSize: 11),
+                        style:
+                            AppTheme.textHintTextStyle.copyWith(fontSize: 11),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1156,7 +1220,7 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancel'),
                     ),
-                    SizedBox(width: 5),
+                    const SizedBox(width: 5),
                     ElevatedButton(
                       onPressed: () async {
                         if (selectedKey == null) {
@@ -1189,7 +1253,17 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                               .doc(widget.itemId)
                               .collection('Sub_Items')
                               .doc(widget.itemData["id"])
-                              .update({selectedKey!: value});
+                              .update(
+                                  {selectedKey!: _valueController.text.trim()});
+                          // recordHistory: 서브 아이템 필드 추가 (이전값 null)
+                          await recordHistory(
+                            context: context,
+                            itemId: widget.itemId,
+                            subItemId: widget.itemData["id"],
+                            field: selectedKey!,
+                            before: null,
+                            after: _valueController.text.trim(),
+                          );
                           showOverlayMessage(context, '속성이 추가되었습니다.');
                           Navigator.of(context).pop();
                         } catch (e) {
@@ -1208,6 +1282,10 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
     );
   }
 }
+
+// ============================================================================
+// 5. 그룹명 변경 다이얼로그 (RenameGroupDialog)
+// ============================================================================
 
 class RenameGroupDialog extends StatefulWidget {
   final String oldGroupName;
@@ -1273,7 +1351,16 @@ class _RenameGroupDialogState extends State<RenameGroupDialog> {
       // 배치 커밋: 모든 업데이트가 동시에 적용됨
       await batch.commit();
 
-      // 변경된 그룹명을 부모 위젯에 전달하여 UI 업데이트
+      // recordHistory: 그룹명 변경 (필드 "SubItem" 기록)
+      await recordHistory(
+        context: context,
+        itemId: widget.itemId,
+        field: "SubItem",
+        before: widget.oldGroupName,
+        after: newGroupName,
+      );
+
+// 변경된 그룹명을 부모 위젯에 전달하여 UI 업데이트
       Navigator.pop(context);
       showOverlayMessage(context, "그룹명이 변경되었습니다.");
     } catch (error) {
@@ -1309,8 +1396,7 @@ class _RenameGroupDialogState extends State<RenameGroupDialog> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text("변경"),
         ),
       ],

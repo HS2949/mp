@@ -3,6 +3,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:mp_db/pages/dialog/dialog_FileView.dart';
 import 'package:mp_db/pages/dialog/dialog_ImageView.dart';
 import 'package:mp_db/pages/dialog/dialog_item_detail.dart';
@@ -749,11 +750,60 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.start,
                                       children: [
-                                        copyTextWidget(
-                                          context,
-                                          text: label,
-                                          widgetType: TextWidgetType.selectable,
-                                          style: AppTheme.fieldLabelTextStyle,
+                                        Tooltip(
+                                          message: (() {
+                                            final historyData = itemProvider
+                                                .getLatestHistory(entry.key);
+
+                                            if (historyData == null) {
+                                              // 🔹 변경 내역이 없으면 Firestore에서 데이터를 가져옴
+                                              WidgetsBinding.instance
+                                                  .addPostFrameCallback((_) {
+                                                itemProvider.fetchLatestHistory(
+                                                    itemId: widget.itemId,
+                                                    field: entry.key);
+                                              });
+                                              return '?';
+                                            }
+
+                                            final formattedTime =
+                                                historyData['timestamp'] != null
+                                                    ? DateFormat("yy. MM. dd",
+                                                            "ko_KR")
+                                                        .format((historyData[
+                                                                    'timestamp']
+                                                                as Timestamp)
+                                                            .toDate())
+                                                    : '';
+
+                                            final timestamp = historyData[
+                                                    'timestamp']
+                                                as Timestamp?; // 🔹 현재 날짜와 비교하여 몇일 전인지 계산
+                                            int daysDiff = 0;
+                                            if (timestamp != null) {
+                                              final historyDate =
+                                                  timestamp.toDate();
+                                              final now = DateTime.now();
+                                              daysDiff = now
+                                                  .difference(historyDate)
+                                                  .inDays;
+                                            }
+
+                                            return '$formattedTime  ${historyData['userName']}  D+$daysDiff';
+                                          })(),
+                                          child: copyTextWidget(
+                                            context,
+                                            text: label,
+                                            widgetType:
+                                                TextWidgetType.selectable,
+                                            style: AppTheme.fieldLabelTextStyle,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.text2Color
+                                                .withOpacity(0.6),
+                                            borderRadius: BorderRadius.circular(
+                                                8), // 🔹 둥근 모서리 적용 (선택 사항)
+                                          ),
                                         ),
                                         SizedBox(
                                           width: 20,
@@ -972,190 +1022,14 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Tooltip(
-                                    message: '클릭 : 열기/닫기\n길게 누르기 : 속성 추가',
-                                    child: ListTile(
-                                      tileColor:
-                                          AppTheme.text5Color.withOpacity(0.03),
-                                      contentPadding: const EdgeInsets.fromLTRB(
-                                          0, 0, 55, 0),
-                                      dense: true,
-                                      minVerticalPadding: 0,
-                                      visualDensity:
-                                          const VisualDensity(vertical: -4),
-                                      title: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Tooltip(
-                                            message: '아이템 메뉴',
-                                            child: MenuAnchor(
-                                              // ----------------------------------- 메뉴 버튼
-                                              builder:
-                                                  (context, controller, child) {
-                                                return TextButton.icon(
-                                                  style: TextButton.styleFrom(
-                                                    padding: EdgeInsets.zero,
-                                                    minimumSize:
-                                                        const Size(50, 30),
-                                                  ),
-                                                  label: Text(
-                                                    itemData['subOrder'] ?? '-',
-                                                    style: AppTheme.tagTextStyle
-                                                        .copyWith(
-                                                            fontSize: 8,
-                                                            color: AppTheme
-                                                                .buttonlightbackgroundColor),
-                                                  ),
-                                                  icon: const Icon(
-                                                    Icons.label_important_sharp,
-                                                    color: AppTheme.text5Color,
-                                                    size: 10,
-                                                  ),
-                                                  onPressed: () {
-                                                    if (controller.isOpen) {
-                                                      controller.close();
-                                                    } else {
-                                                      controller.open();
-                                                    }
-                                                  },
-                                                );
-                                              },
-                                              menuChildren: [
-                                                MenuItemButton(
-                                                  // ----------- 메뉴아이템: 수정
-                                                  leadingIcon: const Icon(
-                                                      Icons.edit_note_outlined),
-                                                  child: const Text(
-                                                    'Edit',
-                                                    style:
-                                                        AppTheme.textLabelStyle,
-                                                  ),
-                                                  onPressed: () async {
-                                                    await showAddDialogSubItem(
-                                                        context,
-                                                        provider,
-                                                        widget.itemId,
-                                                        itemData);
-                                                  },
-                                                ),
-                                                MenuItemButton(
-                                                  // ----------- 메뉴아이템: 삭제
-                                                  leadingIcon: const Icon(Icons
-                                                      .delete_forever_outlined),
-                                                  child: const Text(
-                                                    'Delete',
-                                                    style:
-                                                        AppTheme.textLabelStyle,
-                                                  ),
-                                                  onPressed: () async {
-                                                    FiDeleteDialog(
-                                                      context: context,
-                                                      deleteFunction: () async {
-                                                        FirebaseFirestore
-                                                            .instance
-                                                            .collection('Items')
-                                                            .doc(widget.itemId)
-                                                            .collection(
-                                                                'Sub_Items')
-                                                            .doc(itemData['id'])
-                                                            .delete();
-                                                      },
-                                                      shouldCloseScreen: false,
-                                                    );
-                                                  },
-                                                ),
-                                                MenuItemButton(
-                                                  // ----------- 메뉴아이템: 속성 추가
-                                                  leadingIcon: const Icon(Icons
-                                                      .add_to_photos_outlined),
-                                                  child: const Text(
-                                                    '속성 추가',
-                                                    style:
-                                                        AppTheme.textLabelStyle,
-                                                  ),
-                                                  onPressed: () async {
-                                                    await _showAddAttributeDialog(
-                                                        context,
-                                                        provider,
-                                                        widget.itemId,
-                                                        itemData);
-                                                    _toggleAllItemsInGroup(
-                                                        groupIndex, false);
-                                                  },
-                                                ),
-                                                MenuItemButton(
-                                                  // ----------- 메뉴아이템: 사진 추가
-                                                  leadingIcon: const Icon(
-                                                      Icons.image_outlined),
-                                                  child: const Text(
-                                                    '사진 추가',
-                                                    style:
-                                                        AppTheme.textLabelStyle,
-                                                  ),
-                                                  onPressed: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            ImageGridScreen(
-                                                                folderName:
-                                                                    folderName),
-                                                      ),
-                                                    ).then((_) {
-                                                      // 화면이 닫힐 때 _checkFileExistence 실행
-                                                      _updateFileExistence(
-                                                          folderName);
-                                                    });
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Text(
-                                            '${itemData["title"]}',
-                                            style: AppTheme.fieldLabelTextStyle
-                                                .copyWith(
-                                              color: _computedGroups[groupIndex]
-                                                                      ["items"]
-                                                                  [itemIndex]
-                                                              ["attributes"]
-                                                          .length >
-                                                      0
-                                                  ? AppTheme.itemListColor
-                                                  : AppTheme.itemList0Color,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          if (_fileExistsMap[folderName] ==
-                                              true) ...[
-                                            IconButton(
-                                              constraints: const BoxConstraints(
-                                                  minWidth: 0, minHeight: 0),
-                                              icon: Icon(Icons.image_outlined,
-                                                  color: AppTheme.text5Color,
-                                                  size: 13),
-                                              tooltip: '사진 정보',
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        ImageGridScreen(
-                                                            folderName:
-                                                                folderName),
-                                                  ),
-                                                ).then((_) {
-                                                  // 화면이 닫힐 때 _checkFileExistence 실행
-                                                  _updateFileExistence(
-                                                      folderName);
-                                                });
-                                              },
-                                            )
-                                          ],
-                                        ],
-                                      ),
+                                    message:
+                                        '클릭 : 열기/닫기\n더블클릭 : 모든 아이템 열기/닫기\n길게 누르기 : 속성 추가',
+                                    child: GestureDetector(
+                                      onDoubleTap: () {
+                                        Provider.of<ItemDetailProvider>(context,
+                                                listen: false)
+                                            .toggleAllItem();
+                                      },
                                       onTap: () => _toggleItemExpansion(
                                           groupIndex, itemIndex),
                                       onLongPress: () async {
@@ -1164,11 +1038,209 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                         _toggleAllItemsInGroup(
                                             groupIndex, false);
                                       },
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // 필요에 따라 trailing 버튼 추가
-                                        ],
+                                      child: ListTile(
+                                        tileColor: AppTheme.text5Color
+                                            .withOpacity(0.03),
+                                        contentPadding:
+                                            const EdgeInsets.fromLTRB(
+                                                0, 0, 55, 0),
+                                        dense: true,
+                                        minVerticalPadding: 0,
+                                        visualDensity:
+                                            const VisualDensity(vertical: -4),
+                                        title: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Tooltip(
+                                              message: '아이템 메뉴',
+                                              child: MenuAnchor(
+                                                // ----------------------------------- 메뉴 버튼
+                                                builder: (context, controller,
+                                                    child) {
+                                                  return TextButton.icon(
+                                                    style: TextButton.styleFrom(
+                                                      padding: EdgeInsets.zero,
+                                                      minimumSize:
+                                                          const Size(50, 30),
+                                                    ),
+                                                    label: Text(
+                                                      itemData['subOrder'] ??
+                                                          '-',
+                                                      style: AppTheme
+                                                          .tagTextStyle
+                                                          .copyWith(
+                                                              fontSize: 8,
+                                                              color: AppTheme
+                                                                  .buttonlightbackgroundColor),
+                                                    ),
+                                                    icon: const Icon(
+                                                      Icons
+                                                          .label_important_sharp,
+                                                      color:
+                                                          AppTheme.text5Color,
+                                                      size: 10,
+                                                    ),
+                                                    onPressed: () {
+                                                      if (controller.isOpen) {
+                                                        controller.close();
+                                                      } else {
+                                                        controller.open();
+                                                      }
+                                                    },
+                                                  );
+                                                },
+                                                menuChildren: [
+                                                  MenuItemButton(
+                                                    // ----------- 메뉴아이템: 수정
+                                                    leadingIcon: const Icon(Icons
+                                                        .edit_note_outlined),
+                                                    child: const Text(
+                                                      'Edit',
+                                                      style: AppTheme
+                                                          .textLabelStyle,
+                                                    ),
+                                                    onPressed: () async {
+                                                      await showAddDialogSubItem(
+                                                          context,
+                                                          provider,
+                                                          widget.itemId,
+                                                          itemData);
+                                                    },
+                                                  ),
+                                                  MenuItemButton(
+                                                    // ----------- 메뉴아이템: 삭제
+                                                    leadingIcon: const Icon(Icons
+                                                        .delete_forever_outlined),
+                                                    child: const Text(
+                                                      'Delete',
+                                                      style: AppTheme
+                                                          .textLabelStyle,
+                                                    ),
+                                                    onPressed: () async {
+                                                      FiDeleteDialog(
+                                                        context: context,
+                                                        deleteFunction:
+                                                            () async {
+                                                          FirebaseFirestore
+                                                              .instance
+                                                              .collection(
+                                                                  'Items')
+                                                              .doc(
+                                                                  widget.itemId)
+                                                              .collection(
+                                                                  'Sub_Items')
+                                                              .doc(itemData[
+                                                                  'id'])
+                                                              .delete();
+                                                        },
+                                                        shouldCloseScreen:
+                                                            false,
+                                                      );
+                                                    },
+                                                  ),
+                                                  MenuItemButton(
+                                                    // ----------- 메뉴아이템: 속성 추가
+                                                    leadingIcon: const Icon(Icons
+                                                        .add_to_photos_outlined),
+                                                    child: const Text(
+                                                      '속성 추가',
+                                                      style: AppTheme
+                                                          .textLabelStyle,
+                                                    ),
+                                                    onPressed: () async {
+                                                      await _showAddAttributeDialog(
+                                                          context,
+                                                          provider,
+                                                          widget.itemId,
+                                                          itemData);
+                                                      _toggleAllItemsInGroup(
+                                                          groupIndex, false);
+                                                    },
+                                                  ),
+                                                  MenuItemButton(
+                                                    // ----------- 메뉴아이템: 사진 추가
+                                                    leadingIcon: const Icon(
+                                                        Icons.image_outlined),
+                                                    child: const Text(
+                                                      '사진 추가',
+                                                      style: AppTheme
+                                                          .textLabelStyle,
+                                                    ),
+                                                    onPressed: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              ImageGridScreen(
+                                                                  folderName:
+                                                                      folderName),
+                                                        ),
+                                                      ).then((_) {
+                                                        // 화면이 닫힐 때 _checkFileExistence 실행
+                                                        _updateFileExistence(
+                                                            folderName);
+                                                      });
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              '${itemData["title"]}',
+                                              style: AppTheme
+                                                  .fieldLabelTextStyle
+                                                  .copyWith(
+                                                color: _computedGroups[groupIndex]
+                                                                        [
+                                                                        "items"]
+                                                                    [itemIndex]
+                                                                ["attributes"]
+                                                            .length >
+                                                        0
+                                                    ? AppTheme.itemListColor
+                                                    : AppTheme.itemList0Color,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            if (_fileExistsMap[folderName] ==
+                                                true) ...[
+                                              IconButton(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                        minWidth: 0,
+                                                        minHeight: 0),
+                                                icon: Icon(Icons.image_outlined,
+                                                    color: AppTheme.text5Color,
+                                                    size: 13),
+                                                tooltip: '사진 정보',
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          ImageGridScreen(
+                                                              folderName:
+                                                                  folderName),
+                                                    ),
+                                                  ).then((_) {
+                                                    // 화면이 닫힐 때 _checkFileExistence 실행
+                                                    _updateFileExistence(
+                                                        folderName);
+                                                  });
+                                                },
+                                              )
+                                            ],
+                                          ],
+                                        ),
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // 필요에 따라 trailing 버튼 추가
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1227,25 +1299,90 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                   CrossAxisAlignment
                                                                       .center,
                                                               children: [
-                                                                copyTextWidget(
-                                                                  context,
-                                                                  text:
-                                                                      "${attribute['FieldName']}",
-                                                                  widgetType:
-                                                                      TextWidgetType
-                                                                          .selectable,
-                                                                  style: AppTheme
-                                                                      .bodySmallTextStyle
-                                                                      .copyWith(
-                                                                    fontSize:
-                                                                        13,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w600,
-                                                                    color: fieldLabelColors[attribute[
-                                                                            'FieldName']] ??
-                                                                        AppTheme
-                                                                            .text4Color,
+                                                                Tooltip(
+                                                                  message: (() {
+                                                                    final historyData = context
+                                                                        .watch<
+                                                                            ItemProvider>()
+                                                                        .getLatestHistory(
+                                                                            attribute['FieldKey']);
+
+                                                                    if (historyData ==
+                                                                        null) {
+                                                                      // 🔹 변경 내역이 없으면 Firestore에서 데이터를 가져옴
+                                                                      WidgetsBinding
+                                                                          .instance
+                                                                          .addPostFrameCallback(
+                                                                              (_) {
+                                                                        context
+                                                                            .read<ItemProvider>()
+                                                                            .fetchLatestHistory(
+                                                                              itemId: widget.itemId,
+                                                                              field: attribute['FieldKey'],
+                                                                            );
+                                                                      });
+                                                                      return '?';
+                                                                    }
+
+                                                                    final formattedTime = historyData['timestamp'] !=
+                                                                            null
+                                                                        ? DateFormat("yy. MM. dd",
+                                                                                "ko_KR")
+                                                                            .format((historyData['timestamp'] as Timestamp).toDate())
+                                                                        : '';
+
+                                                                    final timestamp =
+                                                                        historyData['timestamp']
+                                                                            as Timestamp?; // 🔹 현재 날짜와 비교하여 몇일 전인지 계산
+                                                                    int daysDiff =
+                                                                        0;
+                                                                    if (timestamp !=
+                                                                        null) {
+                                                                      final historyDate =
+                                                                          timestamp
+                                                                              .toDate();
+                                                                      final now =
+                                                                          DateTime
+                                                                              .now();
+                                                                      daysDiff = now
+                                                                          .difference(
+                                                                              historyDate)
+                                                                          .inDays;
+                                                                    }
+
+                                                                    return '$formattedTime  ${historyData['userName']}  D+$daysDiff';
+                                                                  })(),
+                                                                  child:
+                                                                      copyTextWidget(
+                                                                    context,
+                                                                    text:
+                                                                        "${attribute['FieldName']}",
+                                                                    widgetType:
+                                                                        TextWidgetType
+                                                                            .plain,
+                                                                    style: AppTheme
+                                                                        .bodySmallTextStyle
+                                                                        .copyWith(
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      color: fieldLabelColors[attribute[
+                                                                              'FieldName']] ??
+                                                                          AppTheme
+                                                                              .text4Color,
+                                                                    ),
+                                                                  ),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: AppTheme
+                                                                        .text2Color
+                                                                        .withOpacity(
+                                                                            0.6),
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            8), // 🔹 둥근 모서리 적용 (선택 사항)
                                                                   ),
                                                                 ),
                                                                 IconButton(

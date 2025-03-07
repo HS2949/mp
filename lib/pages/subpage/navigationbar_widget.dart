@@ -330,12 +330,8 @@ class _Item_WidgetState extends State<Item_Widget>
         }
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.space) {
-          // Provider.of<ItemDetailProvider>(context, listen: false)
-          //     .toggleAllGroup();
           Provider.of<ItemDetailProvider>(context, listen: false)
               .toggleAllItem();
-          print(Provider.of<ItemDetailProvider>(context, listen: false)
-              .isToggleAllItem);
         }
       },
       child: Scaffold(
@@ -424,7 +420,8 @@ class _Item_WidgetState extends State<Item_Widget>
                           height: 42,
                           child: FloatingActionButton.extended(
                             heroTag: null,
-                            label: Text('정보 추가', style: TextStyle(fontSize: 13)),
+                            label:
+                                Text('정보 추가', style: TextStyle(fontSize: 13)),
                             backgroundColor:
                                 AppTheme.text5Color.withOpacity(0.4),
                             hoverColor: AppTheme.text5Color.withOpacity(0.8),
