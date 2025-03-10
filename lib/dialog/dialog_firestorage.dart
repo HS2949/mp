@@ -5,8 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/dialog_ImageUpload.dart';
-import 'package:mp_db/pages/dialog/dialog_ImageView.dart';
+import 'package:mp_db/dialog/dialog_ImageUpload.dart';
+import 'package:mp_db/dialog/dialog_ImageView.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 /// 파일 삭제 함수: Storage와 Firestore에서 모두 삭제
@@ -132,7 +132,14 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
               SizedBox(height: 30),
               // 컨텐츠 (로딩 or 파일 목록)
               loading
-                  ? Center(child: CircularProgressIndicator())
+                  ? Align(
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        width: 50, // 원하는 크기 설정
+                        height: 50, // 원하는 크기 설정
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
                   : files.isEmpty
                       ? Text("저장된 파일이 없습니다.")
                       : Container(

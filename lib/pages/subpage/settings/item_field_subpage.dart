@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/dialog_field.dart';
+import 'package:mp_db/dialog/dialog_field.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
 class Item_Field extends StatefulWidget {

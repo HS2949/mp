@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/dialog_field.dart';
+import 'package:mp_db/dialog/dialog_field.dart';
 import 'package:mp_db/pages/home.dart';
 import 'package:mp_db/pages/subpage/item_detail_subpage.dart';
 import 'package:mp_db/pages/subpage/settings/item_category_subpage.dart';

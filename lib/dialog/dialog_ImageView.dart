@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/dialog_ImageFullView.dart';
-import 'package:mp_db/pages/dialog/dialog_ImageUpload.dart';
-import 'package:mp_db/pages/dialog/dialog_firestorage.dart';
+import 'package:mp_db/dialog/dialog_ImageFullView.dart';
+import 'package:mp_db/dialog/dialog_ImageUpload.dart';
+import 'package:mp_db/dialog/dialog_firestorage.dart';
 
 class ImageGridScreen extends StatefulWidget {
   final String folderName;
@@ -123,7 +123,14 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
           double screenWidth = constraints.maxWidth; // 화면 너비
           double screenHeight = constraints.maxHeight; // 화면 높이
           return loading
-              ? Center(child: CircularProgressIndicator()) // 데이터 로딩 중
+              ? Align(
+                  alignment: Alignment.center,
+                  child: SizedBox(
+                    width: 50, // 원하는 크기 설정
+                    height: 50, // 원하는 크기 설정
+                    child: CircularProgressIndicator(),
+                  ),
+                ) // 데이터 로딩 중
               : Stack(
                   children: [
                     Center(
@@ -284,8 +291,15 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
                                                 barrierDismissible:
                                                     false, // 사용자가 다이얼로그를 닫지 못하게 함
                                                 builder: (context) => Center(
+                                                    child: Align(
+                                                  alignment: Alignment.center,
+                                                  child: SizedBox(
+                                                    width: 50, // 원하는 크기 설정
+                                                    height: 50, // 원하는 크기 설정
                                                     child:
-                                                        CircularProgressIndicator()),
+                                                        CircularProgressIndicator(),
+                                                  ),
+                                                )),
                                               );
 
                                               // 파일 삭제 및 목록 새로고침

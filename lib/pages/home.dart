@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mp_db/constants/styles.dart';
 // Flutter의 Material Design 위젯 및 테마를 사용하기 위한 패키지.
 
-import 'package:mp_db/material/color_palettes_screen.dart';
 // 색상 팔레트 화면을 정의한 모듈 가져오기.
 
 import 'package:mp_db/material/component_screen.dart';
@@ -12,17 +11,17 @@ import 'package:mp_db/material/constants.dart';
 // 상수값들을 정의한 모듈 가져오기.
 
 // 고도 화면을 정의한 모듈 가져오기.
-
 import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
+import 'package:mp_db/pages/rentacar_subpage.dart';
 import 'package:mp_db/pages/subpage/home_subpage.dart';
+import 'package:mp_db/pages/planing_subpage.dart';
 import 'package:mp_db/pages/subpage/settings/item_category_subpage.dart';
 
 import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
-import 'package:mp_db/utils/two_line.dart';
 import 'package:provider/provider.dart';
 
 // 타이포그래피 화면을 정의한 모듈 가져오기.
@@ -46,7 +45,6 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   // GlobalKey를 생성하여 Scaffold 상태를 관리.
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-  
 
   late final AnimationController controller;
   // 애니메이션의 상태와 진행률을 제어하는 컨트롤러.
@@ -160,7 +158,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           ),
         // ScreenSelected.temp1 => const ItemScreen(),
         // ScreenSelected.temp1 => Expanded(child: const ItemDetailScreen(itemId: 'EGA9krhnxChp3EcXHBG9')),
-        ScreenSelected.temp1 => Expanded(
+        ScreenSelected.temp1 => Expanded(child: PlaningSubpage()),
+        ScreenSelected.setting1 => Expanded(
             child: Category_Widget(
                 railAnimation: railAnimation,
                 scaffoldKey: scaffoldKey,
@@ -168,24 +167,24 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 showMediumSizeLayout: showMediumSizeLayout,
                 showLargeSizeLayout: showLargeSizeLayout),
           ),
-        ScreenSelected.setting1 => const ColorPalettesScreen(),
         ScreenSelected.setting3 => const TypographyScreen(),
         ScreenSelected.setting2 => const Item_Category(),
-        ScreenSelected.temp2 => Expanded(
-            // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
-            child: OneTwoTransition(
-              animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-              one: FirstComponentList(
-                showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
-                scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-                showSecondList: showMediumSizeLayout || showLargeSizeLayout,
-                // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-              ), // 첫 번째 구성 요소 리스트.
-              two: SecondComponentList(
-                scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-              ), // 두 번째 구성 요소 리스트.
-            ),
-          ),
+        ScreenSelected.temp2 => Expanded(child: RentacarSubpage()),
+        // ScreenSelected.temp2 => Expanded(
+        //     // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
+        //     child: OneTwoTransition(
+        //       animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+        //       one: FirstComponentList(
+        //         showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
+        //         scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+        //         showSecondList: showMediumSizeLayout || showLargeSizeLayout,
+        //         // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+        //       ), // 첫 번째 구성 요소 리스트.
+        //       two: SecondComponentList(
+        //         scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+        //       ), // 두 번째 구성 요소 리스트.
+        //     ),
+        //   ),
       };
   PreferredSizeWidget createAppBar(User user) {
     // 앱바(AppBar)를 생성하는 함수.
@@ -782,19 +781,17 @@ class ExampleDestination {
 
 const List<ExampleDestination> destinations = <ExampleDestination>[
   ExampleDestination('Setting', Icon(Icons.settings), Icon(Icons.settings)),
-  ExampleDestination('Edit - Item Fields', Icon(Icons.label_important_outline),
+  ExampleDestination('업데이트 예정', Icon(Icons.label_important_outline),
       Icon(Icons.label_important)),
   ExampleDestination(
-      'Favorites', Icon(Icons.favorite_outline), Icon(Icons.favorite)),
-  ExampleDestination('Trash', Icon(Icons.delete_outline), Icon(Icons.delete)),
+      '업데이트 예정', Icon(Icons.favorite_outline), Icon(Icons.favorite)),
+  ExampleDestination('업데이트 예정', Icon(Icons.delete_outline), Icon(Icons.delete)),
 ];
 
 const List<ExampleDestination> labelDestinations = <ExampleDestination>[
-  ExampleDestination(
-      'Family', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
-  ExampleDestination(
-      'School', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
-  ExampleDestination('Work', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
+  ExampleDestination('라벨1', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
+  ExampleDestination('라벨2', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
+  ExampleDestination('라벨3', Icon(Icons.bookmark_border), Icon(Icons.bookmark)),
 ];
 
 class SizeAnimation extends CurvedAnimation {

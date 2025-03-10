@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-import 'package:mp_db/pages/dialog/compression/image_CR_windows.dart';
+import 'package:mp_db/dialog/compression/image_CR_windows.dart';
 
 class ImageCompressorMobile {
   static Future<File?> compressAndResize({

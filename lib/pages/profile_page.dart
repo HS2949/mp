@@ -48,10 +48,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       imageUrl: user.profileImage,
                       width: 350,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Image.asset(
-                        'assets/images/loading.gif',
-                        width: 50,
-                        fit: BoxFit.contain,
+                      placeholder: (context, url) => Center(
+                        // 중앙 정렬
+                        child: SizedBox(
+                          // 크기 강제 조정
+                          width: 50,
+                          height: 50,
+                          child: Image.asset(
+                            'assets/images/loading.gif',
+                            fit: BoxFit.contain, // 이미지 비율 유지
+                          ),
+                        ),
                       ),
                       errorWidget: (context, url, error) =>
                           const Icon(Icons.error),
@@ -120,10 +127,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: CircularProgressIndicator(),
+                        return Align(
+                          alignment: Alignment.center,
+                          child: SizedBox(
+                            width: 50, // 원하는 크기 설정
+                            height: 50, // 원하는 크기 설정
+                            child: CircularProgressIndicator(),
+                          ),
                         );
                       }
                       final usersList = snapshot.data!.docs;
@@ -199,10 +209,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return SizedBox(
-                      width: 100,
-                      height: 100,
-                      child: CircularProgressIndicator(),
+                    return Align(
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        width: 100, // 원하는 크기 설정
+                        height: 100, // 원하는 크기 설정
+                        child: CircularProgressIndicator(),
+                      ),
                     );
                   }
                   final historyDocs = snapshot.data!.docs;

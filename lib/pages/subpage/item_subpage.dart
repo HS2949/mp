@@ -291,14 +291,17 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
 
     return provider.isLoading
         ? (widget.filterType == 1
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(50.0),
+                  padding: const EdgeInsets.all(50.0),
                   child: SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 4.0,
+                    width: 50,
+                    height: 50,
+                    child: Image.asset(
+                      'assets/images/loading.gif',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.contain, // 이미지 비율 유지
                     ),
                   ),
                 ),
@@ -372,7 +375,7 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                           viewSelect: 0,
                         ),
                       );
-                     provider.focusKeyboard();
+                      provider.focusKeyboard();
                     },
                   ),
                 );

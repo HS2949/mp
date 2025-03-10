@@ -16,7 +16,7 @@ import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/Functions/value_history.dart';
 import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/models/item_model.dart';
-import 'package:mp_db/pages/dialog/dialog_firestorage.dart';
+import 'package:mp_db/dialog/dialog_firestorage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
@@ -42,7 +42,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
   late TextEditingController value1Controller;
   late ScrollController defaultScrollController;
   final FocusNode _focusNode = FocusNode(); // FocusNode 선언
-
+  
   @override
   void initState() {
     super.initState();

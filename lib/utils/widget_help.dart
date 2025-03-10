@@ -124,8 +124,8 @@ Widget copyTextWidget(
   required TextWidgetType widgetType,
   TextStyle? style,
   int maxLines = 1,
-  // TextField일 경우 외부에서 controller를 지정할 수 있도록 함.
   TextEditingController? controller,
+  bool doGestureDetector = true,
 }) {
   Widget child;
 
@@ -163,11 +163,15 @@ Widget copyTextWidget(
       break;
   }
 
-  return GestureDetector(
-    onLongPress: () {
-      Clipboard.setData(ClipboardData(text: text));
-      showOverlayMessage(context, "클립보드 복사");
-    },
-    child: child,
-  );
+  if (doGestureDetector) {
+    return GestureDetector(
+      onLongPress: () {
+        Clipboard.setData(ClipboardData(text: text));
+        showOverlayMessage(context, "클립보드 복사");
+      },
+      child: child,
+    );
+  } else {
+    return child;
+  }
 }

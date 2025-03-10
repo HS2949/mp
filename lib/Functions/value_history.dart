@@ -11,21 +11,23 @@ Future<void> recordHistory({
   required dynamic before,
   required dynamic after,
 }) async {
-  // AuthProvider에서 현재 로그인한 사용자의 UID를 가져옵니다.
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
-  final userId = authProvider.state.user?.uid ?? "unknown";
-  
+  final user = authProvider.state.user;
+  final userId = user?.uid ?? "unknown";
+
   CollectionReference historyRef = FirebaseFirestore.instance
       .collection('Items')
       .doc(itemId)
       .collection('history');
-      
-  await historyRef.add({
+
+  final historyRecord = {
     if (subItemId != null) 'subItemId': subItemId,
     'field': field,
     'userId': userId,
     'timestamp': FieldValue.serverTimestamp(),
     'before': before,
     'after': after,
-  });
+  };
+
+  await historyRef.add(historyRecord);
 }

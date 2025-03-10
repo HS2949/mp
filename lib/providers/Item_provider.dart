@@ -117,58 +117,6 @@ class ItemProvider extends ChangeNotifier {
     });
   }
 
-  /// 🔹 캐싱할 변경 내역 (속성별)
-  Map<String, Map<String, dynamic>> _latestHistory = {};
-
-  /// 🔹 특정 속성(`FieldName`)의 최신 변경 내역 가져오기 (유저 이름 포함)
-  Future<Map<String, dynamic>?> fetchLatestHistory({
-    required String itemId,
-    required String field,
-  }) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-
-      final querySnapshot = await firestore
-          .collectionGroup('history') // 모든 history 컬렉션을 검색
-          .where('field', isEqualTo: field)
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        final historyData = querySnapshot.docs.first.data();
-        final userId = historyData['userId'];
-        String userName = '알 수 없음';
-
-        if (userId != null) {
-          final userDoc = await firestore.collection('users').doc(userId).get();
-          if (userDoc.exists) {
-            userName = userDoc.data()?['name'] ?? '알 수 없음';
-          }
-        }
-
-        final latestHistory = {
-          'userName': userName,
-          'timestamp': historyData['timestamp'],
-        };
-
-        _latestHistory[field] = latestHistory;
-        notifyListeners();
-
-        return latestHistory; // 변경된 부분
-      }
-    } catch (e) {
-      print("Firestore query failed: $e");
-    }
-
-    return null; // 변경된 부분: 예외가 발생하거나 데이터가 없는 경우 null 반환
-  }
-
-  /// 🔹 최신 변경 내역 가져오기 (UI에서 사용)
-  Map<String, dynamic>? getLatestHistory(String field) {
-    return _latestHistory[field];
-  }
-
   /// 🔹 Key 변환 메서드 (한글 Key 매칭)
   Map<String, dynamic> convertKeysToKorean(Map<String, dynamic> data) {
     return data.map((key, value) {
@@ -349,6 +297,23 @@ class ItemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  //================ 탭 히스토리리 속성
+  final Map<int, Map<String, dynamic>> _keyHistory = {};
+
+  Map<int, Map<String, dynamic>> get keyHistory => _keyHistory;
+// ItemProvider 내에 이미 사용 중인 _keyHistory를 활용
+  void updateKeyHistory(Map<String, dynamic> historyData, {int? tabIndex}) {
+    // 전달된 tabIndex가 있으면 사용, 없으면 현재 선택된 탭(_selectedIndex) 사용
+    final index = tabIndex ?? _selectedIndex;
+    _keyHistory[index] = historyData;
+    notifyListeners();
+  }
+
+  Map<String, dynamic>? getHistoryForTab({int? tabIndex}) {
+    final index = tabIndex ?? _selectedIndex;
+    return _keyHistory[index];
+  }
+
   //================ Item 탭바 속성
 
   int _selectedIndex = 0;
@@ -414,6 +379,23 @@ class ItemProvider extends ChangeNotifier {
   void removeTab(int index) {
     if (index < 0 || index >= _activeTabCount) return;
 
+    // 1. _keyHistory에서 해당 탭의 히스토리 제거
+    _keyHistory.remove(index);
+
+    // 2. 이후 탭들의 인덱스를 한 칸씩 당겨서 재매핑
+    final Map<int, Map<String, dynamic>> newKeyHistory = {};
+    _keyHistory.forEach((key, value) {
+      if (key < index) {
+        newKeyHistory[key] = value;
+      } else if (key > index) {
+        newKeyHistory[key - 1] = value;
+      }
+    });
+    _keyHistory
+      ..clear()
+      ..addAll(newKeyHistory);
+
+    // 3. 기존 탭 제거 로직 실행
     for (int i = index; i < _activeTabCount - 1; i++) {
       _tabTitles[i] = _tabTitles[i + 1];
       _tabViews[i] = _tabViews[i + 1];
@@ -423,13 +405,13 @@ class ItemProvider extends ChangeNotifier {
     _tabViews[_activeTabCount - 1] = tabViewSet(first: Container());
     _activeTabCount--;
 
-    // 삭제 후 현재 선택된 탭이 유효한 범위 내에 있도록 조정
+    // 4. 삭제 후 현재 선택된 탭이 유효한 범위 내에 있도록 조정
     int newIndex = _controller?.index ?? 0;
     if (newIndex >= _activeTabCount) newIndex = _activeTabCount - 1;
 
     _controller?.animateTo(newIndex);
     _selectedIndex = newIndex;
-    notifyListeners(); // UI 업데이트를 위해 notifyListeners 호출
+    notifyListeners();
   }
 
   void removeAllTabs() {

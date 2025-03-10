@@ -2,14 +2,24 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.mp_db.miceplan">
 
-    <!-- 인터넷 권한 추가 -->
+    <!-- 인터넷 권한 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Android 13(API 33) 이상에서 사진/갤러리 접근 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
+    <!-- Android 12(API 32) 이하에서 갤러리 접근 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+
     
     <application
         android:label="MICE PLAN"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true"
         tools:replace="android:label">
+        
         
         <activity
             android:name=".MainActivity"

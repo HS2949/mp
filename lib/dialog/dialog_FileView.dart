@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 클립보드 사용을 위해 추가
 import 'package:intl/intl.dart';
 import 'package:mp_db/constants/styles.dart';
-import 'package:mp_db/pages/dialog/dialog_ImageUpload.dart';
+import 'package:mp_db/dialog/dialog_ImageUpload.dart';
 import 'package:mp_db/utils/fileViewer.dart';
 import 'package:mp_db/utils/widget_help.dart';
 import 'package:url_launcher/url_launcher.dart'; // URL 실행을 위해 추가
@@ -167,7 +167,14 @@ class _FileListScreenState extends State<FileListScreen> {
         double screenWidth = constraints.maxWidth; // 화면 너비
         double screenHeight = constraints.maxHeight; // 화면 높이
         return loading
-            ? Center(child: CircularProgressIndicator())
+            ? Align(
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: 50, // 원하는 크기 설정
+                  height: 50, // 원하는 크기 설정
+                  child: CircularProgressIndicator(),
+                ),
+              )
             : Stack(
                 children: [
                   Center(

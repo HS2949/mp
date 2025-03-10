@@ -4,9 +4,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mp_db/pages/dialog/dialog_FileView.dart';
-import 'package:mp_db/pages/dialog/dialog_ImageView.dart';
-import 'package:mp_db/pages/dialog/dialog_item_detail.dart';
+import 'package:mp_db/dialog/dialog_FileView.dart';
+import 'package:mp_db/dialog/dialog_ImageView.dart';
+import 'package:mp_db/dialog/dialog_item_detail.dart';
 import 'package:mp_db/utils/formatters.dart';
 import 'package:provider/provider.dart';
 
@@ -49,6 +49,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
   // Provider의 isToggleAllItem 변경 감지를 위한 이전 값 저장
   bool? _prevToggleState;
+  bool _hasFetchedHistory = false;
 
   @override
   void initState() {
@@ -65,6 +66,85 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         Provider.of<ItemDetailProvider>(context, listen: false);
     _prevToggleState = itemDetailProvider.isToggleAllItem;
     itemDetailProvider.addListener(_onProviderToggleChanged);
+  }
+
+  Future<void> _fetchAllHistory() async {
+    final itemData =
+        context.read<ItemDetailProvider>().getItemData(widget.itemId);
+
+    if (itemData != null) {
+      final allKeys = <String>{};
+      allKeys.addAll(itemData.fields.keys);
+
+      for (final subItem in itemData.subItems) {
+        final attributes = subItem.fields;
+        for (final key in attributes.keys) {
+          if (key != 'SubItem' && key != 'SubName' && key != 'SubOrder') {
+            allKeys.add(key);
+          }
+        }
+      }
+
+      final Map<String, Map<String, dynamic>?> keyHistories = {};
+
+      await Future.wait(allKeys.map((key) async {
+        final history = await fetchKeyHistory(
+          itemId: widget.itemId,
+          field: key,
+        );
+        if (history != null) {
+          keyHistories[key] = history;
+        }
+      }));
+
+      setState(() {
+        provider.updateKeyHistory(keyHistories);
+      });
+    }
+  }
+
+  /// 🔹 특정 속성(FieldName)의 최신 변경 내역 가져오기 (유저 이름 포함)
+  Future<Map<String, dynamic>?> fetchKeyHistory({
+    required String itemId,
+    required String field,
+  }) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+
+      // itemId의 history 서브컬렉션을 조회하도록 필터링 추가
+      final querySnapshot = await firestore
+          .collection('Items') // 아이템 컬렉션
+          .doc(itemId) // 특정 아이템 ID 선택
+          .collection('history') // 해당 아이템의 history 서브컬렉션 접근
+          .where('field', isEqualTo: field) // 특정 필드 값 필터링
+          .orderBy('timestamp', descending: true) // 최신순 정렬
+          .limit(1) // 최신 1개 데이터만 가져오기
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final historyData = querySnapshot.docs.first.data();
+        final userId = historyData['userId'];
+        String userName = '알 수 없음';
+
+        if (userId != null) {
+          final userDoc = await firestore.collection('users').doc(userId).get();
+          if (userDoc.exists) {
+            userName = userDoc.data()?['name'] ?? '알 수 없음';
+          }
+        }
+
+        final latestHistory = {
+          'userName': userName,
+          'timestamp': historyData['timestamp'],
+        };
+
+        return latestHistory;
+      }
+    } catch (e) {
+      print("Firestore query failed: $e");
+    }
+
+    return null;
   }
 
   Future<void> _checkFileExistence() async {
@@ -353,6 +433,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         }
 
         showOverlayMessage(context, '수정되었습니다.');
+        _fetchAllHistory();
       } catch (error) {
         showOverlayMessage(context, '업데이트 중 오류가 발생했습니다.');
       }
@@ -378,17 +459,42 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
     if (state.itemDetailStatus == ItemDetailStatus.loading) {
       return widget.viewSelect < 2
+          // ? Center(
+          //     child: Padding(
+          //       padding: const EdgeInsets.all(50.0),
+          //       child: SizedBox(
+          //         width: 100,
+          //         height: 100,
+          //         child: CircularProgressIndicator(strokeWidth: 4.0),
+          //       ),
+          //     ),
+          //   )
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(50.0),
                 child: SizedBox(
-                  width: 100,
-                  height: 100,
-                  child: CircularProgressIndicator(strokeWidth: 4.0),
+                  width: 50,
+                  height: 50,
+                  child: Image.asset(
+                    'assets/images/loading.gif',
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.contain, // 이미지 비율 유지
+                  ),
                 ),
               ),
             )
           : const SizedBox.shrink();
+    }
+
+    // itemData가 준비되었고, 아직 _fetchAllHistory를 호출하지 않았다면 한 번 호출
+    if (itemData != null && !_hasFetchedHistory) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchAllHistory();
+        setState(() {
+          _hasFetchedHistory = true;
+        });
+      });
     }
 
     if (state.itemDetailStatus == ItemDetailStatus.error) {
@@ -410,13 +516,18 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     }
 
     return itemData == null
-        ? const Center(
+        ? Center(
             child: Padding(
-              padding: EdgeInsets.all(50.0),
+              padding: const EdgeInsets.all(50.0),
               child: SizedBox(
-                width: 100,
-                height: 100,
-                child: CircularProgressIndicator(strokeWidth: 4.0),
+                width: 50,
+                height: 50,
+                child: Image.asset(
+                  'assets/images/loading.gif',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.contain, // 이미지 비율 유지
+                ),
               ),
             ),
           )
@@ -451,6 +562,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               tooltip: '기본 정보 추가',
               onPressed: () async {
                 await _showAddDialogItem(context, provider, widget.itemId);
+                _fetchAllHistory();
               },
             ),
             if (_fileExistsMap['uploads/${itemData.itemName}'] == true) ...[
@@ -750,35 +862,26 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.start,
                                       children: [
-                                        Tooltip(
-                                          message: (() {
-                                            final historyData = itemProvider
-                                                .getLatestHistory(entry.key);
-
-                                            if (historyData == null) {
-                                              // 🔹 변경 내역이 없으면 Firestore에서 데이터를 가져옴
-                                              WidgetsBinding.instance
-                                                  .addPostFrameCallback((_) {
-                                                itemProvider.fetchLatestHistory(
-                                                    itemId: widget.itemId,
-                                                    field: entry.key);
-                                              });
-                                              return '?';
-                                            }
+                                        Builder(
+                                          builder: (context) {
+                                            final historyData = context
+                                                .watch<ItemProvider>()
+                                                .getHistoryForTab()?[entry.key];
 
                                             final formattedTime =
-                                                historyData['timestamp'] != null
+                                                historyData?['timestamp'] !=
+                                                        null
                                                     ? DateFormat("yy. MM. dd",
                                                             "ko_KR")
-                                                        .format((historyData[
+                                                        .format((historyData![
                                                                     'timestamp']
                                                                 as Timestamp)
                                                             .toDate())
                                                     : '';
 
-                                            final timestamp = historyData[
-                                                    'timestamp']
-                                                as Timestamp?; // 🔹 현재 날짜와 비교하여 몇일 전인지 계산
+                                            final timestamp =
+                                                historyData?['timestamp']
+                                                    as Timestamp?;
                                             int daysDiff = 0;
                                             if (timestamp != null) {
                                               final historyDate =
@@ -789,21 +892,75 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                   .inDays;
                                             }
 
-                                            return '$formattedTime  ${historyData['userName']}  D+$daysDiff';
-                                          })(),
-                                          child: copyTextWidget(
-                                            context,
-                                            text: label,
-                                            widgetType:
-                                                TextWidgetType.selectable,
-                                            style: AppTheme.fieldLabelTextStyle,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.text2Color
-                                                .withOpacity(0.6),
-                                            borderRadius: BorderRadius.circular(
-                                                8), // 🔹 둥근 모서리 적용 (선택 사항)
-                                          ),
+                                            final tooltipText = historyData !=
+                                                    null
+                                                ? '$formattedTime  ${historyData['userName']}  D+$daysDiff'
+                                                : '';
+
+                                            return Row(
+                                              children: [
+                                                Tooltip(
+                                                  message: tooltipText,
+                                                  child: copyTextWidget(
+                                                    context,
+                                                    text: label,
+                                                    widgetType:
+                                                        TextWidgetType.plain,
+                                                    style: AppTheme
+                                                        .fieldLabelTextStyle,
+                                                    doGestureDetector: false,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: AppTheme.text2Color
+                                                        .withOpacity(0.6),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                ),
+                                                if (!tooltipText.isEmpty) ...[
+                                                  const SizedBox(width: 4),
+                                                  Builder(
+                                                    builder: (context) {
+                                                      final match =
+                                                          RegExp(r"D\+(\d+)")
+                                                              .firstMatch(
+                                                                  tooltipText);
+                                                      final value = match !=
+                                                              null
+                                                          ? int.tryParse(
+                                                                  match.group(
+                                                                          1) ??
+                                                                      "") ??
+                                                              0
+                                                          : 0;
+
+                                                      return Text(
+                                                        match?.group(0) ?? "",
+                                                        style: AppTheme
+                                                            .bodySmallTextStyle
+                                                            .copyWith(
+                                                          fontSize: value >= 30
+                                                              ? 11
+                                                              : 8,
+                                                          color: value >= 30
+                                                              ? AppTheme
+                                                                  .text6Color
+                                                              : AppTheme
+                                                                  .textHintColor,
+                                                          fontWeight: value >=
+                                                                  30
+                                                              ? FontWeight.bold
+                                                              : FontWeight
+                                                                  .normal,
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ]
+                                              ],
+                                            );
+                                          },
                                         ),
                                         SizedBox(
                                           width: 20,
@@ -843,7 +1000,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                               alignment: Alignment.centerLeft,
                                               child: result,
                                             )
-                                          : copyTextWidget(context,
+                                          : copyTextWidget(
+                                              context,
                                               text: result,
                                               widgetType:
                                                   TextWidgetType.textField,
@@ -851,7 +1009,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                   text: result),
                                               style: AppTheme.bodySmallTextStyle
                                                   .copyWith(fontSize: 13),
-                                              maxLines: 0),
+                                              maxLines: 0,
+                                            ),
                                     ),
                                   ],
                                 ),
@@ -1035,6 +1194,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       onLongPress: () async {
                                         await _showAddAttributeDialog(context,
                                             provider, widget.itemId, itemData);
+                                        _fetchAllHistory();
                                         _toggleAllItemsInGroup(
                                             groupIndex, false);
                                       },
@@ -1154,6 +1314,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                           provider,
                                                           widget.itemId,
                                                           itemData);
+                                                      _fetchAllHistory();
                                                       _toggleAllItemsInGroup(
                                                           groupIndex, false);
                                                     },
@@ -1299,41 +1460,26 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                   CrossAxisAlignment
                                                                       .center,
                                                               children: [
-                                                                Tooltip(
-                                                                  message: (() {
+                                                                Builder(
+                                                                  builder:
+                                                                      (context) {
                                                                     final historyData = context
-                                                                        .watch<
-                                                                            ItemProvider>()
-                                                                        .getLatestHistory(
-                                                                            attribute['FieldKey']);
+                                                                            .watch<
+                                                                                ItemProvider>()
+                                                                            .getHistoryForTab()?[
+                                                                        attribute[
+                                                                            'FieldKey']];
 
-                                                                    if (historyData ==
-                                                                        null) {
-                                                                      // 🔹 변경 내역이 없으면 Firestore에서 데이터를 가져옴
-                                                                      WidgetsBinding
-                                                                          .instance
-                                                                          .addPostFrameCallback(
-                                                                              (_) {
-                                                                        context
-                                                                            .read<ItemProvider>()
-                                                                            .fetchLatestHistory(
-                                                                              itemId: widget.itemId,
-                                                                              field: attribute['FieldKey'],
-                                                                            );
-                                                                      });
-                                                                      return '?';
-                                                                    }
-
-                                                                    final formattedTime = historyData['timestamp'] !=
+                                                                    final formattedTime = historyData?['timestamp'] !=
                                                                             null
                                                                         ? DateFormat("yy. MM. dd",
                                                                                 "ko_KR")
-                                                                            .format((historyData['timestamp'] as Timestamp).toDate())
+                                                                            .format((historyData!['timestamp'] as Timestamp).toDate())
                                                                         : '';
 
                                                                     final timestamp =
-                                                                        historyData['timestamp']
-                                                                            as Timestamp?; // 🔹 현재 날짜와 비교하여 몇일 전인지 계산
+                                                                        historyData?['timestamp']
+                                                                            as Timestamp?;
                                                                     int daysDiff =
                                                                         0;
                                                                     if (timestamp !=
@@ -1350,40 +1496,67 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                           .inDays;
                                                                     }
 
-                                                                    return '$formattedTime  ${historyData['userName']}  D+$daysDiff';
-                                                                  })(),
-                                                                  child:
-                                                                      copyTextWidget(
-                                                                    context,
-                                                                    text:
-                                                                        "${attribute['FieldName']}",
-                                                                    widgetType:
-                                                                        TextWidgetType
-                                                                            .plain,
-                                                                    style: AppTheme
-                                                                        .bodySmallTextStyle
-                                                                        .copyWith(
-                                                                      fontSize:
-                                                                          13,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      color: fieldLabelColors[attribute[
-                                                                              'FieldName']] ??
-                                                                          AppTheme
-                                                                              .text4Color,
-                                                                    ),
-                                                                  ),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    color: AppTheme
-                                                                        .text2Color
-                                                                        .withOpacity(
-                                                                            0.6),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            8), // 🔹 둥근 모서리 적용 (선택 사항)
-                                                                  ),
+                                                                    final tooltipText = historyData !=
+                                                                            null
+                                                                        ? '$formattedTime  ${historyData['userName']}  D+$daysDiff'
+                                                                        : '';
+
+                                                                    return Column(
+                                                                      crossAxisAlignment:
+                                                                          CrossAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        Tooltip(
+                                                                          message:
+                                                                              tooltipText,
+                                                                          child:
+                                                                              copyTextWidget(
+                                                                            context,
+                                                                            text:
+                                                                                "${attribute['FieldName']}",
+                                                                            widgetType:
+                                                                                TextWidgetType.plain,
+                                                                            doGestureDetector:
+                                                                                false,
+                                                                            style:
+                                                                                AppTheme.bodySmallTextStyle.copyWith(
+                                                                              fontSize: 13,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: fieldLabelColors[attribute['FieldName']] ?? AppTheme.text4Color,
+                                                                            ),
+                                                                          ),
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            color:
+                                                                                AppTheme.text2Color.withOpacity(0.6),
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(8),
+                                                                          ),
+                                                                        ),
+                                                                        if (!tooltipText
+                                                                            .isEmpty) ...[
+                                                                          const SizedBox(
+                                                                              height: 4),
+                                                                          Builder(
+                                                                            builder:
+                                                                                (context) {
+                                                                              final match = RegExp(r"D\+(\d+)").firstMatch(tooltipText);
+                                                                              final value = match != null ? int.tryParse(match.group(1) ?? "") ?? 0 : 0;
+
+                                                                              return Text(
+                                                                                match?.group(0) ?? "",
+                                                                                style: AppTheme.bodySmallTextStyle.copyWith(
+                                                                                  fontSize: value >= 30 ? 11 : 8,
+                                                                                  color: value >= 30 ? AppTheme.text6Color : AppTheme.textHintColor,
+                                                                                  fontWeight: value >= 30 ? FontWeight.bold : FontWeight.normal,
+                                                                                ),
+                                                                              );
+                                                                            },
+                                                                          ),
+                                                                        ]
+                                                                      ],
+                                                                    );
+                                                                  },
                                                                 ),
                                                                 IconButton(
                                                                   padding:
@@ -1445,9 +1618,14 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                               TextWidgetType.textField,
                                                                           controller:
                                                                               TextEditingController(text: result),
-                                                                          style: AppTheme.bodySmallTextStyle.copyWith(
-                                                                              fontSize: 13,
-                                                                              color: fieldColors[attribute['FieldName']] ?? AppTheme.primaryColor),
+                                                                          style: AppTheme
+                                                                              .bodySmallTextStyle
+                                                                              .copyWith(
+                                                                            fontSize:
+                                                                                13,
+                                                                            color:
+                                                                                fieldColors[attribute['FieldName']] ?? AppTheme.primaryColor,
+                                                                          ),
                                                                           maxLines:
                                                                               0,
                                                                         ),

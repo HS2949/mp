@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mp_db/constants/styles.dart';
 
 class HomeSubpage extends StatefulWidget {
   const HomeSubpage({super.key});
@@ -16,13 +17,22 @@ class _HomeSubpageState extends State<HomeSubpage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            flightDisruptionCard("항공편 지연 및 결항 (어제)", "12 (6%)", "0 (0%)"),
-            flightLiveStatusCard("현재 혼잡도", "5 min", "0.4"),
-            flightDisruptionCard("항공편 지연 및 결항 (오늘)", "4 (2%)", "0 (0%)"),
-            flightDisruptionCard("항공편 결항 (내일)", "0 (0%)", "-"),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(height: 100),
+              Text(
+                '앱 초기 페이지입니다. 공항/항공 출도착 정보를 나타낼 예정입니다. \n\n[업데이트 예정]',
+                style: AppTheme.fieldLabelTextStyle,
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 500),
+              flightDisruptionCard("항공편 지연 및 결항 (어제)", "12 (6%)", "0 (0%)"),
+              flightLiveStatusCard("현재 혼잡도", "5 min", "0.4"),
+              flightDisruptionCard("항공편 지연 및 결항 (오늘)", "4 (2%)", "0 (0%)"),
+              flightDisruptionCard("항공편 결항 (내일)", "0 (0%)", "-"),
+            ],
+          ),
         ),
       ),
     );
@@ -55,7 +65,8 @@ class _HomeSubpageState extends State<HomeSubpage> {
     );
   }
 
-  Widget flightLiveStatusCard(String title, String avgDelay, String disruptionIndex) {
+  Widget flightLiveStatusCard(
+      String title, String avgDelay, String disruptionIndex) {
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8),
       elevation: 4,
@@ -80,7 +91,8 @@ class _HomeSubpageState extends State<HomeSubpage> {
                   ),
                   child: Text(
                     'LIVE',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -103,11 +115,15 @@ class _HomeSubpageState extends State<HomeSubpage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(label,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
         SizedBox(height: 5),
         Text(
           value,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green[700]),
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[700]),
         ),
       ],
     );

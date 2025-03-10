@@ -22,15 +22,29 @@ class SplashPage extends StatelessWidget {
     });
 
     return Scaffold(
-      body: Center(
+        // body: Center(
+        //   child: SizedBox(
+        //     width: 100,
+        //     height: 100,
+        //     child: CircularProgressIndicator(
+        //       strokeWidth: 4.0,
+        //     ),
+        //   ),
+        // ),
+        body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(50.0),
         child: SizedBox(
-          width: 100,
-          height: 100,
-          child: CircularProgressIndicator(
-            strokeWidth: 4.0,
+          width: 50,
+          height: 50,
+          child: Image.asset(
+            'assets/images/loading.gif',
+            width: 50,
+            height: 50,
+            fit: BoxFit.contain, // 이미지 비율 유지
           ),
         ),
       ),
-    );
+    ));
   }
 }

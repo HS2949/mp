@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:mp_db/pages/dialog/compression/image_CR_mobile.dart';
-import 'package:mp_db/pages/dialog/compression/image_CR_windows.dart';
+import 'package:mp_db/dialog/compression/image_CR_mobile.dart';
+import 'package:mp_db/dialog/compression/image_CR_windows.dart';
 
 class ImageCompressor {
   static Future<File?> compressAndResize({
