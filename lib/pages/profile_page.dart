@@ -389,7 +389,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                                     .copyWith(
                                                         fontSize: 13,
                                                         color: AppTheme
-                                                            .text4Color),
+                                                            .text7Color),
                                                 maxLines: null,
                                               ),
                                             ),

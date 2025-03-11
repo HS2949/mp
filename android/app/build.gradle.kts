@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.mp_db.miceplan"
-    compileSdk = 34  // 원하는 SDK 버전
+    compileSdk = 35  // 원하는 SDK 버전
     // ndkVersion = flutter.ndkVersion
 
 
