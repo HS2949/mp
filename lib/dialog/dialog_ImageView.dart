@@ -248,7 +248,7 @@ class _ImageGridScreenState extends State<ImageGridScreen> {
                                         ),
                                       ),
                                       // 삭제 아이콘 (우측 상단)
-                                      Positioned(
+                                      Positioned( //그리드 뷰뷰
                                         top: 0,
                                         right: 0,
                                         child: IconButton(

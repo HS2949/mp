@@ -8,6 +8,7 @@ import 'package:mp_db/constants/styles.dart';
 import 'package:mp_db/dialog/dialog_ImageUpload.dart';
 import 'package:mp_db/dialog/dialog_ImageView.dart';
 import 'package:mp_db/utils/widget_help.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 파일 삭제 함수: Storage와 Firestore에서 모두 삭제
 Future<void> deleteFile(
@@ -70,7 +71,7 @@ Future<List<Map<String, dynamic>>> fetchFileListFromFirestore({
 //// 기존 이미지 선택 다이얼로그 (그리드 형태 썸네일 및 파일명, 삭제 아이콘 포함)
 class ExistingImagesDialog extends StatefulWidget {
   final String folder;
-  final String addFolder; // 추가된 폴더
+  final List<String> addFolder; // 추가된 폴더
 
   const ExistingImagesDialog({
     Key? key,
@@ -86,6 +87,10 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
   List<Map<String, dynamic>> files = [];
   bool loading = true;
 
+  // 다중 선택 관련 상태 변수
+  bool isMultiSelectMode = false;
+  Set<String> selectedFiles = {};
+
   @override
   void initState() {
     super.initState();
@@ -97,18 +102,114 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
       loading = true;
     });
 
-    // 두 개의 폴더에서 파일 리스트 가져오기
-    List<Map<String, dynamic>> filesFromMainFolder =
-        await fetchFileListFromFirestore(folder: widget.folder);
-    List<Map<String, dynamic>> filesFromAddFolder =
-        await fetchFileListFromFirestore(folder: widget.addFolder);
+    try {
+      // 기본 폴더에서 파일 리스트 가져오기
+      List<Map<String, dynamic>> filesFromMainFolder =
+          await fetchFileListFromFirestore(folder: widget.folder);
 
-    // 파일 리스트 병합
-    files = [...filesFromMainFolder, ...filesFromAddFolder];
+      List<Map<String, dynamic>> filesFromAddFolders = [];
 
+      // 추가 폴더 리스트에서 모든 파일 가져오기
+      for (String aFolder in widget.addFolder) {
+        List<Map<String, dynamic>> filesFromFolder =
+            await fetchFileListFromFirestore(folder: aFolder);
+        filesFromAddFolders.addAll(filesFromFolder);
+      }
+
+      // 파일 리스트 병합 후 정렬
+      files = [...filesFromMainFolder, ...filesFromAddFolders];
+      files.sort((a, b) => b['uploadedAt'].compareTo(a['uploadedAt']));
+    } catch (e) {
+      showOverlayMessage(context, "파일 로드 중 오류가 발생했습니다: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
+    }
+  }
+
+  // 다중 선택 모드 진입
+  void _enterMultiSelectMode(String docId) {
     setState(() {
-      loading = false;
+      isMultiSelectMode = true;
+      selectedFiles.add(docId);
     });
+  }
+
+  // 선택 토글
+  void _toggleSelection(String docId) {
+    setState(() {
+      if (selectedFiles.contains(docId)) {
+        selectedFiles.remove(docId);
+      } else {
+        selectedFiles.add(docId);
+      }
+      if (selectedFiles.isEmpty) {
+        isMultiSelectMode = false;
+      }
+    });
+  }
+
+  // 선택된 파일들 삭제
+  Future<void> _deleteSelectedFiles() async {
+    if (selectedFiles.isEmpty) return;
+
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("삭제 확인", style: AppTheme.appbarTitleTextStyle),
+          content: Text("${selectedFiles.length}개의 파일을 삭제하시겠습니까?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("삭제"),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirm != true) return;
+
+    for (String docId in selectedFiles) {
+      final file = files.firstWhere((element) => element['docId'] == docId);
+      try {
+        // deleteFile() 함수는 Firestore와 Storage에서 파일을 삭제합니다.
+        await deleteFile(context, docId, file['downloadUrl'] as String);
+      } catch (e) {
+        showOverlayMessage(context, "파일 삭제 중 오류가 발생했습니다: $e");
+      }
+    }
+    setState(() {
+      selectedFiles.clear();
+      isMultiSelectMode = false;
+    });
+    await loadFiles();
+  }
+
+  // 선택된 파일들 다운로드
+  Future<void> _downloadSelectedFiles() async {
+    if (selectedFiles.isEmpty) return;
+
+    for (String docId in selectedFiles) {
+      final file = files.firstWhere((element) => element['docId'] == docId);
+      final downloadUrl = file['downloadUrl'] as String;
+      final uri = Uri.parse(downloadUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        showOverlayMessage(context, "${file['fileName']} 다운로드 실패");
+      }
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("선택한 파일 다운로드가 완료되었습니다.")),
+    );
   }
 
   @override
@@ -124,10 +225,37 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 제목
-              Text(
-                "기존 이미지 선택",
-                style: AppTheme.appbarTitleTextStyle,
+              // 제목 및 다중 선택 모드 액션 버튼
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isMultiSelectMode ? "다중 선택 모드" : "기존 이미지 선택",
+                    style: AppTheme.appbarTitleTextStyle,
+                  ),
+                  if (isMultiSelectMode)
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.download),
+                          onPressed: _downloadSelectedFiles,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: _deleteSelectedFiles,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              isMultiSelectMode = false;
+                              selectedFiles.clear();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                ],
               ),
               SizedBox(height: 30),
               // 컨텐츠 (로딩 or 파일 목록)
@@ -135,8 +263,8 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                   ? Align(
                       alignment: Alignment.center,
                       child: SizedBox(
-                        width: 50, // 원하는 크기 설정
-                        height: 50, // 원하는 크기 설정
+                        width: 50,
+                        height: 50,
                         child: CircularProgressIndicator(),
                       ),
                     )
@@ -161,10 +289,22 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                   fileData['fileName'] as String? ?? "No Name";
                               final docId = fileData['docId'] as String? ?? "";
 
+                              final bool isSelected =
+                                  selectedFiles.contains(docId);
+
                               return GestureDetector(
                                 onTap: () {
-                                  // 파일 선택 시 다이얼로그 종료하고 선택한 URL 반환
-                                  Navigator.pop(context, downloadUrl);
+                                  if (isMultiSelectMode) {
+                                    _toggleSelection(docId);
+                                  } else {
+                                    // 파일 선택 시 다이얼로그 종료하고 선택한 URL 반환
+                                    Navigator.pop(context, downloadUrl);
+                                  }
+                                },
+                                onLongPress: () {
+                                  if (!isMultiSelectMode) {
+                                    _enterMultiSelectMode(docId);
+                                  }
                                 },
                                 child: Stack(
                                   children: [
@@ -180,7 +320,7 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                           placeholder: (context, url) =>
                                               Image.asset(
                                             'assets/images/loading.gif',
-                                            width: 50, // 너비를 100으로 고정
+                                            width: 50,
                                             fit: BoxFit.contain,
                                           ),
                                           errorWidget: (context, url, error) =>
@@ -191,7 +331,7 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                         ),
                                       ),
                                     ),
-                                    // 파일명 오버레이 (하단 배경 반투명)
+                                    // 파일명 오버레이 (상단 배경 반투명)
                                     Positioned(
                                       top: 0,
                                       left: 0,
@@ -210,63 +350,70 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                                         ),
                                       ),
                                     ),
-                                    // 삭제 아이콘 (우측 상단)
-                                    Positioned(
-                                      top: 10,
-                                      right: 0,
-                                      child: IconButton(
-                                        icon: Icon(Icons.delete,
-                                            color: Colors.redAccent, size: 18),
-                                        onPressed: () async {
-                                          // 삭제 확인 다이얼로그
-                                          bool? confirm =
-                                              await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) {
-                                              return AlertDialog(
-                                                title: Text("삭제 확인",
-                                                    style: AppTheme
-                                                        .appbarTitleTextStyle),
-                                                content:
-                                                    Text("이 파일을 삭제하시겠습니까?"),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            context, false),
-                                                    child: Text("취소"),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            context, true),
-                                                    child: Text("삭제"),
-                                                  ),
-                                                ],
-                                              );
-                                            },
-                                          );
-                                          if (confirm == true) {
-                                            // 로딩 다이얼로그 표시
-                                            showDialog(
+                                    // 다중 선택 모드가 아닐 경우 삭제 아이콘 (우측 상단)
+                                    if (!isMultiSelectMode)
+                                      Positioned(
+                                        top: 10,
+                                        right: 0,
+                                        child: IconButton(
+                                          icon: Icon(Icons.delete,
+                                              color: Colors.redAccent,
+                                              size: 18),
+                                          onPressed: () async {
+                                            bool? confirm =
+                                                await showDialog<bool>(
                                               context: context,
-                                              barrierDismissible: false,
-                                              builder: (context) => Center(
-                                                  child:
-                                                      CircularProgressIndicator()),
+                                              builder: (context) {
+                                                return AlertDialog(
+                                                  title: Text("삭제 확인",
+                                                      style: AppTheme
+                                                          .appbarTitleTextStyle),
+                                                  content:
+                                                      Text("이 파일을 삭제하시겠습니까?"),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context, false),
+                                                      child: Text("취소"),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context, true),
+                                                      child: Text("삭제"),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                             );
-
-                                            // 파일 삭제 및 목록 새로고침
-                                            await deleteFile(
-                                                context, docId, downloadUrl);
-                                            await loadFiles();
-
-                                            // 로딩 다이얼로그 닫기
-                                            Navigator.pop(context);
-                                          }
-                                        },
+                                            if (confirm == true) {
+                                              try {
+                                                await deleteFile(context, docId,
+                                                    downloadUrl);
+                                                await loadFiles();
+                                              } catch (e) {
+                                                showOverlayMessage(context,
+                                                    "파일 삭제 중 오류가 발생했습니다: $e");
+                                              }
+                                            }
+                                          },
+                                        ),
                                       ),
-                                    ),
+                                    // 다중 선택 모드인 경우 선택 표시 (우측 상단)
+                                    if (isMultiSelectMode)
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: Icon(
+                                          isSelected
+                                              ? Icons.check_circle
+                                              : Icons.radio_button_unchecked,
+                                          color: isSelected
+                                              ? Colors.blue
+                                              : Colors.white,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               );
@@ -274,14 +421,15 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
                           ),
                         ),
               SizedBox(height: 10),
-              // 취소 버튼
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context, null),
-                  child: Text("취소"),
+              // 취소 버튼 (다중 선택 모드가 아닐 때만 표시)
+              if (!isMultiSelectMode)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, null),
+                    child: Text("취소"),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -292,7 +440,7 @@ class _ExistingImagesDialogState extends State<ExistingImagesDialog> {
 
 /// 기존 이미지 선택: 그리드 다이얼로그 호출
 Future<String?> selectExistingImage(BuildContext context,
-    {required String folder, required String addFolder}) async {
+    {required String folder, required List<String> addFolder}) async {
   return await showDialog<String>(
     context: context,
     builder: (context) {
@@ -303,7 +451,7 @@ Future<String?> selectExistingImage(BuildContext context,
 
 /// 📌 다이얼로그를 통해 새 이미지 업로드 또는 기존 이미지 선택 제공
 Future<String?> showImageSelectionDialog(BuildContext context,
-    {required String folder, required String addFolder}) async {
+    {required String folder, required List<String> addFolder}) async {
   return showDialog<String>(
     context: context,
     builder: (context) {

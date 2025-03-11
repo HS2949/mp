@@ -42,7 +42,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
   late TextEditingController value1Controller;
   late ScrollController defaultScrollController;
   final FocusNode _focusNode = FocusNode(); // FocusNode 선언
-  
+
   @override
   void initState() {
     super.initState();
@@ -158,7 +158,7 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                       // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
                       String? imageUrl = await showImageSelectionDialog(context,
                           folder: 'uploads/${widget.item?.itemName}/default',
-                          addFolder: '');
+                          addFolder: ['uploads/${widget.item?.itemName}']);
                       if (imageUrl != null) {
                         // 받아온 URL을 value1Controller에 할당
                         value1Controller.text = imageUrl;
@@ -862,12 +862,14 @@ class _EditDialogContentState extends State<EditDialogContent> {
                       icon:
                           const Icon(Icons.upload, color: AppTheme.text6Color),
                       onPressed: () async {
-                        // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
+                        // 디폴트 기존 이미지 추가가
                         String? imageUrl = await showImageSelectionDialog(
                           context,
                           folder: 'uploads/${widget.itemName}/default',
-                          addFolder:
-                              'uploads/${widget.itemName}/${widget.subTitle}',
+                          addFolder: [
+                            'uploads/${widget.itemName}',
+                            'uploads/${widget.itemName}/${widget.subTitle}'
+                          ],
                         );
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
@@ -1152,13 +1154,13 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                       icon:
                           const Icon(Icons.upload, color: AppTheme.text6Color),
                       onPressed: () async {
-                        // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
+                        // 서브아이템 기존 이미지 추가
                         String title = widget.itemProvider.items.firstWhere(
                             (item) => item.id == widget.itemId)['ItemName'];
                         String? imageUrl = await showImageSelectionDialog(
                           context,
                           folder: 'uploads/${title}/default',
-                          addFolder: '',
+                          addFolder: ['uploads/${title}', 'uploads/${title}/${widget.itemData['title']}'],
                         );
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
