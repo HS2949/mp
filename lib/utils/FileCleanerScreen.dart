@@ -359,10 +359,18 @@ class _CombinedFileCheckerScreenState extends State<CombinedFileCheckerScreen> {
 
       QuerySnapshot snapshot = await firestore.collection('files').get();
 
+      // Firestore에 등록된 각 파일의 downloadUrl에서 실제 스토리지 경로(uploads/ 포함)를 추출하여 비교합니다.
       Set<String> firestoreFilePaths = snapshot.docs.map<String>((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        return data['folder'] ?? '';
+        String downloadUrl = data['downloadUrl'] ?? '';
+        if (downloadUrl.isNotEmpty) {
+          Map<String, String> extracted = extractFirebasePath(downloadUrl);
+          // downloadUrl에서 추출한 folder와 filename을 합쳐서 전체 경로와 비교합니다.
+          return '${extracted['folder']}/${extracted['filename']}';
+        }
+        return '';
       }).toSet();
+
       List<String> notTracked = [];
       for (var path in storageFilePaths) {
         if (!firestoreFilePaths.contains(path)) {
