@@ -393,13 +393,21 @@ int koreanCompare(String a, String b) {
 }
 
 void showAddItem(BuildContext context, String? itemId) async {
-  final TextEditingController nameController = TextEditingController();
-  final FocusNode nameFocusNode = FocusNode(); // FocusNode 추가
+  final itemProvider = context.read<ItemProvider>();
+  // 1. nameController의 초기값을 프로바이더의 searchController 값으로 설정하고 커서를 텍스트 끝으로 위치시킴
+  final initialText = itemProvider.searchController.text;
+  final TextEditingController nameController =
+      TextEditingController(text: initialText);
+  nameController.selection = TextSelection.fromPosition(
+    TextPosition(offset: nameController.text.length),
+  );
+  
+  final FocusNode nameFocusNode = FocusNode();
   IconLabel selectedIcon = IconLabel.smile;
   ColorLabel selectedColor = ColorLabel.grey;
   final firestoreService = FirestoreService();
   final categories =
-      context.read<ItemProvider>().categories.skip(1).toList(); // '전체' 제외
+      itemProvider.categories.skip(1).toList(); // '전체' 제외
   Map<String, dynamic>? selectedCategory; // 선택되지 않았을 경우 null 가능
   late final itemData;
 
@@ -408,6 +416,11 @@ void showAddItem(BuildContext context, String? itemId) async {
     itemData = await firestoreService.getItemById(
         collectionName: 'Items', documentId: itemId);
     nameController.text = itemData['ItemName'] ?? '';
+    // 기존 데이터를 불러온 후에도 커서를 텍스트 끝으로 위치시킴
+    nameController.selection = TextSelection.fromPosition(
+      TextPosition(offset: nameController.text.length),
+    );
+    
     selectedCategory = categories.firstWhere(
         (category) => category['itemID'] == itemData['CategoryID'],
         orElse: () => {});
@@ -430,10 +443,7 @@ void showAddItem(BuildContext context, String? itemId) async {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            FocusScope.of(context).requestFocus(nameFocusNode); // 자동 포커스 설정
-          });
-
+          // 2. 자동 포커스 코드를 제거 (초기 텍스트와 커서 위치가 이미 설정되었으므로)
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom + 16,
@@ -448,12 +458,14 @@ void showAddItem(BuildContext context, String? itemId) async {
                   constraints: const BoxConstraints(maxWidth: 250),
                   child: TextField(
                     controller: nameController,
-                    focusNode: nameFocusNode, // FocusNode 적용
+                    focusNode: nameFocusNode,
+                    autofocus: true, // 자동 포커스 속성 추가
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.all(13),
                       suffixIcon: ClearButton(controller: nameController),
                       labelText: '등록할 상호명',
-                      hintText: '예) OO관광지, OO식당, OO호텔, OO차량 ...',
+                      hintText:
+                          '예) OO관광지, OO식당, OO호텔, OO차량 ...',
                       filled: true,
                     ),
                   ),
@@ -506,7 +518,6 @@ void showAddItem(BuildContext context, String? itemId) async {
                             setState(() {
                               selectedCategory = categories.firstWhere(
                                   (category) => category['Name'] == value);
-
                               selectedIcon = IconLabel.values.firstWhere(
                                   (e) => e.label == selectedCategory!['Icon'],
                                   orElse: () => IconLabel.smile);
@@ -558,7 +569,7 @@ void showAddItem(BuildContext context, String? itemId) async {
                           final String newName = nameController.text.trim();
 
                           if (oldName != newName) {
-                            // ✅ 변경된 이름을 탭에도 반영
+                            // 변경된 이름을 탭에도 반영
                             context
                                 .read<ItemProvider>()
                                 .updateTabName(oldName, newName);
@@ -571,7 +582,7 @@ void showAddItem(BuildContext context, String? itemId) async {
                                         "uploads/${oldName}/")
                                 .where('folder',
                                     isLessThan:
-                                        "uploads/${oldName}/\uf8ff") // 같은 prefix를 가진 값 필터링
+                                        "uploads/${oldName}/\uf8ff")
                                 .get();
 
                             WriteBatch batch =
@@ -604,7 +615,7 @@ void showAddItem(BuildContext context, String? itemId) async {
                               context, '${nameController.text}을 추가하였습니다.');
 
                           // 검색창에 입력값을 설정
-                          context.read<ItemProvider>().searchController.text =
+                          itemProvider.searchController.text =
                               nameController.text;
                         }
 

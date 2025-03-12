@@ -29,7 +29,7 @@ class _DialogFieldState extends State<DialogField> {
   void initState() {
     super.initState();
     isDefaultLocal = widget.isDefault;
-    
+
     // 편집 시 기존 데이터 초기화
     if (widget.document != null) {
       _nameController.text = widget.document!['FieldName'];
@@ -114,6 +114,10 @@ class _DialogFieldState extends State<DialogField> {
                     filled: true,
                   ),
                 ),
+                Align(
+                  alignment: Alignment.centerRight,
+                    child: Text('순번 50 이하만 변경 기록(history)이 표시됩니다.\n30일 이상된 기록은 분홍색 표시됨',
+                        style: AppTheme.tagTextStyle.copyWith(fontSize: 11)))
               ],
             ),
           );

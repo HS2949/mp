@@ -30,6 +30,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   int? _fileSize;
   bool _isLoading = false; // 데이터 로딩 상태 관리
 
+  // precache를 didChangeDependencies에서 한 번만 실행하기 위한 플래그
+  bool _didPrecache = false;
+
   // 각 이미지 페이지별 PhotoViewController 저장
   final Map<int, PhotoViewController> _controllers = {};
 
@@ -39,6 +42,16 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     _pageController = PageController(initialPage: widget.initialIndex);
     currentIndex = widget.initialIndex;
     _loadImageData(widget.imageUrls[currentIndex]);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // context가 트리에 완전히 연결된 뒤에 한 번만 미리 캐싱
+    if (!_didPrecache) {
+      _precacheNextImage();
+      _didPrecache = true;
+    }
   }
 
   @override
@@ -67,6 +80,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
       });
 
       _loadImageData(widget.imageUrls[index]);
+      _precacheNextImage();
     }
   }
 
@@ -132,6 +146,16 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   void _loadImageData(String imageUrl) {
     _getImageSize(imageUrl);
     _getImageFileSize(imageUrl);
+  }
+
+  /// 다음 이미지 미리 캐싱
+  void _precacheNextImage() {
+    if (currentIndex + 1 < widget.imageUrls.length) {
+      precacheImage(
+        NetworkImage(widget.imageUrls[currentIndex + 1]),
+        context,
+      );
+    }
   }
 
   String _getFileName(String imageUrl) {
@@ -205,7 +229,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
         final double currentScale = controller.value.scale ?? 1.0;
         double zoomStep = -event.scrollDelta.dy * 0.001;
         double newScale = (currentScale + zoomStep).clamp(0.5, 3.0);
-        // scale 값을 직접 업데이트 (copyWith 대신 setter 사용)
+        // scale 값을 직접 업데이트
         controller.scale = newScale;
       }
     }
@@ -281,6 +305,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                   _fileSize = null;
                 });
                 _loadImageData(widget.imageUrls[index]);
+                _precacheNextImage();
               },
               builder: (context, index) {
                 // 각 페이지별로 PhotoViewController 생성 및 저장
@@ -290,11 +315,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 return PhotoViewGalleryPageOptions(
                   imageProvider: NetworkImage(widget.imageUrls[index]),
                   controller: controller,
-                  minScale:
-                      PhotoViewComputedScale.contained, // 최소 배율을 컨테이너 크기에 맞춤
+                  minScale: PhotoViewComputedScale.contained, // 최소 배율
                   maxScale: 3.0, // 최대 확대 배율
-                  initialScale:
-                      PhotoViewComputedScale.contained, // 초기 배율을 컨테이너 크기에 맞춤
+                  initialScale: PhotoViewComputedScale.contained, // 초기 배율
                   errorBuilder: (context, error, stackTrace) {
                     return Center(
                       child: Column(

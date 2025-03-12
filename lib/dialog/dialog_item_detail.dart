@@ -15,8 +15,8 @@ import 'package:flutter/services.dart';
 import 'package:mp_db/Functions/firestore.dart';
 import 'package:mp_db/Functions/value_history.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:mp_db/dialog/dialog_ImageView.dart';
 import 'package:mp_db/models/item_model.dart';
-import 'package:mp_db/dialog/dialog_firestorage.dart';
 import 'package:mp_db/providers/Item_provider.dart';
 import 'package:mp_db/utils/widget_help.dart';
 
@@ -24,12 +24,14 @@ class AddDialogItemField extends StatefulWidget {
   final ItemProvider itemProvider;
   final String itemId;
   final Item? item;
+  final List<String> existingKeys;
 
   const AddDialogItemField({
     Key? key,
     required this.itemProvider,
     required this.itemId,
     required this.item,
+    required this.existingKeys,
   }) : super(key: key);
 
   @override
@@ -63,10 +65,10 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
+    return RawKeyboardListener(
       focusNode: _focusNode, // FocusNode 할당
-      onKeyEvent: (KeyEvent event) {
-        if (event is KeyDownEvent &&
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
           Navigator.of(context).pop(); // Esc 키를 누르면 이전 화면으로 이동
         }
@@ -90,12 +92,17 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                 expandedInsets: const EdgeInsets.all(15),
                 label: const Text('항목 선택'),
                 dropdownMenuEntries: () {
-                  final sortedKeys = widget.itemProvider.fieldMappings.keys
-                      .where((key) =>
-                          widget.itemProvider.fieldMappings[key]
-                              ?['IsDefault'] ==
-                          true)
-                      .toList();
+                  final sortedKeys =
+                      widget.itemProvider.fieldMappings.keys.where((key) {
+                    // 이미 존재하는 키라면 제외
+                    if (widget.existingKeys.contains(key)) {
+                      return false;
+                    }
+                    return widget.itemProvider.fieldMappings[key]
+                            ?['IsDefault'] ==
+                        true;
+                  }).toList();
+
                   sortedKeys.sort((a, b) {
                     final orderA = int.tryParse(widget
                                 .itemProvider.fieldMappings[a]?['FieldOrder']
@@ -156,9 +163,22 @@ class _AddDialogItemFieldState extends State<AddDialogItemField> {
                     ),
                     onPressed: () async {
                       // 파일 B에 있는 다이얼로그 함수를 호출하여 선택된 이미지 URL을 받아옴
-                      String? imageUrl = await showImageSelectionDialog(context,
-                          folder: 'uploads/${widget.item?.itemName}/default',
-                          addFolder: ['uploads/${widget.item?.itemName}']);
+                      // String? imageUrl = await showImageSelectionDialog(context,
+                      //     folder: 'uploads/${widget.item?.itemName}/default',
+                      //     addFolder: ['uploads/${widget.item?.itemName}']);
+
+                      String? imageUrl = await Navigator.push<String>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ImageGridScreen(
+                            folderName: [
+                              'uploads/${widget.item?.itemName}/default',
+                              'uploads/${widget.item?.itemName}'
+                            ],
+                            isUrl: true,
+                          ),
+                        ),
+                      );
                       if (imageUrl != null) {
                         // 받아온 URL을 value1Controller에 할당
                         value1Controller.text = imageUrl;
@@ -381,10 +401,10 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
   @override
   Widget build(BuildContext context) {
     // 그룹 선택에 따라 다이얼로그 내 높이를 조절할 수 있음
-    return KeyboardListener(
+    return RawKeyboardListener(
       focusNode: _focusNode, // FocusNode 할당
-      onKeyEvent: (KeyEvent event) {
-        if (event is KeyDownEvent &&
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
           Navigator.of(context).pop(); // Esc 키를 누르면 이전 화면으로 이동
         }
@@ -665,6 +685,7 @@ class EditDialogContent extends StatefulWidget {
   final String subItemId;
   final String subTitle;
   final bool isDefault;
+  final List<String> existingKeys; // 이미 존재하는 키들의 리스트
 
   EditDialogContent({
     required this.itemProvider,
@@ -676,6 +697,7 @@ class EditDialogContent extends StatefulWidget {
     required this.subItemId,
     required this.subTitle,
     required this.isDefault,
+    required this.existingKeys,
   });
 
   @override
@@ -788,14 +810,13 @@ class _EditDialogContentState extends State<EditDialogContent> {
                     expandedInsets: const EdgeInsets.all(0),
                     label: const Text('항목 선택'),
                     dropdownMenuEntries: () {
-                      // 1) dynamic 타입이 될 수 있는 keys를 문자열 리스트로 변환
+                      // 1) 모든 키를 문자열 리스트로 변환
                       final allKeys = widget.itemProvider.fieldMappings.keys
                           .map<String>((key) => key.toString())
                           .toList();
 
-                      // 2) 원하는 조건(특정 key 제외 등)에 맞춰 필터링
+                      // 2) 조건에 따라 필터링 (예: IsDefault, 특정 key 제외, 그리고 이미 존재하는 키 제외)
                       final filteredKeys = allKeys.where((key) {
-                        // 예시) IsDefault == false, key != 'SubItem' 등
                         final mapping = widget.itemProvider.fieldMappings[key];
                         if (mapping == null) return false;
                         if (mapping['IsDefault'] != widget.isDefault)
@@ -803,6 +824,9 @@ class _EditDialogContentState extends State<EditDialogContent> {
                         if (key == 'SubItem' ||
                             key == 'SubName' ||
                             key == 'SubOrder') return false;
+                        // 현재 편집 중인 키가 아니고, 이미 존재하는 키라면 제외
+                        if (widget.existingKeys.contains(key) &&
+                            key != widget.keyField) return false;
                         return true;
                       }).toList();
 
@@ -827,8 +851,8 @@ class _EditDialogContentState extends State<EditDialogContent> {
                                 ?['FieldName'] ??
                             key;
                         return DropdownMenuEntry<String>(
-                          value: key, // onSelected로 넘겨줄 실제 값
-                          label: fieldName, // 일반적으로 표시되는 텍스트
+                          value: key,
+                          label: fieldName,
                           labelWidget:
                               Text(fieldName, style: AppTheme.textLabelStyle),
                         );
@@ -862,15 +886,21 @@ class _EditDialogContentState extends State<EditDialogContent> {
                       icon:
                           const Icon(Icons.upload, color: AppTheme.text6Color),
                       onPressed: () async {
-                        // 디폴트 기존 이미지 추가가
-                        String? imageUrl = await showImageSelectionDialog(
+                        // 디폴트 기존 이미지 추가
+                        String? imageUrl = await Navigator.push<String>(
                           context,
-                          folder: 'uploads/${widget.itemName}/default',
-                          addFolder: [
-                            'uploads/${widget.itemName}',
-                            'uploads/${widget.itemName}/${widget.subTitle}'
-                          ],
+                          MaterialPageRoute(
+                            builder: (context) => ImageGridScreen(
+                              folderName: [
+                                'uploads/${widget.itemName}/default',
+                                'uploads/${widget.itemName}',
+                                'uploads/${widget.itemName}/${widget.subTitle}'
+                              ],
+                              isUrl: true,
+                            ),
+                          ),
                         );
+
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
                           textController.text = imageUrl;
@@ -949,19 +979,42 @@ class _EditDialogContentState extends State<EditDialogContent> {
                           }
                           if (canProceed) {
                             final newValue = textController.text.trim();
-                            // 기존 값과 새 값이 다르면 history 기록
-                            if (newValue != widget.fieldValue) {
-                              await recordHistory(
-                                context: context,
-                                itemId: widget.itemId,
-                                subItemId: widget.subItemId.isEmpty
-                                    ? null
-                                    : widget.subItemId,
-                                field: selectedKey!,
-                                before: widget.fieldValue,
-                                after: newValue,
-                              );
+                            // 🔥 기존 값과 새 값이 다르거나, selectedKey가 변경된 경우에도 history 기록
+                            if (newValue != widget.fieldValue ||
+                                selectedKey != widget.keyField) {
+                              if (selectedKey != widget.keyField) {
+                                await recordHistory(
+                                  context: context,
+                                  itemId: widget.itemId,
+                                  subItemId: widget.subItemId.isEmpty
+                                      ? null
+                                      : widget.subItemId,
+                                  field: "키 변경",
+                                  before: widget.itemProvider
+                                              .fieldMappings[widget.keyField]
+                                          ?['FieldName'] ??
+                                      widget.keyField,
+                                  after: widget.itemProvider
+                                              .fieldMappings[selectedKey]
+                                          ?['FieldName'] ??
+                                      selectedKey,
+                                );
+                              }
+
+                              if (newValue != widget.fieldValue) {
+                                await recordHistory(
+                                  context: context,
+                                  itemId: widget.itemId,
+                                  subItemId: widget.subItemId.isEmpty
+                                      ? null
+                                      : widget.subItemId,
+                                  field: selectedKey!,
+                                  before: widget.fieldValue,
+                                  after: newValue,
+                                );
+                              }
                             }
+
                             Navigator.pop(context, {
                               'key': selectedKey,
                               'value': newValue,
@@ -990,12 +1043,14 @@ class AddAttributeDialog extends StatefulWidget {
   final ItemProvider itemProvider;
   final String itemId;
   final Map<String, dynamic> itemData;
+  final List<String> existingKeys;
 
   const AddAttributeDialog({
     Key? key,
     required this.itemProvider,
     required this.itemId,
     required this.itemData,
+    required this.existingKeys,
   }) : super(key: key);
 
   @override
@@ -1028,10 +1083,10 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
+    return RawKeyboardListener(
       focusNode: _focusNode,
-      onKeyEvent: (KeyEvent event) {
-        if (event is KeyDownEvent &&
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
           Navigator.of(context).pop(); // Esc 키를 누르면 이전 화면으로 이동
         }
@@ -1086,15 +1141,20 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                   expandedInsets: const EdgeInsets.all(15),
                   label: const Text('항목 선택'),
                   dropdownMenuEntries: () {
-                    final sortedKeys = widget.itemProvider.fieldMappings.keys
-                        .where((key) =>
-                            widget.itemProvider.fieldMappings[key]
-                                    ?['IsDefault'] ==
-                                false &&
-                            key != 'SubItem' &&
-                            key != 'SubName' &&
-                            key != 'SubOrder') // 특정 키 제외
-                        .toList();
+                    final sortedKeys =
+                        widget.itemProvider.fieldMappings.keys.where((key) {
+                      // 이미 존재하는 키라면 제외
+                      if (widget.existingKeys.contains(key)) {
+                        return false;
+                      }
+                      return widget.itemProvider.fieldMappings[key]
+                                  ?['IsDefault'] ==
+                              false &&
+                          key != 'SubItem' &&
+                          key != 'SubName' &&
+                          key != 'SubOrder';
+                    }) // 특정 키 제외
+                            .toList();
 
                     sortedKeys.sort((a, b) {
                       final orderA = int.tryParse(widget
@@ -1157,11 +1217,20 @@ class _AddAttributeDialogState extends State<AddAttributeDialog> {
                         // 서브아이템 기존 이미지 추가
                         String title = widget.itemProvider.items.firstWhere(
                             (item) => item.id == widget.itemId)['ItemName'];
-                        String? imageUrl = await showImageSelectionDialog(
+                        String? imageUrl = await Navigator.push<String>(
                           context,
-                          folder: 'uploads/${title}/default',
-                          addFolder: ['uploads/${title}', 'uploads/${title}/${widget.itemData['title']}'],
+                          MaterialPageRoute(
+                            builder: (context) => ImageGridScreen(
+                              folderName: [
+                                'uploads/${title}/default',
+                                'uploads/${title}',
+                                'uploads/${title}/${widget.itemData['title']}'
+                              ],
+                              isUrl: true,
+                            ),
+                          ),
                         );
+
                         if (imageUrl != null) {
                           // 받아온 URL을 value1Controller에 할당
                           _valueController.text = imageUrl;

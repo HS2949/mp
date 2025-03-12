@@ -68,6 +68,21 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     itemDetailProvider.addListener(_onProviderToggleChanged);
   }
 
+  /// 헬퍼 함수: 메인 아이템의 필드와 모든 서브 아이템의 필드(단, 'SubItem', 'SubName', 'SubOrder' 제외)를
+  /// 중복 없이 모아서 List<String> 형태로 반환
+  List<String> _computeExistingKeys(Item itemData) {
+    final existingKeySet = <String>{};
+    existingKeySet.addAll(itemData.fields.keys);
+    for (final subItem in itemData.subItems) {
+      existingKeySet.addAll(
+        subItem.fields.keys.where(
+          (key) => key != 'SubItem' && key != 'SubName' && key != 'SubOrder',
+        ),
+      );
+    }
+    return existingKeySet.toList();
+  }
+
   Future<void> _fetchAllHistory() async {
     final itemData =
         context.read<ItemDetailProvider>().getItemData(widget.itemId);
@@ -164,7 +179,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     });
   }
 
-  // 각 subItem 별 파일 여부를 확인하는는 함수
+  // 각 subItem 별 파일 여부를 확인하는 함수
   Future<bool> _hasFiles(String folderName) async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
@@ -379,6 +394,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     required String subItemId,
     required String subTitle,
     required bool isDefault,
+    required List<String> existingKeys,
   }) async {
     final result = await showDialog(
       context: context,
@@ -393,6 +409,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         subItemId: subItemId,
         subTitle: subTitle,
         isDefault: isDefault,
+        existingKeys: existingKeys, // 현재 존재하는 키 리스트 전달
       ),
     );
 
@@ -537,6 +554,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   }
 
   Widget _buildFirstView(Item itemData) {
+    // main 화면에서 기존 key 목록 계산
+    final List<String> existingKeys = _computeExistingKeys(itemData);
+
     final matchedCategory = provider.categories.firstWhere(
       (cat) => cat['itemID'] == itemData.categoryID,
       orElse: () => {'Color': 'Silver', 'Icon': 'List'},
@@ -561,7 +581,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               icon: const Icon(Icons.add),
               tooltip: '기본 정보 추가',
               onPressed: () async {
-                await _showAddDialogItem(context, provider, widget.itemId);
+                await _showAddDialogItem(
+                    context, provider, widget.itemId, existingKeys);
                 _fetchAllHistory();
               },
             ),
@@ -578,7 +599,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => ImageGridScreen(
-                          folderName: 'uploads/${itemData.itemName}'),
+                          folderName: ['uploads/${itemData.itemName}'],
+                          isUrl: false),
                     ),
                   ).then((_) {
                     // 화면이 닫힐 때 _checkFileExistence 실행
@@ -651,7 +673,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => ImageGridScreen(
-                            folderName: 'uploads/${itemData.itemName}'),
+                            folderName: ['uploads/${itemData.itemName}'],
+                            isUrl: false),
                       ),
                     ).then((_) {
                       // 화면이 닫힐 때 _checkFileExistence 실행
@@ -749,7 +772,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           SliverToBoxAdapter(
             child: Column(
               children: [
-                _fieldDefault(itemData),
+                _fieldDefault(itemData, existingKeys),
                 widget.viewSelect == 0
                     ? _buildSecondView(itemData)
                     : const SizedBox.shrink(),
@@ -761,7 +784,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     );
   }
 
-  Widget _fieldDefault(Item itemData) {
+  Widget _fieldDefault(Item itemData, List<String> existingKeys) {
     final Map<String, Map<String, dynamic>> fields =
         context.read<ItemProvider>().fieldMappings;
     final itemFieldEntries = itemData.fields.entries.toList();
@@ -819,14 +842,17 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                         const BoxConstraints(minWidth: 16, minHeight: 16),
                     icon: Icon(Icons.edit, size: 10, color: AppTheme.toolColor),
                     onPressed: () {
-                      _showEditDialog(context,
-                          key: 'keyword',
-                          name: '태그',
-                          value: itemData.itemTag,
-                          itemId: itemData.id,
-                          subItemId: '',
-                          subTitle: '',
-                          isDefault: true);
+                      _showEditDialog(
+                        context,
+                        key: 'keyword',
+                        name: '태그',
+                        value: itemData.itemTag,
+                        itemId: itemData.id,
+                        subItemId: '',
+                        subTitle: '',
+                        isDefault: true,
+                        existingKeys: existingKeys, // 현재 존재하는 키 리스트
+                      );
                     },
                   ),
                 ],
@@ -847,6 +873,13 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           final String label = itemProvider
                                   .fieldMappings[entry.key]?['FieldName'] ??
                               entry.key;
+                          // fieldOrder 가져오기
+                          final int fieldOrder = int.tryParse(
+                                  itemProvider.fieldMappings[entry.key]
+                                          ?['FieldOrder'] ??
+                                      '99') ??
+                              99;
+
                           final dynamic result =
                               formatValue(context, entry.value);
                           return Card(
@@ -868,30 +901,38 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 .watch<ItemProvider>()
                                                 .getHistoryForTab()?[entry.key];
 
-                                            final formattedTime =
-                                                historyData?['timestamp'] !=
-                                                        null
-                                                    ? DateFormat("yy. MM. dd",
-                                                            "ko_KR")
-                                                        .format((historyData![
-                                                                    'timestamp']
-                                                                as Timestamp)
-                                                            .toDate())
-                                                    : '';
-
+                                            // Timestamp 가져오기
                                             final timestamp =
                                                 historyData?['timestamp']
                                                     as Timestamp?;
+                                            String formattedTime = '';
                                             int daysDiff = 0;
+
                                             if (timestamp != null) {
-                                              final historyDate =
-                                                  timestamp.toDate();
-                                              final now = DateTime.now();
-                                              daysDiff = now
+                                              // 날짜 비교를 위한 시간 정보 제거
+                                              final historyDate = DateTime(
+                                                timestamp.toDate().year,
+                                                timestamp.toDate().month,
+                                                timestamp.toDate().day,
+                                              );
+
+                                              final nowDate = DateTime(
+                                                DateTime.now().year,
+                                                DateTime.now().month,
+                                                DateTime.now().day,
+                                              );
+
+                                              daysDiff = nowDate
                                                   .difference(historyDate)
                                                   .inDays;
+
+                                              // 날짜 포맷 적용
+                                              formattedTime = DateFormat(
+                                                      "yy. MM. dd", "ko_KR")
+                                                  .format(historyDate);
                                             }
 
+                                            // Tooltip 텍스트 생성
                                             final tooltipText = historyData !=
                                                     null
                                                 ? '$formattedTime  ${historyData['userName']}  D+$daysDiff'
@@ -918,10 +959,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                             8),
                                                   ),
                                                 ),
-                                                if (!tooltipText.isEmpty) ...[
+                                                if (tooltipText.isNotEmpty &&
+                                                    fieldOrder <= 50) ...[
                                                   const SizedBox(width: 4),
                                                   Builder(
                                                     builder: (context) {
+                                                      // `D+숫자` 추출 및 스타일 적용
                                                       final match =
                                                           RegExp(r"D\+(\d+)")
                                                               .firstMatch(
@@ -987,6 +1030,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 subItemId: '',
                                                 subTitle: '',
                                                 isDefault: true,
+                                                existingKeys:
+                                                    existingKeys, // 현재 존재하는 키 리스트
                                               );
                                             },
                                           ),
@@ -1042,13 +1087,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
       });
     }
 
+    // main 아이템 기준으로 기존 key 목록 계산
+    final List<String> existingKeys = _computeExistingKeys(item);
+
     Widget subitemList = ListView.builder(
       shrinkWrap: widget.viewSelect == 0 ? true : false,
-      // physics: widget.viewSelect == 0
-      //     ? BouncingScrollPhysics()
-      //     : NeverScrollableScrollPhysics(),
       physics: BouncingScrollPhysics(),
-
       itemCount: _computedGroups.length + 1, // 마지막 공간을 위해 +1
       itemBuilder: (context, groupIndex) {
         if (groupIndex == _computedGroups.length) {
@@ -1192,8 +1236,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       onTap: () => _toggleItemExpansion(
                                           groupIndex, itemIndex),
                                       onLongPress: () async {
-                                        await _showAddAttributeDialog(context,
-                                            provider, widget.itemId, itemData);
+                                        await _showAddAttributeDialog(
+                                            context,
+                                            provider,
+                                            widget.itemId,
+                                            itemData,
+                                            existingKeys);
                                         _fetchAllHistory();
                                         _toggleAllItemsInGroup(
                                             groupIndex, false);
@@ -1313,7 +1361,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                           context,
                                                           provider,
                                                           widget.itemId,
-                                                          itemData);
+                                                          itemData,
+                                                          existingKeys);
                                                       _fetchAllHistory();
                                                       _toggleAllItemsInGroup(
                                                           groupIndex, false);
@@ -1334,8 +1383,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                         MaterialPageRoute(
                                                           builder: (context) =>
                                                               ImageGridScreen(
-                                                                  folderName:
-                                                                      folderName),
+                                                                  folderName: [
+                                                                folderName
+                                                              ],
+                                                                  isUrl: false),
                                                         ),
                                                       ).then((_) {
                                                         // 화면이 닫힐 때 _checkFileExistence 실행
@@ -1383,8 +1434,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                     MaterialPageRoute(
                                                       builder: (context) =>
                                                           ImageGridScreen(
-                                                              folderName:
-                                                                  folderName),
+                                                              folderName: [
+                                                            folderName
+                                                          ],
+                                                              isUrl: false),
                                                     ),
                                                   ).then((_) {
                                                     // 화면이 닫힐 때 _checkFileExistence 실행
@@ -1470,36 +1523,66 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                         attribute[
                                                                             'FieldKey']];
 
-                                                                    final formattedTime = historyData?['timestamp'] !=
-                                                                            null
-                                                                        ? DateFormat("yy. MM. dd",
-                                                                                "ko_KR")
-                                                                            .format((historyData!['timestamp'] as Timestamp).toDate())
-                                                                        : '';
-
+                                                                    // Timestamp 가져오기
                                                                     final timestamp =
                                                                         historyData?['timestamp']
                                                                             as Timestamp?;
+                                                                    String
+                                                                        formattedTime =
+                                                                        '';
                                                                     int daysDiff =
                                                                         0;
+
                                                                     if (timestamp !=
                                                                         null) {
+                                                                      // 날짜 비교를 위한 시간 정보 제거
                                                                       final historyDate =
-                                                                          timestamp
-                                                                              .toDate();
-                                                                      final now =
-                                                                          DateTime
-                                                                              .now();
-                                                                      daysDiff = now
+                                                                          DateTime(
+                                                                        timestamp
+                                                                            .toDate()
+                                                                            .year,
+                                                                        timestamp
+                                                                            .toDate()
+                                                                            .month,
+                                                                        timestamp
+                                                                            .toDate()
+                                                                            .day,
+                                                                      );
+
+                                                                      final nowDate =
+                                                                          DateTime(
+                                                                        DateTime.now()
+                                                                            .year,
+                                                                        DateTime.now()
+                                                                            .month,
+                                                                        DateTime.now()
+                                                                            .day,
+                                                                      );
+
+                                                                      daysDiff = nowDate
                                                                           .difference(
                                                                               historyDate)
                                                                           .inDays;
+
+                                                                      // 날짜 포맷 적용
+                                                                      formattedTime = DateFormat(
+                                                                              "yy. MM. dd",
+                                                                              "ko_KR")
+                                                                          .format(
+                                                                              historyDate);
                                                                     }
 
+                                                                    // Tooltip 텍스트 생성
                                                                     final tooltipText = historyData !=
                                                                             null
                                                                         ? '$formattedTime  ${historyData['userName']}  D+$daysDiff'
                                                                         : '';
+                                                                    // fieldOrder 가져오기
+                                                                    final int
+                                                                        fieldOrder =
+                                                                        int.tryParse(attribute['FieldOrder'] ??
+                                                                                '99') ??
+                                                                            99;
 
                                                                     return Column(
                                                                       crossAxisAlignment:
@@ -1513,7 +1596,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                               copyTextWidget(
                                                                             context,
                                                                             text:
-                                                                                "${attribute['FieldName']}",
+                                                                                attribute['FieldName'] ?? '',
                                                                             widgetType:
                                                                                 TextWidgetType.plain,
                                                                             doGestureDetector:
@@ -1533,16 +1616,17 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                                 BorderRadius.circular(8),
                                                                           ),
                                                                         ),
-                                                                        if (!tooltipText
-                                                                            .isEmpty) ...[
+                                                                        if (tooltipText.isNotEmpty &&
+                                                                            fieldOrder <=
+                                                                                50) ...[
                                                                           const SizedBox(
                                                                               height: 4),
                                                                           Builder(
                                                                             builder:
                                                                                 (context) {
+                                                                              // `D+숫자` 추출 및 스타일 적용
                                                                               final match = RegExp(r"D\+(\d+)").firstMatch(tooltipText);
                                                                               final value = match != null ? int.tryParse(match.group(1) ?? "") ?? 0 : 0;
-
                                                                               return Text(
                                                                                 match?.group(0) ?? "",
                                                                                 style: AppTheme.bodySmallTextStyle.copyWith(
@@ -1553,7 +1637,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                               );
                                                                             },
                                                                           ),
-                                                                        ]
+                                                                        ],
                                                                       ],
                                                                     );
                                                                   },
@@ -1601,6 +1685,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                               'title'],
                                                                       isDefault:
                                                                           false,
+                                                                      existingKeys:
+                                                                          existingKeys, // 현재 존재하는 키 리스트
                                                                     );
                                                                   },
                                                                 ),
@@ -1722,8 +1808,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 // 3. 다이얼로그 호출 함수
 // ============================================================================
 
-Future<void> _showAddDialogItem(
-    BuildContext context, ItemProvider itemProvider, String itemId) async {
+Future<void> _showAddDialogItem(BuildContext context, ItemProvider itemProvider,
+    String itemId, List<String> existingKeys) async {
   final item = context.read<ItemDetailProvider>().getItemData(itemId);
   await showDialog(
     barrierDismissible: false,
@@ -1735,7 +1821,10 @@ Future<void> _showAddDialogItem(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
           child: AddDialogItemField(
-              itemProvider: itemProvider, itemId: itemId, item: item),
+              itemProvider: itemProvider,
+              itemId: itemId,
+              item: item,
+              existingKeys: existingKeys),
         ),
       );
     },
@@ -1762,8 +1851,12 @@ Future<void> showAddDialogSubItem(BuildContext context,
   );
 }
 
-Future<void> _showAddAttributeDialog(BuildContext context,
-    ItemProvider itemProvider, String itemId, var itemData) async {
+Future<void> _showAddAttributeDialog(
+    BuildContext context,
+    ItemProvider itemProvider,
+    String itemId,
+    var itemData,
+    existingKeys) async {
   await showDialog(
     barrierDismissible: false,
     context: context,
@@ -1777,6 +1870,7 @@ Future<void> _showAddAttributeDialog(BuildContext context,
             itemProvider: itemProvider,
             itemId: itemId,
             itemData: itemData,
+            existingKeys: existingKeys,
           ),
         ),
       );

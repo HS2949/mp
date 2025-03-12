@@ -319,16 +319,16 @@ class _Item_WidgetState extends State<Item_Widget>
     // Provider에서 관리하는 TabController와 탭 리스트를 사용합니다.
     final tabProvider = Provider.of<ItemProvider>(context);
 
-    return KeyboardListener(
+    return RawKeyboardListener(
       focusNode: tabProvider.keyboardFocusNode,
-      onKeyEvent: (KeyEvent event) {
-        if (event is KeyDownEvent &&
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
           tabProvider.selectTab(0); // 0번 탭 선택
           tabProvider.focusSearchField();
           print("esc 눌림");
         }
-        if (event is KeyDownEvent &&
+        if (event is RawKeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.space) {
           Provider.of<ItemDetailProvider>(context, listen: false)
               .toggleAllItem();
@@ -401,47 +401,55 @@ class _Item_WidgetState extends State<Item_Widget>
           }),
         ),
         floatingActionButton: tabProvider.controller == null
-            ? null // `controller`가 `null`이면 버튼 표시 안 함
+            ? null // controller가 null이면 버튼 표시 안 함
             : AnimatedBuilder(
                 animation: tabProvider.controller!,
                 builder: (context, child) {
-                  return (tabProvider.controller?.index ?? -1) ==
-                          0 // 탭 인덱스가 1일 때만 표시
-                      ? FloatingActionButton.extended(
-                          heroTag: null,
-                          tooltip: 'Add Item',
-                          label: Text('장소 추가',
-                              style: AppTheme.bodySmallTextStyle
-                                  .copyWith(color: Colors.white)),
-                          onPressed: () => showAddItem(context, ''),
-                          icon: const Icon(Icons.add),
-                        )
-                      : SizedBox(
-                          height: 42,
-                          child: FloatingActionButton.extended(
-                            heroTag: null,
-                            label:
-                                Text('정보 추가', style: TextStyle(fontSize: 13)),
-                            backgroundColor:
-                                AppTheme.text5Color.withOpacity(0.4),
-                            hoverColor: AppTheme.text5Color.withOpacity(0.8),
-                            tooltip: '추가 정보 입력',
-                            onPressed: () async {
-                              await showAddDialogSubItem(
-                                  context,
-                                  tabProvider,
-                                  (tabProvider
-                                          .tabViews[tabProvider.selectedIndex]
-                                          .second as ItemDetailSubpage)
-                                      .getItemId,
-                                  null);
-                            },
-                            icon: const Icon(
-                              Icons.add,
-                              size: 13,
-                            ),
-                          ),
-                        );
+                  if ((tabProvider.controller?.index ?? -1) == 0) {
+                    // 탭 인덱스가 0인 경우
+                    if (tabProvider.filteredItem.isEmpty) {
+                      // filteredItem이 비어있을 때만 "장소 추가" 버튼 표시
+                      return FloatingActionButton.extended(
+                        heroTag: null,
+                        tooltip: 'Add Item',
+                        label: Text('장소 추가',
+                            style: AppTheme.bodySmallTextStyle.copyWith(
+                              color: Colors.white,
+                            )),
+                        onPressed: () => showAddItem(context, ''),
+                        icon: const Icon(Icons.add),
+                      );
+                    } else {
+                      // filteredItem에 값이 있다면 아무것도 표시하지 않음
+                      return SizedBox.shrink();
+                    }
+                  } else {
+                    // 탭 인덱스가 0이 아닌 경우 "정보 추가" 버튼 표시
+                    return SizedBox(
+                      height: 42,
+                      child: FloatingActionButton.extended(
+                        heroTag: null,
+                        label: Text('정보 추가', style: TextStyle(fontSize: 13)),
+                        backgroundColor: AppTheme.text5Color.withOpacity(0.4),
+                        hoverColor: AppTheme.text5Color.withOpacity(0.8),
+                        tooltip: '추가 정보 입력',
+                        onPressed: () async {
+                          await showAddDialogSubItem(
+                            context,
+                            tabProvider,
+                            (tabProvider.tabViews[tabProvider.selectedIndex]
+                                    .second as ItemDetailSubpage)
+                                .getItemId,
+                            null,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.add,
+                          size: 13,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
       ),

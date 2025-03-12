@@ -169,11 +169,7 @@ class _FileListScreenState extends State<FileListScreen> {
         return loading
             ? Align(
                 alignment: Alignment.center,
-                child: SizedBox(
-                  width: 50, // 원하는 크기 설정
-                  height: 50, // 원하는 크기 설정
-                  child: CircularProgressIndicator(),
-                ),
+                child: CircularProgressIndicator(),
               )
             : Stack(
                 children: [

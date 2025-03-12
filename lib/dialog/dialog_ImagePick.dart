@@ -346,10 +346,10 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
+    return RawKeyboardListener(
       focusNode: _focusNode, // FocusNode 할당
-      onKeyEvent: (KeyEvent event) {
-        if (event is KeyDownEvent &&
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
           Navigator.of(context).pop(); // Esc 키를 누르면 이전 화면으로 이동
         }
@@ -476,7 +476,7 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                                 onPressed: () =>
                                                     Navigator.of(context)
                                                         .pop(true),
-                                                child: Text("제거거"),
+                                                child: Text("제거"),
                                               ),
                                             ],
                                           );
