@@ -22,6 +22,7 @@ import 'package:mp_db/pages/profile_page.dart';
 import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
+import 'package:mp_db/utils/FileCleanerScreen.dart';
 import 'package:provider/provider.dart';
 
 // 타이포그래피 화면을 정의한 모듈 가져오기.
@@ -167,8 +168,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 showMediumSizeLayout: showMediumSizeLayout,
                 showLargeSizeLayout: showLargeSizeLayout),
           ),
-        ScreenSelected.setting3 => const TypographyScreen(),
-        ScreenSelected.setting2 => const Item_Category(),
+        ScreenSelected.setting2 => Expanded(child: CombinedFileCheckerScreen()),
+        ScreenSelected.setting3 => const Item_Category(),
         ScreenSelected.temp2 => Expanded(child: RentacarSubpage()),
         // ScreenSelected.temp2 => Expanded(
         //     // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
@@ -781,7 +782,7 @@ class ExampleDestination {
 
 const List<ExampleDestination> destinations = <ExampleDestination>[
   ExampleDestination('Setting', Icon(Icons.settings), Icon(Icons.settings)),
-  ExampleDestination('업데이트 예정', Icon(Icons.label_important_outline),
+  ExampleDestination('File Cleaner', Icon(Icons.label_important_outline),
       Icon(Icons.label_important)),
   ExampleDestination(
       '업데이트 예정', Icon(Icons.favorite_outline), Icon(Icons.favorite)),

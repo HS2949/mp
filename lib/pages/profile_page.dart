@@ -264,8 +264,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                   horizontal: 8, vertical: 4),
                               leading: Icon(
                                 subItemId != null
-                                    ? Icons.subdirectory_arrow_right
-                                    : Icons.history,
+                                    ? Icons.label_important_outline
+                                    : Icons.loyalty_outlined,
                                 color: AppTheme.textHintColor,
                                 size: 20,
                               ),
@@ -308,10 +308,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                     if (action.contains('변경')) ...[
                                       Flexible(
                                         child: Text(
-                                          "$mappedField",
+                                          mappedField == after
+                                              ? "항목"
+                                              : mappedField,
                                           style: AppTheme.bodySmallTextStyle
                                               .copyWith(
-                                                  color: AppTheme.text4Color),
+                                            color: mappedField == after
+                                                ? AppTheme.textHintColor
+                                                : AppTheme.text4Color,
+                                          ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
@@ -364,7 +369,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                           "$mappedField",
                                           style: AppTheme.bodySmallTextStyle
                                               .copyWith(
-                                                  color: AppTheme.text4Color),
+                                                  color: AppTheme.text7Color
+                                                      .withOpacity(0.5)),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),

@@ -68,19 +68,20 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     itemDetailProvider.addListener(_onProviderToggleChanged);
   }
 
-  /// 헬퍼 함수: 메인 아이템의 필드와 모든 서브 아이템의 필드(단, 'SubItem', 'SubName', 'SubOrder' 제외)를
-  /// 중복 없이 모아서 List<String> 형태로 반환
-  List<String> _computeExistingKeys(Item itemData) {
-    final existingKeySet = <String>{};
-    existingKeySet.addAll(itemData.fields.keys);
-    for (final subItem in itemData.subItems) {
-      existingKeySet.addAll(
-        subItem.fields.keys.where(
-          (key) => key != 'SubItem' && key != 'SubName' && key != 'SubOrder',
-        ),
-      );
+  List<String> _computeSubItemExistingKeys(Map<String, dynamic> subItemData) {
+    final fieldKeyList = <String>[];
+
+    if (subItemData.containsKey('attributes') &&
+        subItemData['attributes'] is List) {
+      for (var attribute in subItemData['attributes'] as List) {
+        if (attribute is Map<String, dynamic> &&
+            attribute.containsKey('FieldKey')) {
+          fieldKeyList.add(attribute['FieldKey'].toString());
+        }
+      }
     }
-    return existingKeySet.toList();
+
+    return fieldKeyList;
   }
 
   Future<void> _fetchAllHistory() async {
@@ -88,29 +89,44 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         context.read<ItemDetailProvider>().getItemData(widget.itemId);
 
     if (itemData != null) {
-      final allKeys = <String>{};
-      allKeys.addAll(itemData.fields.keys);
+      final Map<String, Map<String, dynamic>?> keyHistories = {};
+      final List<Future> futures = [];
 
-      for (final subItem in itemData.subItems) {
-        final attributes = subItem.fields;
-        for (final key in attributes.keys) {
-          if (key != 'SubItem' && key != 'SubName' && key != 'SubOrder') {
-            allKeys.add(key);
+      // 메인 아이템의 필드는 기존처럼 처리합니다.
+      itemData.fields.forEach((key, value) {
+        futures.add(() async {
+          final history = await fetchKeyHistory(
+            itemId: widget.itemId,
+            field: key,
+          );
+          if (history != null) {
+            keyHistories[key] = history;
           }
-        }
+        }());
+      });
+
+      // subItem의 필드는 field와 subItemId를 따로 쿼리합니다.
+      for (final subItem in itemData.subItems) {
+        final subItemId = subItem.id; // 고유 식별자
+        subItem.fields.forEach((key, value) {
+          if (key != 'SubItem' && key != 'SubName' && key != 'SubOrder') {
+            futures.add(() async {
+              final history = await fetchKeyHistory(
+                itemId: widget.itemId,
+                field: key, // field 조건은 그대로 전달
+                subItemId: subItemId, // 별도 조건으로 subItemId 전달
+              );
+              if (history != null) {
+                // keyHistories에서 구분을 위해 composite key 사용
+                final compositeKey = '${key}_$subItemId';
+                keyHistories[compositeKey] = history;
+              }
+            }());
+          }
+        });
       }
 
-      final Map<String, Map<String, dynamic>?> keyHistories = {};
-
-      await Future.wait(allKeys.map((key) async {
-        final history = await fetchKeyHistory(
-          itemId: widget.itemId,
-          field: key,
-        );
-        if (history != null) {
-          keyHistories[key] = history;
-        }
-      }));
+      await Future.wait(futures);
 
       setState(() {
         provider.updateKeyHistory(keyHistories);
@@ -122,22 +138,30 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   Future<Map<String, dynamic>?> fetchKeyHistory({
     required String itemId,
     required String field,
+    String? subItemId,
   }) async {
     try {
       final firestore = FirebaseFirestore.instance;
 
-      // itemId의 history 서브컬렉션을 조회하도록 필터링 추가
-      final querySnapshot = await firestore
-          .collection('Items') // 아이템 컬렉션
-          .doc(itemId) // 특정 아이템 ID 선택
-          .collection('history') // 해당 아이템의 history 서브컬렉션 접근
-          .where('field', isEqualTo: field) // 특정 필드 값 필터링
-          .orderBy('timestamp', descending: true) // 최신순 정렬
-          .limit(1) // 최신 1개 데이터만 가져오기
-          .get();
+      Query query = firestore
+          .collection('Items')
+          .doc(itemId)
+          .collection('history')
+          .where('field', isEqualTo: field);
+
+      if (subItemId != null) {
+        query = query.where('subItemId', isEqualTo: subItemId);
+      }
+
+      query = query.orderBy('timestamp', descending: true).limit(1);
+      final querySnapshot = await query.get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        final historyData = querySnapshot.docs.first.data();
+        final historyData =
+            querySnapshot.docs.first.data() as Map<String, dynamic>;
+        ;
+
+        // Handle null userId safely
         final userId = historyData['userId'];
         String userName = '알 수 없음';
 
@@ -148,12 +172,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           }
         }
 
-        final latestHistory = {
+        return {
           'userName': userName,
           'timestamp': historyData['timestamp'],
         };
-
-        return latestHistory;
       }
     } catch (e) {
       print("Firestore query failed: $e");
@@ -397,6 +419,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     required List<String> existingKeys,
   }) async {
     final result = await showDialog(
+      barrierDismissible: false, // ✅ 다이얼로그 바깥을 눌러도 닫히지 않도록 설정
       context: context,
       builder: (context) => EditDialogContent(
         itemProvider: provider,
@@ -555,7 +578,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
   Widget _buildFirstView(Item itemData) {
     // main 화면에서 기존 key 목록 계산
-    final List<String> existingKeys = _computeExistingKeys(itemData);
 
     final matchedCategory = provider.categories.firstWhere(
       (cat) => cat['itemID'] == itemData.categoryID,
@@ -581,8 +603,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               icon: const Icon(Icons.add),
               tooltip: '기본 정보 추가',
               onPressed: () async {
-                await _showAddDialogItem(
-                    context, provider, widget.itemId, existingKeys);
+                await _showAddDialogItem(context, provider, widget.itemId,
+                    itemData.fields.keys.toList());
                 _fetchAllHistory();
               },
             ),
@@ -772,7 +794,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           SliverToBoxAdapter(
             child: Column(
               children: [
-                _fieldDefault(itemData, existingKeys),
+                _fieldDefault(itemData),
                 widget.viewSelect == 0
                     ? _buildSecondView(itemData)
                     : const SizedBox.shrink(),
@@ -784,7 +806,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     );
   }
 
-  Widget _fieldDefault(Item itemData, List<String> existingKeys) {
+  Widget _fieldDefault(Item itemData) {
     final Map<String, Map<String, dynamic>> fields =
         context.read<ItemProvider>().fieldMappings;
     final itemFieldEntries = itemData.fields.entries.toList();
@@ -851,7 +873,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                         subItemId: '',
                         subTitle: '',
                         isDefault: true,
-                        existingKeys: existingKeys, // 현재 존재하는 키 리스트
+                        existingKeys: [],
                       );
                     },
                   ),
@@ -1030,8 +1052,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 subItemId: '',
                                                 subTitle: '',
                                                 isDefault: true,
-                                                existingKeys:
-                                                    existingKeys, // 현재 존재하는 키 리스트
+                                                existingKeys: itemData
+                                                    .fields.keys
+                                                    .toList(), // 현재 존재하는 키 리스트
                                               );
                                             },
                                           ),
@@ -1086,9 +1109,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         }
       });
     }
-
-    // main 아이템 기준으로 기존 key 목록 계산
-    final List<String> existingKeys = _computeExistingKeys(item);
 
     Widget subitemList = ListView.builder(
       shrinkWrap: widget.viewSelect == 0 ? true : false,
@@ -1241,7 +1261,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                             provider,
                                             widget.itemId,
                                             itemData,
-                                            existingKeys);
+                                            _computeSubItemExistingKeys(
+                                                itemData));
                                         _fetchAllHistory();
                                         _toggleAllItemsInGroup(
                                             groupIndex, false);
@@ -1309,11 +1330,18 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                           .textLabelStyle,
                                                     ),
                                                     onPressed: () async {
-                                                      await showAddDialogSubItem(
-                                                          context,
-                                                          provider,
-                                                          widget.itemId,
-                                                          itemData);
+                                                      String? result =
+                                                          await showAddDialogSubItem(
+                                                              context,
+                                                              provider,
+                                                              widget.itemId,
+                                                              itemData);
+
+                                                      if (result != null) {
+                                                        // 다이얼로그에서 받은 결과를 _updateFileExistence 함수에 전달
+                                                        _updateFileExistence(
+                                                            result);
+                                                      }
                                                     },
                                                   ),
                                                   MenuItemButton(
@@ -1362,7 +1390,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                           provider,
                                                           widget.itemId,
                                                           itemData,
-                                                          existingKeys);
+                                                          _computeSubItemExistingKeys(
+                                                              itemData));
                                                       _fetchAllHistory();
                                                       _toggleAllItemsInGroup(
                                                           groupIndex, false);
@@ -1516,12 +1545,26 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                 Builder(
                                                                   builder:
                                                                       (context) {
-                                                                    final historyData = context
-                                                                            .watch<
-                                                                                ItemProvider>()
-                                                                            .getHistoryForTab()?[
+                                                                    final String?
+                                                                        subItemId =
+                                                                        itemData[
+                                                                            'id'];
+                                                                    final String
+                                                                        fieldKey =
                                                                         attribute[
-                                                                            'FieldKey']];
+                                                                            'FieldKey']; // 기존 필드 키
+
+                                                                    final String
+                                                                        compositeKey =
+                                                                        subItemId !=
+                                                                                null
+                                                                            ? '${fieldKey}_$subItemId'
+                                                                            : fieldKey;
+
+                                                                    final historyData = context
+                                                                        .watch<
+                                                                            ItemProvider>()
+                                                                        .getHistoryForTab()?[compositeKey];
 
                                                                     // Timestamp 가져오기
                                                                     final timestamp =
@@ -1686,7 +1729,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                       isDefault:
                                                                           false,
                                                                       existingKeys:
-                                                                          existingKeys, // 현재 존재하는 키 리스트
+                                                                          _computeSubItemExistingKeys(
+                                                                              itemData), // 현재 존재하는 키 리스트
                                                                     );
                                                                   },
                                                                 ),
@@ -1812,7 +1856,7 @@ Future<void> _showAddDialogItem(BuildContext context, ItemProvider itemProvider,
     String itemId, List<String> existingKeys) async {
   final item = context.read<ItemDetailProvider>().getItemData(itemId);
   await showDialog(
-    barrierDismissible: false,
+    barrierDismissible: false, // ✅ 다이얼로그 바깥을 눌러도 닫히지 않도록 설정
     context: context,
     builder: (BuildContext context) {
       return WillPopScope(
@@ -1831,15 +1875,16 @@ Future<void> _showAddDialogItem(BuildContext context, ItemProvider itemProvider,
   );
 }
 
-Future<void> showAddDialogSubItem(BuildContext context,
+Future<String?> showAddDialogSubItem(BuildContext context,
     ItemProvider itemProvider, String itemId, var itemData) async {
   final item = context.read<ItemDetailProvider>().getItemData(itemId);
-  await showDialog(
-    barrierDismissible: false,
+
+  return await showDialog<String>(
+    barrierDismissible: false, // ✅ 다이얼로그 바깥을 눌러도 닫히지 않도록 설정
     context: context,
     builder: (BuildContext context) {
       return WillPopScope(
-        onWillPop: () async => true,
+        onWillPop: () async => false, // ✅ 뒤로가기 버튼도 막음
         child: Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
@@ -1858,7 +1903,7 @@ Future<void> _showAddAttributeDialog(
     var itemData,
     existingKeys) async {
   await showDialog(
-    barrierDismissible: false,
+    barrierDismissible: false, // ✅ 다이얼로그 바깥을 눌러도 닫히지 않도록 설정
     context: context,
     builder: (BuildContext context) {
       return WillPopScope(
