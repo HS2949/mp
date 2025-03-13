@@ -116,6 +116,7 @@ class _CombinedFileCheckerScreenState extends State<CombinedFileCheckerScreen> {
               // 가능한 모든 분할을 고려하여 itemName과 subItemCandidate 추출
               bool foundMatch = false;
               String? matchedItemName;
+              // ignore: unused_local_variable
               String? matchedSubItem;
               // i: itemName에 해당하는 부분의 길이 (parts의 처음 i개를 itemName 후보로 사용)
               // 가능한 i값을 parts.length부터 1까지 내림차순으로 검사 (긴 itemName 후보 우선)

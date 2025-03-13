@@ -184,21 +184,36 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     return null;
   }
 
-  Future<void> _checkFileExistence() async {
-    for (var group in _computedGroups) {
-      for (var item in group["items"]) {
-        String folderName =
-            'uploads/${provider.items.firstWhere((item) => item.id == widget.itemId)['ItemName']}/${item["title"]}';
-        _updateFileExistence(folderName);
-      }
-    }
-  }
-
   Future<void> _updateFileExistence(String folderName) async {
-    bool exists = await _hasFiles(folderName);
-    setState(() {
-      _fileExistsMap[folderName] = exists;
-    });
+    try {
+      // folderName을 접두어로 갖는 모든 하위 폴더를 검색합니다.
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('files')
+          .where('folder', isGreaterThanOrEqualTo: folderName)
+          .where('folder', isLessThanOrEqualTo: '$folderName\uf8ff')
+          .get();
+
+      // 파일이 있는 폴더명을 Set으로 모읍니다.
+      Set<String> foldersWithFiles = {};
+      for (var doc in querySnapshot.docs) {
+        final folder = doc.data()['folder'] as String;
+        foldersWithFiles.add(folder);
+      }
+
+      // 각 폴더에 대해 _hasFiles를 호출하여 파일 존재 여부를 확인합니다.
+      Map<String, bool> existsMap = {};
+      for (var folder in foldersWithFiles) {
+        bool exists = await _hasFiles(folder);
+        existsMap[folder] = exists;
+      }
+      print("Updated file existence: $existsMap");
+      // 결과를 상태에 반영합니다.
+      setState(() {
+        _fileExistsMap = existsMap;
+      });
+    } catch (e) {
+      print("Error checking files in subfolders of $folderName: $e");
+    }
   }
 
   // 각 subItem 별 파일 여부를 확인하는 함수
@@ -625,7 +640,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                           isUrl: false),
                     ),
                   ).then((_) {
-                    // 화면이 닫힐 때 _checkFileExistence 실행
                     _updateFileExistence('uploads/${itemData.itemName}');
                   });
                 },
@@ -649,8 +663,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       ),
                     ),
                   ).then((_) {
-                    // 화면이 닫힐 때 _updateFileExistence 실행
-                    _updateFileExistence('uploads/${itemData.itemName}/files');
+                    _updateFileExistence('uploads/${itemData.itemName}');
                   });
                 },
               ),
@@ -670,11 +683,16 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               },
               menuChildren: [
                 MenuItemButton(
-                    leadingIcon: const Icon(Icons.edit_note_outlined),
-                    child: const Text('Edit', style: AppTheme.textLabelStyle),
-                    onPressed: () async {
-                      showAddItem(context, widget.itemId);
-                    }),
+                  leadingIcon: const Icon(Icons.edit_note_outlined),
+                  child: const Text('Edit', style: AppTheme.textLabelStyle),
+                  onPressed: () async {
+                    final result = await showAddItem(
+                        context, widget.itemId); // 다이얼로그 또는 화면이 닫힐 때까지 기다림
+                    if (result != null) {
+                      // _updateFileExistence('uploads/${result}');
+                    } // 이후 실행
+                  },
+                ),
                 MenuItemButton(
                   leadingIcon: const Icon(Icons.delete_forever_outlined),
                   child: const Text('Delete', style: AppTheme.textLabelStyle),
@@ -699,7 +717,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                             isUrl: false),
                       ),
                     ).then((_) {
-                      // 화면이 닫힐 때 _checkFileExistence 실행
                       _updateFileExistence('uploads/${itemData.itemName}');
                     });
                   },
@@ -717,8 +734,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                       ),
                     ).then((_) {
                       // 화면이 닫힐 때 _updateFileExistence 실행
-                      _updateFileExistence(
-                          'uploads/${itemData.itemName}/files');
+                      _updateFileExistence('uploads/${itemData.itemName}');
                     });
                   },
                 ),
@@ -830,7 +846,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         // 파일 존재 여부가 변경될 때만 업데이트 실행
         if (_fileExistsMap[folderName] == null) {
           _updateFileExistence(folderName);
-          _updateFileExistence('${folderName}/files');
         }
       }
     });
@@ -1100,15 +1115,25 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   Widget _buildSecondView(Item item) {
     // subItems의 해시값을 계산하여 내용 변경 감지
     final newHash = _computeSubItemsHash(item);
+    
     if (newHash != _lastSubItemsHash) {
       _lastSubItemsHash = newHash;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _updateComputedGroups(item);
-          _checkFileExistence();
         }
       });
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        String folderName =
+        'uploads/${provider.items.firstWhere((item) => item.id == widget.itemId)['ItemName']}';
+        if (_fileExistsMap[folderName] == null) {
+          _updateFileExistence(folderName);
+        }
+      }
+    });
 
     Widget subitemList = ListView.builder(
       shrinkWrap: widget.viewSelect == 0 ? true : false,
@@ -1337,8 +1362,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                               widget.itemId,
                                                               itemData);
 
-                                                      if (result != null) {
-                                                        // 다이얼로그에서 받은 결과를 _updateFileExistence 함수에 전달
+                                                      if (result != null &&
+                                                          result != "") {
                                                         _updateFileExistence(
                                                             result);
                                                       }
@@ -1418,9 +1443,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                   isUrl: false),
                                                         ),
                                                       ).then((_) {
-                                                        // 화면이 닫힐 때 _checkFileExistence 실행
                                                         _updateFileExistence(
-                                                            folderName);
+                                                            'uploads/${item.itemName}');
                                                       });
                                                     },
                                                   ),
@@ -1469,9 +1493,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                               isUrl: false),
                                                     ),
                                                   ).then((_) {
-                                                    // 화면이 닫힐 때 _checkFileExistence 실행
                                                     _updateFileExistence(
-                                                        folderName);
+                                                        'uploads/${item.itemName}');
                                                   });
                                                 },
                                               )

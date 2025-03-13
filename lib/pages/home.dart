@@ -11,7 +11,6 @@ import 'package:mp_db/material/constants.dart';
 // 상수값들을 정의한 모듈 가져오기.
 
 // 고도 화면을 정의한 모듈 가져오기.
-import 'package:mp_db/material/typography_screen.dart';
 import 'package:mp_db/models/user_model.dart';
 import 'package:mp_db/pages/rentacar_subpage.dart';
 import 'package:mp_db/pages/subpage/home_subpage.dart';

@@ -1,5 +1,5 @@
 # Project-level configuration.
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.5)
 project(mp_db LANGUAGES CXX)
 
 # 강제로 C++17 표준 사용

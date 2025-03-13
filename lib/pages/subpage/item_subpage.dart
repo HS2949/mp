@@ -392,7 +392,7 @@ int koreanCompare(String a, String b) {
   return aFirst.compareTo(bFirst);
 }
 
-void showAddItem(BuildContext context, String? itemId) async {
+Future<String?> showAddItem(BuildContext context, String? itemId) async {
   final itemProvider = context.read<ItemProvider>();
   // 1. nameController의 초기값을 프로바이더의 searchController 값으로 설정하고 커서를 텍스트 끝으로 위치시킴
   final initialText = itemProvider.searchController.text;
@@ -401,13 +401,12 @@ void showAddItem(BuildContext context, String? itemId) async {
   nameController.selection = TextSelection.fromPosition(
     TextPosition(offset: nameController.text.length),
   );
-  
+
   final FocusNode nameFocusNode = FocusNode();
   IconLabel selectedIcon = IconLabel.smile;
   ColorLabel selectedColor = ColorLabel.grey;
   final firestoreService = FirestoreService();
-  final categories =
-      itemProvider.categories.skip(1).toList(); // '전체' 제외
+  final categories = itemProvider.categories.skip(1).toList(); // '전체' 제외
   Map<String, dynamic>? selectedCategory; // 선택되지 않았을 경우 null 가능
   late final itemData;
 
@@ -420,7 +419,7 @@ void showAddItem(BuildContext context, String? itemId) async {
     nameController.selection = TextSelection.fromPosition(
       TextPosition(offset: nameController.text.length),
     );
-    
+
     selectedCategory = categories.firstWhere(
         (category) => category['itemID'] == itemData['CategoryID'],
         orElse: () => {});
@@ -434,7 +433,7 @@ void showAddItem(BuildContext context, String? itemId) async {
     }
   }
 
-  showModalBottomSheet(
+  return await showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
@@ -464,8 +463,7 @@ void showAddItem(BuildContext context, String? itemId) async {
                       contentPadding: const EdgeInsets.all(13),
                       suffixIcon: ClearButton(controller: nameController),
                       labelText: '등록할 상호명',
-                      hintText:
-                          '예) OO관광지, OO식당, OO호텔, OO차량 ...',
+                      hintText: '예) OO관광지, OO식당, OO호텔, OO차량 ...',
                       filled: true,
                     ),
                   ),
@@ -574,16 +572,16 @@ void showAddItem(BuildContext context, String? itemId) async {
                                 .read<ItemProvider>()
                                 .updateTabName(oldName, newName);
 
-                            QuerySnapshot filesSnapshot = await FirebaseFirestore
-                                .instance
-                                .collection('files')
-                                .where('folder',
-                                    isGreaterThanOrEqualTo:
-                                        "uploads/${oldName}/")
-                                .where('folder',
-                                    isLessThan:
-                                        "uploads/${oldName}/\uf8ff")
-                                .get();
+                            //그룹(폴더명)이 변경되었으면 Files 컬렉션 업데이트
+                            QuerySnapshot filesSnapshot =
+                                await FirebaseFirestore.instance
+                                    .collection('files')
+                                    .where('folder',
+                                        isGreaterThanOrEqualTo:
+                                            "uploads/${oldName}")
+                                    .where('folder',
+                                        isLessThan: "uploads/${oldName}\uf8ff")
+                                    .get();
 
                             WriteBatch batch =
                                 FirebaseFirestore.instance.batch();
@@ -591,13 +589,26 @@ void showAddItem(BuildContext context, String? itemId) async {
                             for (var doc in filesSnapshot.docs) {
                               String oldFolderPath = doc['folder'];
                               String newFolderPath = oldFolderPath.replaceFirst(
-                                  "uploads/${oldName}/", "uploads/${newName}/");
+                                  "uploads/${oldName}", "uploads/${newName}");
 
-                              batch.update(
-                                  doc.reference, {'folder': newFolderPath});
+                              // print(
+                              //     "변경 전: $oldFolderPath → 변경 후: $newFolderPath"); // ✅ 확인용
+
+                              if (oldFolderPath != newFolderPath) {
+                                // ✅ 변경된 경우만 업데이트
+                                batch.update(
+                                    doc.reference, {'folder': newFolderPath});
+                              } else {
+                                print("❌ 변경되지 않음: $oldFolderPath");
+                              }
                             }
 
-                            await batch.commit();
+                            try {
+                              await batch.commit();
+                              // print("✅ 폴더명 변경 성공!");
+                            } catch (e) {
+                              print("❌ batch commit 에러: $e");
+                            }
                           }
 
                           showOverlayMessage(
@@ -619,7 +630,8 @@ void showAddItem(BuildContext context, String? itemId) async {
                               nameController.text;
                         }
 
-                        Navigator.of(context).pop();
+                        Navigator.of(context)
+                            .pop(nameController.text.trim()); // ✅ 입력값 반환
                       },
                       child: Text(
                           itemId == null || itemId.isEmpty ? "Add" : "Edit"),

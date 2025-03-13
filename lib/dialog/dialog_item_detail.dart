@@ -544,7 +544,6 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                     onPressed: () async {
                       final String subItemName = value2Controller.text.trim();
                       final String subItemOrder = orderController.text.trim();
-                      var returnValue = '';
 
                       // 1️⃣ 필수 입력 값 체크
                       if (subItemName.isEmpty) {
@@ -638,7 +637,6 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                               'uploads/${widget.item?.itemName}/$oldGroup';
                           final String newFolder =
                               'uploads/${widget.item?.itemName}/$subItemName';
-                          returnValue = newFolder;
 
                           QuerySnapshot filesSnapshot = await FirebaseFirestore
                               .instance
@@ -655,7 +653,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
                       }
 
                       // 9️⃣ 완료 후 UI 업데이트 및 메시지 표시
-                      Navigator.of(context).pop(returnValue);
+                      Navigator.of(context).pop('uploads/${widget.item?.itemName}');
                       showOverlayMessage(
                         context,
                         '서브 아이템을 ${isAddmode ? '추가' : '수정'}하였습니다.',
