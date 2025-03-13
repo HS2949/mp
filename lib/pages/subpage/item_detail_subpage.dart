@@ -1115,7 +1115,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   Widget _buildSecondView(Item item) {
     // subItems의 해시값을 계산하여 내용 변경 감지
     final newHash = _computeSubItemsHash(item);
-    
+
     if (newHash != _lastSubItemsHash) {
       _lastSubItemsHash = newHash;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1128,7 +1128,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         String folderName =
-        'uploads/${provider.items.firstWhere((item) => item.id == widget.itemId)['ItemName']}';
+            'uploads/${provider.items.firstWhere((item) => item.id == widget.itemId)['ItemName']}';
         if (_fileExistsMap[folderName] == null) {
           _updateFileExistence(folderName);
         }
@@ -1160,13 +1160,26 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           '정상가': AppTheme.primaryColor
         };
 
+        Future<void> _handleLongPress(int groupIndex, BuildContext context,
+            ItemProvider provider, Map<String, dynamic> group) async {
+          await showAddDialogSubItem(
+            context,
+            provider,
+            (provider.tabViews[provider.selectedIndex].second
+                    as ItemDetailSubpage)
+                .getItemId,
+            {"subItem": group["groupTitle"]}, // Map 형식으로 전달
+          );
+        }
+
         ///---------------------------------------------------------------------------------- 아이템 그룹
         return Card(
           elevation: 0,
           child: Column(
             children: [
               Tooltip(
-                message: '클릭 : 열기/닫기\n길게 누르기 : 아이템 추가\n더블클릭 or 오른쪽 버튼 : 그룹명 변경',
+                message:
+                    '클릭 : 열기/닫기\n길게 누르기 or 오른쪽 버튼 : 아이템 추가\n더블 클릭  : 그룹명 변경',
                 decoration: BoxDecoration(
                   color: AppTheme.text9Color.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
@@ -1179,19 +1192,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                   onTap: () => _toggleGroupExpansion(groupIndex), // 단일 클릭
                   onDoubleTap: () =>
                       _showRenameGroupDialog(groupIndex), // 이름 변경
-                  onSecondaryTap: () =>
-                      _showRenameGroupDialog(groupIndex), // 이름 변경
-                  onLongPress: () async {
-                    // 우클릭 이벤트
-                    await showAddDialogSubItem(
-                      context,
-                      provider,
-                      (provider.tabViews[provider.selectedIndex].second
-                              as ItemDetailSubpage)
-                          .getItemId,
-                      {"subItem": group["groupTitle"]}, // Map 형식으로 전달
-                    );
-                  },
+                  onSecondaryTap: () async => await _handleLongPress(
+                      groupIndex, context, provider, group),
+                  onLongPress: () async => await _handleLongPress(
+                      groupIndex, context, provider, group),
                   child: ListTile(
                     dense: true,
                     minVerticalPadding: 0,
