@@ -101,6 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildHistorySection() {
     final itemProvider = context.watch<ItemProvider>();
+    final double width = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
       child: SizedBox(
@@ -135,7 +136,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: SizedBox(
                               width: 50, // 원하는 크기 설정
                               height: 50, // 원하는 크기 설정
-                              child: CircularProgressIndicator(),
+                              child: CircularProgressIndicator(
+                                  color: AppTheme.textHintColor),
                             ),
                           );
                         }
@@ -179,20 +181,22 @@ class _ProfilePageState extends State<ProfilePage> {
                       },
                     ),
                   ),
-                  Opacity(
-                    opacity: 0.3,
-                    child: Container(
-                      width: 300, // 화면 너비의 50%
-                      height: 30,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage(
-                              'assets/images/miceplan_font.png'), // 배경 이미지 경로
-                          fit: BoxFit.contain,
+                  if (width > narrowScreenWidthThreshold) ...[
+                    Opacity(
+                      opacity: 0.3,
+                      child: Container(
+                        width: 300, // 화면 너비의 50%
+                        height: 30,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage(
+                                'assets/images/miceplan_font.png'), // 배경 이미지 경로
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -263,7 +267,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) {
                             return const Center(
-                                child: CircularProgressIndicator());
+                                child: SizedBox(
+                                    width: 50,
+                                    height: 50,
+                                    child: CircularProgressIndicator(
+                                        color: AppTheme.backgroundColor)));
                           }
                           final parentSnapshot = snapshot.data![0];
                           final subItemSnapshot = snapshot.data![1];
@@ -277,8 +285,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           if (subItemSnapshot.exists) {
                             final subItemData =
                                 subItemSnapshot.data() as Map<String, dynamic>;
-                            subItemName =
-                                subItemData['SubName'] ?? '';
+                            subItemName = subItemData['SubName'] ?? '';
                           }
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 2),
@@ -293,41 +300,34 @@ class _ProfilePageState extends State<ProfilePage> {
                                 size: 20,
                               ),
                               title: Padding(
-                                padding: const EdgeInsets.only(right: 20),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                padding: const EdgeInsets.only(
+                                    right: 20, bottom: 10),
+                                child: Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
                                   children: [
-                                    Expanded(
-                                      flex: 4,
-                                      child: Text(
-                                        itemName,
-                                        style: AppTheme.bodyMediumTextStyle
-                                            .copyWith(
-                                                fontWeight: FontWeight.w400),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                    Text(
+                                      itemName,
+                                      style: AppTheme.bodyMediumTextStyle
+                                          .copyWith(
+                                              fontWeight: FontWeight.w400),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    Expanded(
-                                      flex: 4,
-                                      child: Text(
-                                        subItemName,
-                                        style: AppTheme.bodyMediumTextStyle
-                                            .copyWith(color: AppTheme.itemList0Color, fontSize: 14),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                    Text(
+                                      subItemName,
+                                      style: AppTheme.bodyMediumTextStyle
+                                          .copyWith(
+                                              color: AppTheme.itemList0Color,
+                                              fontSize: 14),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        "$formattedTime",
-                                        style: AppTheme.bodyMediumTextStyle
-                                            .copyWith(
-                                                fontSize: 13,
-                                                color: AppTheme.textLabelColor),
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.end,
-                                      ),
+                                    Text(
+                                      "$formattedTime",
+                                      style: AppTheme.bodyMediumTextStyle
+                                          .copyWith(
+                                              fontSize: 13,
+                                              color: AppTheme.textLabelColor),
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.end,
                                     ),
                                   ],
                                 ),
@@ -335,24 +335,23 @@ class _ProfilePageState extends State<ProfilePage> {
                               subtitle: Padding(
                                 padding:
                                     const EdgeInsets.only(top: 2, right: 20),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                child: Wrap(
+                                  spacing: 70,
+                                  runSpacing: 10,
+                                  // alignment: WrapAlignment.spaceBetween,
                                   children: [
                                     if (action.contains('변경')) ...[
-                                      Flexible(
-                                        child: Text(
-                                          mappedField == after
-                                              ? "항목"
-                                              : mappedField,
-                                          style: AppTheme.bodySmallTextStyle
-                                              .copyWith(
-                                            color: mappedField == after
-                                                ? AppTheme.textHintColor
-                                                : AppTheme.text4Color,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
+                                      Text(
+                                        mappedField == after
+                                            ? "항목"
+                                            : mappedField,
+                                        style: AppTheme.bodySmallTextStyle
+                                            .copyWith(
+                                          color: mappedField == after
+                                              ? AppTheme.textHintColor
+                                              : AppTheme.text4Color,
                                         ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
                                         "$action",
@@ -362,51 +361,41 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 color: AppTheme.text9Color
                                                     .withOpacity(0.3)),
                                       ),
-                                      Flexible(
-                                        flex: 3,
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                before.toString(),
-                                                style: AppTheme
-                                                    .bodyMediumTextStyle
-                                                    .copyWith(
-                                                        fontSize: 13,
-                                                        color: AppTheme
-                                                            .textHintColor),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 10,
-                                              ),
-                                            ),
-                                            const Text("  →  ",
-                                                style: TextStyle(fontSize: 13)),
-                                            Flexible(
-                                              flex: 3,
-                                              child: SelectableText(
-                                                after ?? '',
-                                                style: AppTheme
-                                                    .bodyMediumTextStyle
-                                                    .copyWith(
-                                                        fontSize: 13,
-                                                        color: AppTheme
-                                                            .text4Color),
-                                                maxLines: null,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      Wrap(
+                                        spacing: 20,
+                                        runSpacing: 5,
+                                        alignment: WrapAlignment.start,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        children: [
+                                          SelectableText(
+                                            before.toString(),
+                                            style: AppTheme.bodyMediumTextStyle
+                                                .copyWith(
+                                                    fontSize: 13,
+                                                    color:
+                                                        AppTheme.textHintColor),
+                                            maxLines: null,
+                                          ),
+                                          const Text("→",
+                                              style: TextStyle(fontSize: 13)),
+                                          SelectableText(
+                                            after ?? '',
+                                            style: AppTheme.bodyMediumTextStyle
+                                                .copyWith(
+                                                    fontSize: 13,
+                                                    color: AppTheme.text4Color),
+                                            maxLines: null,
+                                          ),
+                                        ],
                                       ),
                                     ] else if (action.contains('추가')) ...[
-                                      Flexible(
-                                        child: Text(
-                                          "$mappedField",
-                                          style: AppTheme.bodySmallTextStyle
-                                              .copyWith(
-                                                  color: AppTheme.text7Color
-                                                      .withOpacity(0.5)),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                      Text(
+                                        "$mappedField",
+                                        style: AppTheme.bodySmallTextStyle
+                                            .copyWith(
+                                                color: AppTheme.text7Color
+                                                    .withOpacity(0.5)),
                                       ),
                                       Text(
                                         "$action",
@@ -416,41 +405,28 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 color: AppTheme.text7Color
                                                     .withOpacity(0.5)),
                                       ),
-                                      Flexible(
-                                        flex: 3,
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                              flex: 3,
-                                              child: SelectableText(
-                                                after ?? '',
-                                                style: AppTheme
-                                                    .bodyMediumTextStyle
-                                                    .copyWith(
-                                                        fontSize: 13,
-                                                        color: AppTheme
-                                                            .text7Color
-                                                            .withOpacity(0.7)),
-                                                maxLines: null,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      SelectableText(
+                                        after ?? '',
+                                        style: AppTheme.bodyMediumTextStyle
+                                            .copyWith(
+                                                fontSize: 13,
+                                                color: AppTheme.text7Color
+                                                    .withOpacity(0.7)),
+                                        maxLines: null,
                                       ),
                                     ] else ...[
-                                      Flexible(
-                                        child: Text(
-                                          "$mappedField",
-                                          style: AppTheme.bodySmallTextStyle
-                                              .copyWith(
-                                                  color: AppTheme.itemListColor
-                                                      .withOpacity(0.5),
-                                                  decoration: TextDecoration
-                                                      .lineThrough,
-                                                  decorationColor:
-                                                      AppTheme.itemListColor),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                      Text(
+                                        "$mappedField",
+                                        style: AppTheme.bodySmallTextStyle
+                                            .copyWith(
+                                                color:
+                                                    AppTheme
+                                                        .itemListColor
+                                                        .withOpacity(0.5),
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                                decorationColor:
+                                                    AppTheme.itemListColor),
                                       ),
                                       Text(
                                         "$action",
@@ -460,27 +436,17 @@ class _ProfilePageState extends State<ProfilePage> {
                                                 color: AppTheme.itemListColor
                                                     .withOpacity(0.5)),
                                       ),
-                                      Flexible(
-                                        flex: 3,
-                                        child: Row(
-                                          children: [
-                                            Flexible(
-                                              flex: 3,
-                                              child: SelectableText(
-                                                before ?? '',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: AppTheme.itemListColor,
-                                                  decoration: TextDecoration
-                                                      .lineThrough,
-                                                  decorationColor:
-                                                      AppTheme.itemListColor,
-                                                ),
-                                                maxLines: null,
-                                              ),
-                                            ),
-                                          ],
+                                      SelectableText(
+                                        before ?? '',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: AppTheme.itemListColor,
+                                          decoration:
+                                              TextDecoration.lineThrough,
+                                          decorationColor:
+                                              AppTheme.itemListColor,
                                         ),
+                                        maxLines: null,
                                       ),
                                     ],
                                   ],

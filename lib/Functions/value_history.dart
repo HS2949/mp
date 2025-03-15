@@ -122,9 +122,10 @@ Widget buildHistoryList(
               ),
               // title 영역에 아이템 이름, 시간과 함께 사용자 정보 표시
               title: Padding(
-                padding: const EdgeInsets.only(right: 20),
+                padding: const EdgeInsets.only(right: 20, bottom: 20),
                 child: Wrap(
-                  spacing: 30,
+                  alignment: WrapAlignment.start,
+                  spacing: 50,
                   runSpacing: 5,
                   children: [
                     if (subTitle != null) ...[
@@ -172,19 +173,17 @@ Widget buildHistoryList(
               // 기존의 subtitle 영역: 변경/추가/삭제 내역 표시
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 2, right: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Wrap(
+                  spacing: 70,
+                  runSpacing: 10,
                   children: [
                     if (action.contains('변경')) ...[
-                      Flexible(
-                        child: Text(
-                          mappedField == after ? "항목" : mappedField,
-                          style: AppTheme.bodySmallTextStyle.copyWith(
-                            color: mappedField == after
-                                ? AppTheme.textHintColor
-                                : AppTheme.text4Color,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        mappedField == after ? "항목" : mappedField,
+                        style: AppTheme.bodySmallTextStyle.copyWith(
+                          color: mappedField == after
+                              ? AppTheme.textHintColor
+                              : AppTheme.text4Color,
                         ),
                       ),
                       Text(
@@ -193,40 +192,32 @@ Widget buildHistoryList(
                             fontSize: 13,
                             color: AppTheme.text9Color.withOpacity(0.3)),
                       ),
-                      Flexible(
-                        flex: 3,
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: SelectableText(
-                                before.toString(),
-                                style: AppTheme.bodyMediumTextStyle.copyWith(
-                                    fontSize: 13,
-                                    color: AppTheme.textHintColor),
-                                maxLines: null,
-                              ),
-                            ),
-                            const Text("  →  ", style: TextStyle(fontSize: 13)),
-                            Flexible(
-                              flex: 3,
-                              child: SelectableText(
-                                after ?? '',
-                                style: AppTheme.bodyMediumTextStyle.copyWith(
-                                    fontSize: 13, color: AppTheme.text4Color),
-                                maxLines: null,
-                              ),
-                            ),
-                          ],
-                        ),
+                      Wrap(
+                        spacing: 20,
+                        runSpacing: 5,
+                        alignment: WrapAlignment.start,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          SelectableText(
+                            before.toString(),
+                            style: AppTheme.bodyMediumTextStyle.copyWith(
+                                fontSize: 13, color: AppTheme.textHintColor),
+                            maxLines: null,
+                          ),
+                          const Text("  →  ", style: TextStyle(fontSize: 13)),
+                          SelectableText(
+                            after ?? '',
+                            style: AppTheme.bodyMediumTextStyle.copyWith(
+                                fontSize: 13, color: AppTheme.text4Color),
+                            maxLines: null,
+                          ),
+                        ],
                       ),
                     ] else if (action.contains('추가')) ...[
-                      Flexible(
-                        child: Text(
-                          "$mappedField",
-                          style: AppTheme.bodySmallTextStyle.copyWith(
-                              color: AppTheme.text7Color.withOpacity(0.5)),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Text(
+                        "$mappedField",
+                        style: AppTheme.bodySmallTextStyle.copyWith(
+                            color: AppTheme.text7Color.withOpacity(0.5)),
                       ),
                       Text(
                         "$action",
@@ -234,34 +225,22 @@ Widget buildHistoryList(
                             fontSize: 13,
                             color: AppTheme.text7Color.withOpacity(0.5)),
                       ),
-                      Flexible(
-                        flex: 3,
-                        child: Row(
-                          children: [
-                            Flexible(
-                              flex: 3,
-                              child: SelectableText(
-                                after ?? '',
-                                style: AppTheme.bodyMediumTextStyle.copyWith(
-                                    fontSize: 13,
-                                    color:
-                                        AppTheme.text7Color.withOpacity(0.7)),
-                                maxLines: null,
-                              ),
-                            ),
-                          ],
-                        ),
+                      SelectableText(
+                        after ?? '',
+                        style: AppTheme.bodyMediumTextStyle.copyWith(
+                            fontSize: 13,
+                            color:
+                                AppTheme.text7Color.withOpacity(0.7)),
+                        maxLines: null,
                       ),
                     ] else ...[
-                      Flexible(
-                        child: Text(
-                          "$mappedField",
-                          style: AppTheme.bodySmallTextStyle.copyWith(
-                              color: AppTheme.itemListColor.withOpacity(0.5),
-                              decoration: TextDecoration.lineThrough,
-                              decorationColor: AppTheme.itemListColor),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Text(
+                        "$mappedField",
+                        style: AppTheme.bodySmallTextStyle.copyWith(
+                            color: AppTheme.itemListColor.withOpacity(0.5),
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: AppTheme.itemListColor),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         "$action",
@@ -269,25 +248,15 @@ Widget buildHistoryList(
                             fontSize: 13,
                             color: AppTheme.itemListColor.withOpacity(0.5)),
                       ),
-                      Flexible(
-                        flex: 3,
-                        child: Row(
-                          children: [
-                            Flexible(
-                              flex: 3,
-                              child: SelectableText(
-                                before ?? '',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.itemListColor,
-                                  decoration: TextDecoration.lineThrough,
-                                  decorationColor: AppTheme.itemListColor,
-                                ),
-                                maxLines: null,
-                              ),
-                            ),
-                          ],
+                      SelectableText(
+                        before ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.itemListColor,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: AppTheme.itemListColor,
                         ),
+                        maxLines: null,
                       ),
                     ],
                   ],
@@ -310,6 +279,7 @@ void showHistoryDialog({
   String? subItemId,
   String? subTitle,
 }) {
+  // final double width = MediaQuery.of(context).size.width;
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
@@ -330,7 +300,7 @@ void showHistoryDialog({
         ],
       ),
       content: Container(
-        width: double.maxFinite,
+        width: 800,
         height: 400, // 필요에 따라 높이를 조정하세요.
         child: buildHistoryList(
           context: context,
