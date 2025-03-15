@@ -381,7 +381,26 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
 
     // 그룹명 오름차순 정렬렬
     final sortedGroups = groupedData.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key)); // 여기서 b.key → a.key로 가면 내림차순
+      ..sort((a, b) {
+        final RegExp regex = RegExp(r'^(\d+)'); // 숫자로 시작하는 부분 찾기
+        final Match? aMatch = regex.firstMatch(a.key);
+        final Match? bMatch = regex.firstMatch(b.key);
+
+        if (aMatch != null && bMatch != null) {
+          // 둘 다 숫자로 시작하면 숫자 비교
+          return int.parse(aMatch.group(0)!)
+              .compareTo(int.parse(bMatch.group(0)!));
+        } else if (aMatch != null) {
+          // a는 숫자, b는 문자 → 숫자가 앞에 와야 함
+          return -1;
+        } else if (bMatch != null) {
+          // b는 숫자, a는 문자 → 숫자가 앞에 와야 함
+          return 1;
+        }
+        // 둘 다 문자면 기본 문자열 비교
+        return a.key.compareTo(b.key);
+      });
+
     List<Map<String, dynamic>> groups = sortedGroups.map((entry) {
       return {
         "groupTitle": entry.key,
@@ -393,6 +412,7 @@ class _AddDialogSubItemFieldState extends State<AddDialogSubItemField> {
         }).toList(),
       };
     }).toList();
+
     return groups;
   }
 
@@ -1457,7 +1477,10 @@ class _RenameGroupDialogState extends State<RenameGroupDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("그룹명 변경", style: AppTheme.appbarTitleTextStyle,),
+      title: const Text(
+        "그룹명 변경",
+        style: AppTheme.appbarTitleTextStyle,
+      ),
       content: Padding(
         padding: const EdgeInsets.only(top: 20),
         child: TextField(

@@ -22,6 +22,7 @@ import 'package:mp_db/pages/subpage/navigationbar_widget.dart';
 import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/utils/FileCleanerScreen.dart';
+import 'package:mp_db/utils/two_line.dart';
 import 'package:provider/provider.dart';
 
 // 타이포그래피 화면을 정의한 모듈 가져오기.
@@ -168,23 +169,23 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 showLargeSizeLayout: showLargeSizeLayout),
           ),
         ScreenSelected.setting2 => Expanded(child: CombinedFileCheckerScreen()),
-        ScreenSelected.setting3 => const Item_Category(),
+        // ScreenSelected.setting3 => const Item_Category(),
         ScreenSelected.temp2 => Expanded(child: RentacarSubpage()),
-        // ScreenSelected.temp2 => Expanded(
-        //     // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
-        //     child: OneTwoTransition(
-        //       animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
-        //       one: FirstComponentList(
-        //         showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
-        //         scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-        //         showSecondList: showMediumSizeLayout || showLargeSizeLayout,
-        //         // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
-        //       ), // 첫 번째 구성 요소 리스트.
-        //       two: SecondComponentList(
-        //         scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
-        //       ), // 두 번째 구성 요소 리스트.
-        //     ),
-        //   ),
+        ScreenSelected.setting3 => Expanded(
+            // 선택된 화면이 'component'일 때 실행. Expanded로 레이아웃을 확장.
+            child: OneTwoTransition(
+              animation: railAnimation, // 네비게이션 레일 애니메이션을 적용.
+              one: FirstComponentList(
+                showNavBottomBar: showNavBottomBar, // 네비게이션 바 예제 표시 여부.
+                scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+                showSecondList: showMediumSizeLayout || showLargeSizeLayout,
+                // 중간 또는 큰 레이아웃일 때 두 번째 리스트를 표시.
+              ), // 첫 번째 구성 요소 리스트.
+              two: SecondComponentList(
+                scaffoldKey: scaffoldKey, // Scaffold 상태를 전달.
+              ), // 두 번째 구성 요소 리스트.
+            ),
+          ),
       };
   PreferredSizeWidget createAppBar(User user) {
     // 앱바(AppBar)를 생성하는 함수.

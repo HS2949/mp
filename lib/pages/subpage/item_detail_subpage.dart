@@ -4,6 +4,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mp_db/Functions/value_history.dart';
 import 'package:mp_db/dialog/dialog_FileView.dart';
 import 'package:mp_db/dialog/dialog_ImageView.dart';
 import 'package:mp_db/dialog/dialog_item_detail.dart';
@@ -37,7 +38,9 @@ class ItemDetailSubpage extends StatefulWidget {
 class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   final TextEditingController _controller = TextEditingController();
   late final ItemProvider provider;
+  late final String itemName;
   final firestoreService = FirestoreService();
+  bool _hasCheckedFileExistence = false;
 
   /// Firebase의 subItems 데이터를 그룹화한 결과를 저장하는 상태 변수
   List<Map<String, dynamic>> _computedGroups = [];
@@ -55,6 +58,8 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   void initState() {
     super.initState();
     provider = Provider.of<ItemProvider>(context, listen: false);
+    itemName = provider.items
+        .firstWhere((item) => item.id == widget.itemId)['ItemName'];
     // itemId 변경 시 Firestore 조회
     Future.microtask(() {
       Provider.of<ItemDetailProvider>(context, listen: false)
@@ -98,6 +103,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           final history = await fetchKeyHistory(
             itemId: widget.itemId,
             field: key,
+            limitNum: 1,
           );
           if (history != null) {
             keyHistories[key] = history;
@@ -115,6 +121,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                 itemId: widget.itemId,
                 field: key, // field 조건은 그대로 전달
                 subItemId: subItemId, // 별도 조건으로 subItemId 전달
+                limitNum: 1,
               );
               if (history != null) {
                 // keyHistories에서 구분을 위해 composite key 사용
@@ -138,6 +145,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
   Future<Map<String, dynamic>?> fetchKeyHistory({
     required String itemId,
     required String field,
+    required int limitNum,
     String? subItemId,
   }) async {
     try {
@@ -153,7 +161,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         query = query.where('subItemId', isEqualTo: subItemId);
       }
 
-      query = query.orderBy('timestamp', descending: true).limit(1);
+      query = query.orderBy('timestamp', descending: true);
+
+      if (limitNum > 0) {
+        query = query.limit(limitNum);
+      }
+
       final querySnapshot = await query.get();
 
       if (querySnapshot.docs.isNotEmpty) {
@@ -174,7 +187,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
         return {
           'userName': userName,
-          'timestamp': historyData['timestamp'],
+          'setTime': historyData['setTime'] ?? historyData['timestamp'],
         };
       }
     } catch (e) {
@@ -186,7 +199,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
   Future<void> _updateFileExistence(String folderName) async {
     try {
-      // folderName을 접두어로 갖는 모든 하위 폴더를 검색합니다.
       final querySnapshot = await FirebaseFirestore.instance
           .collection('files')
           .where('folder', isGreaterThanOrEqualTo: folderName)
@@ -206,10 +218,18 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
         bool exists = await _hasFiles(folder);
         existsMap[folder] = exists;
       }
+      // folderName에 대한 결과가 없으면 false를 할당
+      if (!existsMap.containsKey(folderName)) {
+        existsMap[folderName] = false;
+      }
       print("Updated file existence: $existsMap");
-      // 결과를 상태에 반영합니다.
+
       setState(() {
-        _fileExistsMap = existsMap;
+        // 기존 값과 병합하여 업데이트할 수도 있습니다.
+        _fileExistsMap = {
+          ..._fileExistsMap,
+          ...existsMap,
+        };
       });
     } catch (e) {
       print("Error checking files in subfolders of $folderName: $e");
@@ -840,12 +860,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     final sortedItemFields = Map<String, dynamic>.fromEntries(itemFieldEntries);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && !_hasCheckedFileExistence) {
         String folderName = 'uploads/${itemData.itemName}';
-
-        // 파일 존재 여부가 변경될 때만 업데이트 실행
-        if (_fileExistsMap[folderName] == null) {
+        if (!_fileExistsMap.containsKey(folderName)) {
           _updateFileExistence(folderName);
+          _hasCheckedFileExistence = true; // 한 번 호출 후 true로 변경
         }
       }
     });
@@ -938,9 +957,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                 .watch<ItemProvider>()
                                                 .getHistoryForTab()?[entry.key];
 
-                                            // Timestamp 가져오기
+                                            // setTime 가져오기
                                             final timestamp =
-                                                historyData?['timestamp']
+                                                historyData?['setTime']
                                                     as Timestamp?;
                                             String formattedTime = '';
                                             int daysDiff = 0;
@@ -979,14 +998,93 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                               children: [
                                                 Tooltip(
                                                   message: tooltipText,
-                                                  child: copyTextWidget(
-                                                    context,
-                                                    text: label,
-                                                    widgetType:
-                                                        TextWidgetType.plain,
-                                                    style: AppTheme
-                                                        .fieldLabelTextStyle,
-                                                    doGestureDetector: false,
+                                                  child: GestureDetector(
+                                                    onDoubleTap: () async {
+                                                      // historyData의 timestamp를 DateTime으로 변환, 없으면 현재 날짜를 기본값으로 사용
+                                                      DateTime initialDate =
+                                                          (historyData?['setTime']
+                                                                      as Timestamp?)
+                                                                  ?.toDate() ??
+                                                              DateTime.now();
+
+                                                      // 사용자에게 날짜 선택 다이얼로그를 표시
+                                                      DateTime? selectedDate =
+                                                          await showDatePicker(
+                                                        context: context,
+                                                        initialDate:
+                                                            initialDate,
+                                                        firstDate:
+                                                            DateTime(1900),
+                                                        lastDate:
+                                                            DateTime(2100),
+
+                                                        initialEntryMode:
+                                                            DatePickerEntryMode
+                                                                .calendar,
+                                                        initialDatePickerMode:
+                                                            DatePickerMode.day,
+                                                        helpText: '날짜를 선택하세요',
+                                                        cancelText: '취소',
+                                                        confirmText: '변경',
+                                                        errorFormatText:
+                                                            '올바른 날짜 형식을 입력하세요',
+                                                        errorInvalidText:
+                                                            '유효하지 않은 날짜입니다',
+                                                        fieldLabelText: '날짜 입력',
+                                                        fieldHintText:
+                                                            'YYYY/MM/DD',
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .datetime,
+                                                        barrierDismissible:
+                                                            true, // ✅ 다이얼로그 바깥 클릭 허용
+                                                      );
+
+                                                      // 사용자가 날짜를 선택한 경우 recordHistory 함수를 호출
+                                                      if (selectedDate !=
+                                                          null) {
+                                                        // 날짜를 원하는 형식으로 변환 (예: "24. 11. 01(수)")
+                                                        String formattedDate =
+                                                            DateFormat(
+                                                                    "yy. MM. dd(E)",
+                                                                    "ko_KR")
+                                                                .format(
+                                                                    selectedDate);
+
+                                                        recordHistory(
+                                                          context: context,
+                                                          itemId: widget.itemId,
+                                                          field: entry.key,
+                                                          before:
+                                                              '정보 확인:\n$formattedDate',
+                                                          after: entry.value,
+                                                          setTime: selectedDate,
+                                                        );
+                                                        // Firestore의 최신 history 데이터를 가져와 provider에 업데이트
+                                                        await _fetchAllHistory();
+
+                                                        showOverlayMessage(
+                                                            context,
+                                                            "${label}의 확인 날짜를 $formattedDate 로 갱신하였습니다.");
+                                                      }
+                                                    },
+                                                    onLongPress: () {
+                                                      showHistoryDialog(
+                                                        context: context,
+                                                        itemId: widget.itemId,
+                                                        itemName: itemName,
+                                                        fieldKey: entry.key,
+                                                      );
+                                                    },
+                                                    child: copyTextWidget(
+                                                      context,
+                                                      text: label,
+                                                      widgetType:
+                                                          TextWidgetType.plain,
+                                                      style: AppTheme
+                                                          .fieldLabelTextStyle,
+                                                      doGestureDetector: false,
+                                                    ),
                                                   ),
                                                   decoration: BoxDecoration(
                                                     color: AppTheme.text2Color
@@ -1126,11 +1224,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && !_hasCheckedFileExistence) {
         String folderName =
             'uploads/${provider.items.firstWhere((item) => item.id == widget.itemId)['ItemName']}';
-        if (_fileExistsMap[folderName] == null) {
+        if (!_fileExistsMap.containsKey(folderName)) {
           _updateFileExistence(folderName);
+          _hasCheckedFileExistence = true; // 한 번 호출 후 true로 변경
         }
       }
     });
@@ -1275,7 +1374,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                 children: [
                                   Tooltip(
                                     message:
-                                        '클릭 : 열기/닫기\n더블클릭 : 모든 아이템 열기/닫기\n길게 누르기 : 속성 추가',
+                                        '클릭 : 열기/닫기\n더블클릭 : 모든 아이템 열기/닫기\n오른쪽 버튼 : 아이템 수정\n길게 누르기 : 속성 추가',
                                     child: GestureDetector(
                                       onDoubleTap: () {
                                         Provider.of<ItemDetailProvider>(context,
@@ -1284,6 +1383,18 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                       },
                                       onTap: () => _toggleItemExpansion(
                                           groupIndex, itemIndex),
+                                      onSecondaryTap: () async {
+                                        String? result =
+                                            await showAddDialogSubItem(
+                                                context,
+                                                provider,
+                                                widget.itemId,
+                                                itemData);
+
+                                        if (result != null && result != "") {
+                                          _updateFileExistence(result);
+                                        }
+                                      },
                                       onLongPress: () async {
                                         await _showAddAttributeDialog(
                                             context,
@@ -1595,7 +1706,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
 
                                                                     // Timestamp 가져오기
                                                                     final timestamp =
-                                                                        historyData?['timestamp']
+                                                                        historyData?['setTime']
                                                                             as Timestamp?;
                                                                     String
                                                                         formattedTime =
@@ -1663,19 +1774,74 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                           message:
                                                                               tooltipText,
                                                                           child:
-                                                                              copyTextWidget(
-                                                                            context,
-                                                                            text:
-                                                                                attribute['FieldName'] ?? '',
-                                                                            widgetType:
-                                                                                TextWidgetType.plain,
-                                                                            doGestureDetector:
-                                                                                false,
-                                                                            style:
-                                                                                AppTheme.bodySmallTextStyle.copyWith(
-                                                                              fontSize: 13,
-                                                                              fontWeight: FontWeight.w600,
-                                                                              color: fieldLabelColors[attribute['FieldName']] ?? AppTheme.text4Color,
+                                                                              GestureDetector(
+                                                                            onDoubleTap:
+                                                                                () async {
+                                                                              // historyData의 timestamp를 DateTime으로 변환, 없으면 현재 날짜를 기본값으로 사용
+                                                                              DateTime initialDate = (historyData?['setTime'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+                                                                              // 사용자에게 날짜 선택 다이얼로그를 표시
+                                                                              DateTime? selectedDate = await showDatePicker(
+                                                                                context: context,
+                                                                                initialDate: initialDate,
+                                                                                firstDate: DateTime(1900),
+                                                                                lastDate: DateTime(2100),
+
+                                                                                initialEntryMode: DatePickerEntryMode.calendar,
+                                                                                initialDatePickerMode: DatePickerMode.day,
+                                                                                helpText: '날짜를 선택하세요',
+                                                                                cancelText: '취소',
+                                                                                confirmText: '변경',
+                                                                                errorFormatText: '올바른 날짜 형식을 입력하세요',
+                                                                                errorInvalidText: '유효하지 않은 날짜입니다',
+                                                                                fieldLabelText: '날짜 입력',
+                                                                                fieldHintText: 'YYYY/MM/DD',
+                                                                                keyboardType: TextInputType.datetime,
+                                                                                barrierDismissible: true, // ✅ 다이얼로그 바깥 클릭 허용
+                                                                              );
+
+                                                                              // 사용자가 날짜를 선택한 경우 recordHistory 함수를 호출
+                                                                              if (selectedDate != null) {
+                                                                                // 날짜를 원하는 형식으로 변환 (예: "24. 11. 01(수)")
+                                                                                String formattedDate = DateFormat("yy. MM. dd(E)", "ko_KR").format(selectedDate);
+
+                                                                                recordHistory(
+                                                                                  context: context,
+                                                                                  itemId: widget.itemId,
+                                                                                  subItemId: subItemId,
+                                                                                  field: attribute['FieldKey'],
+                                                                                  before: '정보 확인:\n$formattedDate',
+                                                                                  after: attribute['FieldValue'],
+                                                                                  setTime: selectedDate,
+                                                                                );
+                                                                                // Firestore의 최신 history 데이터를 가져와 provider에 업데이트
+                                                                                await _fetchAllHistory();
+
+                                                                                showOverlayMessage(context, "${attribute['FieldName']}의 확인 날짜를 $formattedDate 로 갱신하였습니다.");
+                                                                              }
+                                                                            },
+                                                                            onLongPress:
+                                                                                () {
+                                                                              showHistoryDialog(
+                                                                                context: context,
+                                                                                itemId: widget.itemId,
+                                                                                itemName: itemName,
+                                                                                fieldKey: attribute['FieldKey'],
+                                                                                subItemId: subItemId,
+                                                                                subTitle: itemData['title'],
+                                                                              );
+                                                                            },
+                                                                            child:
+                                                                                copyTextWidget(
+                                                                              context,
+                                                                              text: attribute['FieldName'] ?? '',
+                                                                              widgetType: TextWidgetType.plain,
+                                                                              doGestureDetector: false,
+                                                                              style: AppTheme.bodySmallTextStyle.copyWith(
+                                                                                fontSize: 13,
+                                                                                fontWeight: FontWeight.w600,
+                                                                                color: fieldLabelColors[attribute['FieldName']] ?? AppTheme.text4Color,
+                                                                              ),
                                                                             ),
                                                                           ),
                                                                           decoration:

@@ -115,82 +115,86 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 10),
             // Firebase 'users' 컬렉션에서 사용자 목록 불러오기
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  width: 250,
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return Align(
-                          alignment: Alignment.center,
-                          child: SizedBox(
-                            width: 50, // 원하는 크기 설정
-                            height: 50, // 원하는 크기 설정
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      final usersList = snapshot.data!.docs;
-                      List<DropdownMenuItem<String>> dropdownItems = [];
-                      for (var doc in usersList) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final uid = doc.id;
-                        if (uid.isNotEmpty) {
-                          dropdownItems.add(
-                            DropdownMenuItem<String>(
-                              value: uid,
-                              child: Text(
-                                  "${data['name'] ?? 'No Name'} ${data['position'] ?? ''}님",
-                                  style: AppTheme.bodyMediumTextStyle),
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 20,
+                runSpacing: 5,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    width: 200,
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return Align(
+                            alignment: Alignment.center,
+                            child: SizedBox(
+                              width: 50, // 원하는 크기 설정
+                              height: 50, // 원하는 크기 설정
+                              child: CircularProgressIndicator(),
                             ),
                           );
                         }
-                      }
-                      // 중복 제거
-                      final uniqueDropdownItems = {
-                        for (var item in dropdownItems) item.value!: item
-                      }.values.toList();
-                      if (_selectedUserUid == null ||
-                          !uniqueDropdownItems
-                              .any((item) => item.value == _selectedUserUid)) {
-                        _selectedUserUid = uniqueDropdownItems.isNotEmpty
-                            ? uniqueDropdownItems.first.value
-                            : null;
-                      }
-                      return DropdownButton<String>(
-                        value: _selectedUserUid,
-                        items: uniqueDropdownItems,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedUserUid = value;
-                          });
-                        },
-                        isExpanded: true,
-                      );
-                    },
+                        final usersList = snapshot.data!.docs;
+                        List<DropdownMenuItem<String>> dropdownItems = [];
+                        for (var doc in usersList) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final uid = doc.id;
+                          if (uid.isNotEmpty) {
+                            dropdownItems.add(
+                              DropdownMenuItem<String>(
+                                value: uid,
+                                child: Text(
+                                    "${data['name'] ?? 'No Name'} ${data['position'] ?? ''}님",
+                                    style: AppTheme.bodyMediumTextStyle),
+                              ),
+                            );
+                          }
+                        }
+                        // 중복 제거
+                        final uniqueDropdownItems = {
+                          for (var item in dropdownItems) item.value!: item
+                        }.values.toList();
+                        if (_selectedUserUid == null ||
+                            !uniqueDropdownItems.any(
+                                (item) => item.value == _selectedUserUid)) {
+                          _selectedUserUid = uniqueDropdownItems.isNotEmpty
+                              ? uniqueDropdownItems.first.value
+                              : null;
+                        }
+                        return DropdownButton<String>(
+                          value: _selectedUserUid,
+                          items: uniqueDropdownItems,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedUserUid = value;
+                            });
+                          },
+                          isExpanded: true,
+                        );
+                      },
+                    ),
                   ),
-                ),
-                Opacity(
-                  opacity: 0.3,
-                  child: Container(
-                    width: 300, // 화면 너비의 50%
-                    height: 30,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(
-                            'assets/images/miceplan_font.png'), // 배경 이미지 경로
-                        fit: BoxFit.contain,
+                  Opacity(
+                    opacity: 0.3,
+                    child: Container(
+                      width: 300, // 화면 너비의 50%
+                      height: 30,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(
+                              'assets/images/miceplan_font.png'), // 배경 이미지 경로
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -248,14 +252,33 @@ class _ProfilePageState extends State<ProfilePage> {
                       }
                       final subItemId = historyData['subItemId'];
                       final parentRef = doc.reference.parent.parent;
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: parentRef?.get(),
+                      // subItemId가 있으면 상위 문서와 SubItems 컬렉션의 문서를 동시에 가져옴
+                      final subItemRef =
+                          parentRef?.collection('Sub_Items').doc(subItemId);
+                      return FutureBuilder<List<DocumentSnapshot>>(
+                        future: Future.wait([
+                          parentRef!.get(),
+                          subItemRef!.get(),
+                        ]),
                         builder: (context, snapshot) {
-                          String itemName = '알 수 없음';
-                          if (snapshot.hasData && snapshot.data!.exists) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final parentSnapshot = snapshot.data![0];
+                          final subItemSnapshot = snapshot.data![1];
+                          String itemName = '';
+                          String subItemName = '';
+                          if (parentSnapshot.exists) {
                             final parentData =
-                                snapshot.data!.data() as Map<String, dynamic>;
-                            itemName = parentData['ItemName'] ?? '알 수 없음';
+                                parentSnapshot.data() as Map<String, dynamic>;
+                            itemName = parentData['ItemName'] ?? '';
+                          }
+                          if (subItemSnapshot.exists) {
+                            final subItemData =
+                                subItemSnapshot.data() as Map<String, dynamic>;
+                            subItemName =
+                                subItemData['SubName'] ?? '';
                           }
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 2),
@@ -276,8 +299,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
+                                      flex: 4,
                                       child: Text(
-                                        "$itemName",
+                                        itemName,
                                         style: AppTheme.bodyMediumTextStyle
                                             .copyWith(
                                                 fontWeight: FontWeight.w400),
@@ -285,6 +309,16 @@ class _ProfilePageState extends State<ProfilePage> {
                                       ),
                                     ),
                                     Expanded(
+                                      flex: 4,
+                                      child: Text(
+                                        subItemName,
+                                        style: AppTheme.bodyMediumTextStyle
+                                            .copyWith(color: AppTheme.itemList0Color, fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
                                       child: Text(
                                         "$formattedTime",
                                         style: AppTheme.bodyMediumTextStyle
@@ -334,7 +368,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           children: [
                                             Flexible(
                                               child: Text(
-                                                before ?? '',
+                                                before.toString(),
                                                 style: AppTheme
                                                     .bodyMediumTextStyle
                                                     .copyWith(

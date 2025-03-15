@@ -15,28 +15,28 @@ dynamic formatValue(BuildContext context, String value) {
     String trimmed = line.trim();
 
     // 1. 숫자 처리: 숫자(콤마 포함) + 선택적 괄호가 있는 경우
-    final RegExp numberRegExp = RegExp(r'^([\d,]+)(\s*\(.*\))?$');
-    if (numberRegExp.hasMatch(trimmed)) {
-      final Match? match = numberRegExp.firstMatch(trimmed);
-      if (match != null) {
-        String numberPart = match.group(1)!;
-        String? suffix = match.group(2);
-        String numberStr = numberPart.replaceAll(',', '');
-        if (RegExp(r'^\d+$').hasMatch(numberStr)) {
-          try {
-            int number = int.parse(numberStr);
-            String formattedNumber = NumberFormat('#,###').format(number);
-            // 문자열만 리턴
-            items.add(formattedNumber + (suffix ?? ''));
-            continue;
-          } catch (e) {
-            items.add(trimmed);
-            continue;
-          }
+    final RegExp numberWithTextRegExp = RegExp(r'^([\d,]+)(\s+[\S\s]+)?$');
+    if (numberWithTextRegExp.hasMatch(trimmed)) {
+      final Match match = numberWithTextRegExp.firstMatch(trimmed)!;
+      String numberPart = match.group(1)!;
+      String trailingText = match.group(2) ?? ''; // 뒤의 텍스트 (없으면 빈 문자열)
+
+      String numberStr = numberPart.replaceAll(',', '');
+      if (RegExp(r'^\d+$').hasMatch(numberStr)) {
+        try {
+          int number = int.parse(numberStr);
+          String formattedNumber = NumberFormat('#,###').format(number);
+          // 숫자 부분만 변환, 나머지는 그대로 추가
+          items.add('$formattedNumber$trailingText');
+          continue;
+        } catch (e) {
+          items.add(trimmed);
+          continue;
         }
       }
     }
 
+    // 2. 그림파일 처리
     if (trimmed.contains('firebasestorage')) {
       // 정규 표현식을 사용하여 "[@숫자]" 패턴을 찾습니다. 앞뒤 공백 허용
       final RegExp regExp = RegExp(r'\s*\[@(\d+)\]\s*$');
@@ -87,7 +87,83 @@ dynamic formatValue(BuildContext context, String value) {
       continue;
     }
 
-    // 3. 홈페이지 링크 처리 (URL과 표시 텍스트를 분리)
+    // 3. 전화번호 처리
+// 전화번호 패턴: 2~4자리 숫자, 하이픈, 3~4자리 숫자, 하이픈, 4자리 숫자
+    final RegExp phonePattern = RegExp(r'\b(\d{2,4}-\d{3,4}-\d{4})\b');
+    final Iterable<Match> phoneMatches = phonePattern.allMatches(trimmed);
+
+    if (phoneMatches.isNotEmpty) {
+      int currentIndex = 0;
+      List<Widget> rowChildren = [];
+
+      for (final match in phoneMatches) {
+        // 전화번호 앞의 일반 텍스트 추가
+        if (match.start > currentIndex) {
+          rowChildren.add(
+            Text(
+              trimmed.substring(currentIndex, match.start),
+              style: AppTheme.bodySmallTextStyle,
+            ),
+          );
+        }
+
+        final String phoneNumber = match.group(0)!;
+
+        // 전화번호 버튼 추가
+        rowChildren.add(
+          GestureDetector(
+            onLongPress: () {
+              Clipboard.setData(ClipboardData(text: phoneNumber));
+              showOverlayMessage(context, "전화번호 복사됨");
+            },
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () async {
+                final Uri telUri = Uri(scheme: 'tel', path: phoneNumber);
+                if (await canLaunchUrl(telUri)) {
+                  await launchUrl(telUri);
+                } else {
+                  print('Could not launch $phoneNumber');
+                }
+              },
+              child: Text(
+                phoneNumber,
+                style: AppTheme.bodySmallTextStyle.copyWith(
+                  fontSize: 13,
+                  color: AppTheme.text2Color,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        currentIndex = match.end;
+      }
+
+      // 전화번호 이후 남은 텍스트 추가
+      if (currentIndex < trimmed.length) {
+        rowChildren.add(
+          SelectableText(
+            trimmed.substring(currentIndex),
+            style: AppTheme.bodySmallTextStyle,
+          ),
+        );
+      }
+
+      items.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: rowChildren,
+        ),
+      );
+      continue;
+    }
+
+    // 4. 홈페이지 링크 처리 (URL과 표시 텍스트를 분리)
     final RegExp linkPattern = RegExp(r'^(https?:\/\/|www\.)[^\s\[\]]+');
     final Match? linkMatch = linkPattern.firstMatch(trimmed);
 
@@ -115,6 +191,8 @@ dynamic formatValue(BuildContext context, String value) {
               child: TextButton(
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: () async {
                   final Uri url = Uri.parse(href);
@@ -139,7 +217,7 @@ dynamic formatValue(BuildContext context, String value) {
       continue;
     }
 
-    // 4. 그 외의 경우: 일반 텍스트 그대로 문자열로 리턴
+    // 5. 그 외의 경우: 일반 텍스트 그대로 문자열로 리턴
     items.add(trimmed);
   }
 

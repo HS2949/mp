@@ -37,6 +37,9 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
 
     // searchController의 리스너를 별도 변수로 저장
     _searchListener = () {
+      if (_provider.selectedIndex != 0) {
+        _provider.selectTab(0); // 현재 탭이 0번이 아니면 0번 탭 선택
+      }
       _provider.filterItems(
         _provider.searchController.text,
         selectedCategory: selectedCategory,
@@ -49,13 +52,14 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_provider.searchController.text.isEmpty) {
-        // 기존 값이 비어 있을 경우에만 초기화
-        _provider.searchController.text = '';
-        _provider.filterItems('', selectedCategory: '전체');
-      }
-    });
+    // if (!_hasInitializedDependencies) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     if (_provider.searchController.text.isEmpty) {
+    //       _provider.filterItems('', selectedCategory: '전체');
+    //     }
+    //   });
+    //   _hasInitializedDependencies = true;
+    // }
   }
 
   @override
