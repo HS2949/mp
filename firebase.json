@@ -1,0 +1,37 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "mice-plan-bc6ae",
+          "appId": "1:92720287535:android:841f0a4c3b6f5b86cc5bda",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "mice-plan-bc6ae",
+          "configurations": {
+            "android": "1:92720287535:android:841f0a4c3b6f5b86cc5bda",
+            "web": "1:92720287535:web:cc939a4c065b408dcc5bda",
+            "windows": "1:92720287535:web:dc2d4076a567ddefcc5bda"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

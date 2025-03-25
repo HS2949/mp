@@ -1,0 +1,13 @@
+[
+    {
+      "maxAgeSeconds": 3600,
+      "method": ["GET"],
+      "origin": [
+        "https://mice-plan-bc6ae.firebaseapp.com",
+        "https://mice-plan-bc6ae.web.app",
+        "http://localhost:*"
+      ],
+      "responseHeader": ["Content-Type"]
+    }
+  ]
+  
