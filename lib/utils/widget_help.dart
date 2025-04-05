@@ -1,11 +1,11 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mp_db/constants/styles.dart';
+import 'package:url_launcher/url_launcher.dart';
 // 숫자 포맷을 위한 패키지
 
-//텍스트필드 지우기 버튼튼
+//텍스트필드 지우기 버튼
 class ClearButton extends StatelessWidget {
   const ClearButton({Key? key, required this.controller}) : super(key: key);
 
@@ -22,6 +22,7 @@ class ClearButton extends StatelessWidget {
                 icon: const Icon(Icons.clear,
                     color: AppTheme.primaryColor, size: 15),
                 onPressed: () => controller.clear(),
+                constraints: BoxConstraints(), // 최소 크기 제한 제거
                 focusNode: FocusNode(skipTraversal: true), // 탭 키 포커스 스킵
               )
             : const SizedBox.shrink(); // 빈 위젯 반환
@@ -70,6 +71,16 @@ Future<void> FiDeleteDialog({
       );
     },
   );
+}
+
+//홈페이지 열기
+void LaunchHomepage() async {
+  final url = Uri.parse('https://www.mice-plan.com');
+  if (await canLaunchUrl(url)) {
+    await launchUrl(url, mode: LaunchMode.externalApplication); // 또는 LaunchMode.inAppWebView
+  } else {
+    throw 'Could not launch $url';
+  }
 }
 
 // ScaffoldMessenger.of(context)

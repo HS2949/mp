@@ -1,10 +1,13 @@
 // Flutter의 Cupertino 스타일 위젯 라이브러리 임포트
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mp_db/constants/styles.dart';
 
 import 'package:mp_db/pages/home.dart';
+import 'package:mp_db/pages/planing_subpage.dart';
 
 import 'package:mp_db/providers/Item_detail/Item_detail_provider.dart';
 import 'package:mp_db/providers/Item_provider.dart';
@@ -46,6 +49,11 @@ void main() async {
     persistenceEnabled: true,
   );
 
+  await Hive.initFlutter();
+
+  Hive.registerAdapter(ScheduleEntryAdapter()); // 어댑터 등록
+  await Hive.openBox('scheduleBox'); // 이게 없으면 오류 발생
+  
   // 앱을 실행합니다. MyApp 위젯이 루트 위젯이 됩니다.
   runApp(const MyApp());
 }

@@ -340,40 +340,49 @@ class ItemProvider extends ChangeNotifier {
 
   void addTab(BuildContext context, String title, Widget first,
       {Widget? all, Widget? second}) {
-    // 1️ 이미 동일한 제목의 탭이 존재하는지 확인
+    // 1. 이미 동일한 제목의 탭이 존재하는지 확인
     final existingIndex = _tabTitles.indexWhere((tab) => tab.text == title);
-
     if (existingIndex != -1) {
-      // 2️ 존재하면 해당 탭으로 이동
+      // 이미 존재하면 해당 탭으로 이동
       _controller?.animateTo(existingIndex);
       _selectedIndex = existingIndex;
       notifyListeners();
       return;
     }
 
-    // 3️ 탭 최대 개수 초과 방지
+    // 2. 탭 최대 개수 초과 시 (0번은 고정된 리스트 탭이므로)
     if (_activeTabCount >= _maxTabs) {
-      showOverlayMessage(context, '최대 탭 수 ($_maxTabs개)에 도달했습니다.');
-      return;
+      if (_activeTabCount > 1) {
+        // 인덱스 1 탭 제거
+        removeTab(1);
+        // 제거가 UI에 반영된 후 새 탭 추가 (다음 프레임에 실행)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _tabTitles[_activeTabCount] = tabTitleSet(text: title);
+          _tabViews[_activeTabCount] =
+              tabViewSet(first: first, all: all, second: second);
+          _activeTabCount++;
+
+          // 새 탭으로 이동
+          _controller?.animateTo(_activeTabCount - 1);
+          _selectedIndex = _activeTabCount - 1;
+          notifyListeners();
+        });
+        return;
+      } else {
+        showOverlayMessage(context, '최대 탭 수 ($_maxTabs개)에 도달했습니다.');
+        return;
+      }
     }
 
-    // 4️ 새 탭 추가
+    // 3. 최대 개수를 넘지 않을 경우 바로 새 탭 추가
     _tabTitles[_activeTabCount] = tabTitleSet(text: title);
     _tabViews[_activeTabCount] =
         tabViewSet(first: first, all: all, second: second);
     _activeTabCount++;
 
-    // 5️ 새로 추가한 탭으로 이동
     _controller?.animateTo(_activeTabCount - 1);
     _selectedIndex = _activeTabCount - 1;
     notifyListeners();
-  }
-
-  int hoverIndex = -1; // 현재 마우스가 올라간 X 버튼의 인덱스
-
-  void setHoverIndex(int index) {
-    hoverIndex = index;
-    notifyListeners(); // UI 업데이트
   }
 
   void removeTab(int index) {

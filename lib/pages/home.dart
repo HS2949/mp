@@ -23,6 +23,7 @@ import 'package:mp_db/providers/auth/auth_provider.dart';
 import 'package:mp_db/providers/profile/profile_provider.dart';
 import 'package:mp_db/utils/FileCleanerScreen.dart';
 import 'package:mp_db/utils/two_line.dart';
+import 'package:mp_db/utils/widget_help.dart';
 import 'package:provider/provider.dart';
 
 // 타이포그래피 화면을 정의한 모듈 가져오기.
@@ -148,7 +149,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   ) =>
       switch (screenSelected) {
         // 선택된 화면에 따라 반환할 위젯을 지정.
-        ScreenSelected.home => Expanded(child: HomeSubpage()),
+        ScreenSelected.home =>
+          KeepAlivePage(child: Expanded(child: HomeSubpage())),
         ScreenSelected.item => Expanded(
             child: Item_Widget(
                 railAnimation: railAnimation,
@@ -218,56 +220,59 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
 
     return AppBar(
       automaticallyImplyLeading: false,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          // 조건에 따른 위젯 렌더링
-          if (!showMediumSizeLayout && !showLargeSizeLayout)
-            Flexible(
-              child: Image.asset(
-                'assets/images/mp_logo.png',
-                width: 100,
-                height: 50,
-                fit: BoxFit.scaleDown,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.error, size: 50, color: Colors.orange);
-                },
+      title: GestureDetector(
+        onTap: LaunchHomepage,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            // 조건에 따른 위젯 렌더링
+            if (!showMediumSizeLayout && !showLargeSizeLayout)
+              Flexible(
+                child: Image.asset(
+                  'assets/images/mp_logo.png',
+                  width: 100,
+                  height: 50,
+                  fit: BoxFit.scaleDown,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(Icons.error, size: 50, color: Colors.orange);
+                  },
+                ),
               ),
-            ),
 
-          SizedBox(width: 20),
-          if (showMediumSizeLayout || showLargeSizeLayout) ...[
-            Opacity(
-              opacity: 0.1,
-              child: Image.asset(
-                'assets/images/miceplan_font.png',
-                width: 250,
-                height: 100,
-                fit: BoxFit.scaleDown,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.error, size: 50, color: Colors.orange);
-                },
+            SizedBox(width: 20),
+            if (showMediumSizeLayout || showLargeSizeLayout) ...[
+              Opacity(
+                opacity: 0.1,
+                child: Image.asset(
+                  'assets/images/miceplan_font.png',
+                  width: 250,
+                  height: 100,
+                  fit: BoxFit.scaleDown,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(Icons.error, size: 50, color: Colors.orange);
+                  },
+                ),
+              ),
+              SizedBox(width: 60)
+            ],
+            Flexible(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end, // 텍스트를 바닥에 붙이기
+                crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 정렬
+                children: [
+                  Text(
+                    'Hello :)',
+                    style: AppTheme.textCGreyStyle,
+                  ),
+                  Text(
+                    '${user.name}  ${user.position}님',
+                    style: AppTheme.textCGreyStyle,
+                  ),
+                ],
               ),
             ),
-            SizedBox(width: 60)
           ],
-          Flexible(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end, // 텍스트를 바닥에 붙이기
-              crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 정렬
-              children: [
-                Text(
-                  'Hello :)',
-                  style: AppTheme.textCGreyStyle,
-                ),
-                Text(
-                  '${user.name}  ${user.position}님',
-                  style: AppTheme.textCGreyStyle,
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
 
       actions: !showMediumSizeLayout && !showLargeSizeLayout

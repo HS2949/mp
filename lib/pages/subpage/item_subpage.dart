@@ -183,7 +183,12 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
         padding: widget.padding,
         child: Row(
           children: [
-            Flexible(flex: 1, child: _CategoryButton(context)),
+            Flexible(
+                flex: 1,
+                child: GestureDetector(
+                    onDoubleTap: _pasteFromClipboard,
+                    onSecondaryTap: _pasteFromClipboard,
+                    child: _CategoryButton(context))),
             const SizedBox(width: 10),
             Flexible(
               fit: FlexFit.tight,
@@ -192,8 +197,6 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                 message: '# 입력 시 : 태그 검색\n오른쪽 버튼 : 클립보드 붙여넣기',
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onSecondaryTap: _pasteFromClipboard,
-                  onLongPress: _pasteFromClipboard,
                   onDoubleTap: () {
                     setState(() {
                       _provider.selectTab(0);
@@ -206,7 +209,16 @@ class _Item_pageState extends State<Item_page> with TickerProviderStateMixin {
                     decoration: InputDecoration(
                       labelText: labelText,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon:
+                          // const Icon(Icons.search),
+                          IconButton(
+                        icon: Icon(Icons.search,
+                            color: AppTheme.textLabelColor, size: 15),
+                        focusNode: FocusNode(skipTraversal: true),
+                        // padding: EdgeInsets.zero, // 내부 여백 제거
+                        constraints: BoxConstraints(), // 최소 크기 제한 제거
+                        onPressed: _pasteFromClipboard,
+                      ),
                       suffixIcon:
                           ClearButton(controller: _provider.searchController),
                     ),
@@ -348,25 +360,21 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
                       itemData['ItemName'] ?? 'No Name',
                       style: TextStyle(
                         color: provider.searchController.text.startsWith('#')
-                            ? AppTheme.textHintColor
+                            ? AppTheme.textLabelColor
                             : Colors.black,
                         fontSize: provider.searchController.text.startsWith('#')
-                            ? 15
+                            ? 16
                             : 16,
                       ),
                     ),
-                    subtitle: Text(
-                      itemData['keyword'] ?? '-'.replaceAll(' ', '   '),
+                    subtitle: RichText(
                       maxLines: 2,
-                      softWrap: true,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: provider.searchController.text.startsWith('#')
-                            ? AppTheme.text6Color
-                            : AppTheme.textHintColor,
-                        fontSize: provider.searchController.text.startsWith('#')
-                            ? 16
-                            : 13,
+                      text: TextSpan(
+                        children: _buildKeywordSpans(
+                          itemData['keyword'] ?? '-'.replaceAll(' ', '   '),
+                          provider.searchController.text.replaceAll('#',''),
+                        ),
                       ),
                     ),
                     onTap: () {
@@ -394,6 +402,47 @@ class _ItemListState extends State<ItemList> with TickerProviderStateMixin {
             ),
           );
   }
+}
+
+// 텍스트 색상 변경 (태그 검색 시)
+List<TextSpan> _buildKeywordSpans(String fullText, String searchText) {
+  // 검색어가 비어있거나 전체 텍스트에 포함되지 않는 경우
+  if (searchText.isEmpty || !fullText.contains(searchText)) {
+    return [
+      TextSpan(
+        text: fullText,
+        style: TextStyle(color: AppTheme.textHintColor, fontSize: 13),
+      ),
+    ];
+  }
+
+  List<TextSpan> spans = [];
+  int startIndex = fullText.indexOf(searchText);
+
+  // 검색어 앞의 텍스트 (기본 색상)
+  if (startIndex > 0) {
+    spans.add(TextSpan(
+      text: fullText.substring(0, startIndex),
+      style: TextStyle(color: AppTheme.textHintColor, fontSize: 13),
+    ));
+  }
+
+  // 검색어와 일치하는 부분 (강조 색상)
+  spans.add(TextSpan(
+    text: searchText,
+    style: TextStyle(color: AppTheme.text6Color, fontSize: 13),
+  ));
+
+  // 검색어 이후의 텍스트 (기본 색상)
+  final endIndex = startIndex + searchText.length;
+  if (endIndex < fullText.length) {
+    spans.add(TextSpan(
+      text: fullText.substring(endIndex),
+      style: TextStyle(color: AppTheme.textHintColor, fontSize: 13),
+    ));
+  }
+
+  return spans;
 }
 
 /// 한글 정렬을 위한 koreanCompare 함수

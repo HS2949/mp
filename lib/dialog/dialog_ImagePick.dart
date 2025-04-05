@@ -58,7 +58,8 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
     // 원본과 정확히 동일한 경우
     if (existingName == original) {
       localDuplicateFound = true;
-      highestLocalSequence = highestLocalSequence < 1 ? 1 : highestLocalSequence;
+      highestLocalSequence =
+          highestLocalSequence < 1 ? 1 : highestLocalSequence;
     } else {
       // "baseName_###extension" 형식인지 정규표현식으로 확인
       final regex = RegExp('^' +
@@ -91,7 +92,7 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
       .collection('files')
       .where('folder', isEqualTo: folder)
       .get();
-      print('데이터 읽기 ');
+  print('데이터 읽기 ');
 
   int highestFirestoreSequence = 0;
   bool firestoreDuplicateFound = false;
@@ -102,7 +103,8 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
     final existingFileName = data['fileName'] as String;
     if (existingFileName == candidateFileName) {
       firestoreDuplicateFound = true;
-      highestFirestoreSequence = highestFirestoreSequence < 1 ? 1 : highestFirestoreSequence;
+      highestFirestoreSequence =
+          highestFirestoreSequence < 1 ? 1 : highestFirestoreSequence;
     } else {
       final regex = RegExp('^' +
           RegExp.escape(baseName) +
@@ -121,7 +123,8 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
   }
 
   if (firestoreDuplicateFound) {
-    final newSequence = (highestFirestoreSequence + 1).toString().padLeft(3, '0');
+    final newSequence =
+        (highestFirestoreSequence + 1).toString().padLeft(3, '0');
     candidateFileName = '${baseName}_$newSequence$extension';
   }
 
@@ -133,7 +136,7 @@ Future<void> updateUniqueFileName(SelectedImageInfo imageInfo, String folder,
 Future<SelectedImageInfo> getImageInfo(XFile xfile) async {
   const int maxDimension = 2000; // 기본값 최대 크기 상수 지정
   const double minQuality = 20; // 기본값 최소 품질 값
-  const double maxFileSizeMB = 2; // 기본값 최대 파일 크기 (메가가)
+  const double maxFileSizeMB = 2; // 기본값 최대 파일 크기 (메가바이트)
 
   File file = File(xfile.path);
   Uint8List bytes = await file.readAsBytes();
@@ -141,10 +144,28 @@ Future<SelectedImageInfo> getImageInfo(XFile xfile) async {
   final decodedImage = await decodeImageFromList(bytes);
   int originalWidth = decodedImage.width;
   int originalHeight = decodedImage.height;
-  String extension = path.extension(xfile.path);
+  // 확장자를 소문자로 변환해서 비교
+  String extension = path.extension(xfile.path).toLowerCase();
   String fileName = path.basename(xfile.path);
   double fileSize =
       double.parse((sizeInBytes / 1024 / 1024).toStringAsFixed(2));
+
+  // 확장자가 .webp 인 경우, 원본 크기와 품질(100)을 그대로 사용
+  if (extension == '.webp') {
+    return SelectedImageInfo(
+      imageFile: xfile,
+      fileName: fileName,
+      sizeInBytes: sizeInBytes,
+      width: originalWidth,
+      height: originalHeight,
+      imageQuality: 100, // 웹p인 경우 원본 그대로
+      extension: extension,
+      originalWidth: originalWidth,
+      originalHeight: originalHeight,
+      originalfilename: fileName,
+      fileSize: fileSize,
+    );
+  }
 
   // 품질 계산 (선형 보간)
   double m = (minQuality - 100) / (maxFileSizeMB - 0.5);
@@ -158,7 +179,6 @@ Future<SelectedImageInfo> getImageInfo(XFile xfile) async {
   // 리사이징 로직 (최대 크기 maxDimension)
   int width = originalWidth;
   int height = originalHeight;
-
   if (originalWidth > maxDimension || originalHeight > maxDimension) {
     double scale = maxDimension /
         (originalWidth > originalHeight ? originalWidth : originalHeight);
@@ -567,12 +587,15 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                               fontSize: 12),
                                           children: [
                                             TextSpan(
-                                              text: '${imageInfo.fileSize} MB - (',
+                                              text:
+                                                  '${imageInfo.fileSize} MB - (',
                                             ),
                                             TextSpan(
                                               text: '${imageInfo.width}',
                                               style: TextStyle(
-                                                color: (imageInfo.originalWidth != imageInfo.width)
+                                                color: (imageInfo
+                                                            .originalWidth !=
+                                                        imageInfo.width)
                                                     ? AppTheme.textStrongColor
                                                     : Colors.white,
                                               ),
@@ -583,7 +606,9 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                             TextSpan(
                                               text: '${imageInfo.height}',
                                               style: TextStyle(
-                                                color: (imageInfo.originalHeight != imageInfo.height)
+                                                color: (imageInfo
+                                                            .originalHeight !=
+                                                        imageInfo.height)
                                                     ? AppTheme.textStrongColor
                                                     : Colors.white,
                                               ),
@@ -592,9 +617,11 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                               text: ') / ',
                                             ),
                                             TextSpan(
-                                              text: '${imageInfo.imageQuality}%',
+                                              text:
+                                                  '${imageInfo.imageQuality}%',
                                               style: TextStyle(
-                                                color: (100 != imageInfo.imageQuality)
+                                                color: (100 !=
+                                                        imageInfo.imageQuality)
                                                     ? AppTheme.textStrongColor
                                                     : Colors.white,
                                               ),
@@ -605,7 +632,8 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                       ),
                                     ),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: RichText(
@@ -617,13 +645,18 @@ class _SelectedImagesGridViewState extends State<SelectedImagesGridView> {
                                                 TextSpan(
                                                   text: '${imageInfo.fileName}',
                                                   style: TextStyle(
-                                                    color: (imageInfo.fileName != imageInfo.originalfilename)
-                                                        ? AppTheme.textStrongColor
+                                                    color: (imageInfo
+                                                                .fileName !=
+                                                            imageInfo
+                                                                .originalfilename)
+                                                        ? AppTheme
+                                                            .textStrongColor
                                                         : Colors.white,
                                                   ),
                                                 ),
                                                 TextSpan(
-                                                  text: ' (${imageInfo.extension})',
+                                                  text:
+                                                      ' (${imageInfo.extension})',
                                                 ),
                                               ],
                                             ),

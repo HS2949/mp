@@ -790,7 +790,6 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                     provider.removeTab(provider.selectedIndex);
                   },
                 ),
-                
                 MenuItemButton(
                   leadingIcon: const Icon(Icons.insert_drive_file_outlined),
                   child: const Text('파일 목록', style: AppTheme.textLabelStyle),
@@ -841,10 +840,19 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
               mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  color: color,
-                  size: 50,
+                GestureDetector(
+                  onSecondaryTap: () => _launchURL(
+                      "https://www.google.com/search?q=site%3Ainstagram.com%2Fexplore%2Flocations%2F+${itemData.itemName.replaceAll(' ', '')}"),
+                  onDoubleTap: () => _launchURL(
+                      "https://www.instagram.com/explore/search/keyword/?q=%23${itemData.itemName.replaceAll(' ', '')}"),
+                  child: Tooltip(
+                    message: "더블 클릭 : 인스타그램 키워드 검색\n오른쪽 버튼 : 인스타그램 장소 검색",
+                    child: Icon(
+                      icon,
+                      color: color,
+                      size: 50,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 15),
                 Column(
@@ -907,6 +915,28 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           9999;
       return orderA.compareTo(orderB);
     });
+    final Map<String, Color> labelColors = {
+      //키워드
+      '휴무': AppTheme.errorColor.withOpacity(0.3),
+      // '정원': AppTheme.text5Color.withOpacity(0.5),
+      '문구#1': AppTheme.textHintColor,
+      '문구#2': AppTheme.textHintColor,
+      '문구#3': AppTheme.textHintColor,
+      '문구#4': AppTheme.textHintColor,
+      '문구#5': AppTheme.textHintColor,
+      '활동': AppTheme.textHintColor,
+    };
+    final Map<String, Color> keyColors = {
+      //값
+      '휴무': const Color.fromARGB(255, 255, 0, 0), //.withOpacity(0.7),
+      '정원': const Color.fromARGB(255, 81, 34, 117),
+      '문구#1': AppTheme.textHintColor,
+      '문구#2': AppTheme.textHintColor,
+      '문구#3': AppTheme.textHintColor,
+      '문구#4': AppTheme.textHintColor,
+      '문구#5': AppTheme.textHintColor,
+      '활동': AppTheme.textHintColor,
+    };
 
     final sortedItemFields = Map<String, dynamic>.fromEntries(itemFieldEntries);
 
@@ -981,10 +1011,10 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                   .fieldMappings[entry.key]?['FieldName'] ??
                               entry.key;
                           // fieldOrder 가져오기
-                          final int fieldOrder = int.tryParse(
-                                  itemProvider.fieldMappings[entry.key]
-                                          ?['FieldOrder'] ??
-                                      '99') ??
+                          final int fieldOrder = int.tryParse(itemProvider
+                                      .fieldMappings[entry.key]?['FieldOrder']
+                                      .toString() ??
+                                  '99') ??
                               99;
 
                           final dynamic result =
@@ -1136,7 +1166,12 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                       widgetType:
                                                           TextWidgetType.plain,
                                                       style: AppTheme
-                                                          .fieldLabelTextStyle,
+                                                          .fieldLabelTextStyle
+                                                          .copyWith(
+                                                        color: labelColors[
+                                                                label] ??
+                                                            AppTheme.text4Color,
+                                                      ),
                                                       doGestureDetector: false,
                                                     ),
                                                   ),
@@ -1160,10 +1195,9 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                   tooltipText);
                                                       final value = match !=
                                                               null
-                                                          ? int.tryParse(
-                                                                  match.group(
-                                                                          1) ??
-                                                                      "") ??
+                                                          ? int.tryParse(match
+                                                                  .group(1)
+                                                                  .toString()) ??
                                                               0
                                                           : 0;
 
@@ -1243,7 +1277,11 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                               controller: TextEditingController(
                                                   text: result),
                                               style: AppTheme.bodySmallTextStyle
-                                                  .copyWith(fontSize: 13),
+                                                  .copyWith(
+                                                fontSize: 13,
+                                                color: keyColors[label] ??
+                                                    AppTheme.primaryColor,
+                                              ),
                                               maxLines: 0,
                                             ),
                                     ),
@@ -1304,13 +1342,26 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
           //키워드
           '입금가': AppTheme.text7Color.withOpacity(0.3),
           '청구가': AppTheme.text5Color.withOpacity(0.5),
-          '정상가': AppTheme.primaryColor
+          '정상가': AppTheme.primaryColor,
+          '문구#1': AppTheme.textHintColor,
+          '문구#2': AppTheme.textHintColor,
+          '문구#3': AppTheme.textHintColor,
+          '문구#4': AppTheme.textHintColor,
+          '문구#5': AppTheme.textHintColor,
+          '활동': AppTheme.textHintColor,
         };
         final Map<String, Color> fieldColors = {
           //값
           '입금가': AppTheme.text7Color.withOpacity(0.7),
           '청구가': const Color.fromARGB(255, 81, 34, 117),
-          '정상가': AppTheme.primaryColor
+          '정상가': AppTheme.primaryColor,
+          '문구#1': AppTheme.textHintColor,
+          '문구#2': AppTheme.textHintColor,
+          '문구#3': AppTheme.textHintColor,
+          '문구#4': AppTheme.textHintColor,
+          '문구#5': AppTheme.textHintColor,
+          '활동': AppTheme.textHintColor,
+          
         };
 
         Future<void> _handleLongPress(int groupIndex, BuildContext context,
@@ -1862,7 +1913,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                     // fieldOrder 가져오기
                                                                     final int
                                                                         fieldOrder =
-                                                                        int.tryParse(attribute['FieldOrder'] ??
+                                                                        int.tryParse(attribute['FieldOrder']?.toString() ??
                                                                                 '99') ??
                                                                             99;
 
@@ -1968,7 +2019,7 @@ class _ItemDetailSubpageState extends State<ItemDetailSubpage> {
                                                                                 (context) {
                                                                               // `D+숫자` 추출 및 스타일 적용
                                                                               final match = RegExp(r"D\+(\d+)").firstMatch(tooltipText);
-                                                                              final value = match != null ? int.tryParse(match.group(1) ?? "") ?? 0 : 0;
+                                                                              final value = match != null ? int.tryParse(match.group(1).toString()) ?? 0 : 0;
                                                                               return Text(
                                                                                 match?.group(0) ?? "",
                                                                                 style: AppTheme.bodySmallTextStyle.copyWith(
